@@ -1,15 +1,18 @@
 package flannel
 
 import (
+	"fmt"
 	"sync"
 
 	microerror "github.com/giantswarm/microkit/error"
 	micrologger "github.com/giantswarm/microkit/logger"
+	"github.com/giantswarm/operatorkit/tpr"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/giantswarm/flannel-operator/flag"
+	"github.com/giantswarm/flanneltpr"
 )
 
 // Config represents the configuration used to create a Crt service.
@@ -43,6 +46,7 @@ type Service struct {
 
 	// Internals.
 	bootOnce sync.Once
+	tpr      *tpr.TPR
 }
 
 // New creates a new configured Crt service.
@@ -63,11 +67,23 @@ func New(config Config) (*Service, error) {
 		return nil, microerror.MaskAnyf(invalidConfigError, "viper must not be empty")
 	}
 
+	tpr, err := tpr.New(tpr.Config{
+		Clientset: config.K8sClient,
+
+		Name:        flanneltpr.Name,
+		Version:     flanneltpr.VersionV1,
+		Description: flanneltpr.Description,
+	})
+	if err != nil {
+		return nil, microerror.MaskAnyf(err, "creating TPR util")
+	}
+
 	newService := &Service{
 		Config: config,
 
 		// Internals
 		bootOnce: sync.Once{},
+		tpr:      tpr,
 	}
 
 	return newService, nil
@@ -76,7 +92,15 @@ func New(config Config) (*Service, error) {
 // Boot starts the service and implements the watch for the flannel TPR.
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		// TODO: create tpr and start informer
+		err := s.tpr.CreateAndWait()
+		switch {
+		case tpr.IsAlreadyExists(err):
+			s.Logger.Log("info", "certificate third-party resource already exists")
+		case err != nil:
+			panic(fmt.Sprintf("could not create certificate resource: %#v", err))
+		default:
+			s.Logger.Log("info", "successfully created certificate third-party resource")
+		}
 	})
 }
 
