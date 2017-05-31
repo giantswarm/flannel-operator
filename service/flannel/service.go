@@ -95,11 +95,11 @@ func (s *Service) Boot() {
 		err := s.tpr.CreateAndWait()
 		switch {
 		case tpr.IsAlreadyExists(err):
-			s.Logger.Log("info", "certificate third-party resource already exists")
+			s.Logger.Log("info", "flannel third-party resource already exists")
 		case err != nil:
-			panic(fmt.Sprintf("could not create certificate resource: %#v", err))
+			panic(fmt.Sprintf("could not create flannel resource: %#v", err))
 		default:
-			s.Logger.Log("info", "successfully created certificate third-party resource")
+			s.Logger.Log("info", "successfully created flannel third-party resource")
 		}
 	})
 }
