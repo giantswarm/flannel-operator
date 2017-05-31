@@ -8,6 +8,7 @@ import (
 	microserver "github.com/giantswarm/microkit/server"
 	"github.com/spf13/viper"
 
+	"github.com/giantswarm/flannel-operator/flag"
 	"github.com/giantswarm/flannel-operator/server"
 	"github.com/giantswarm/flannel-operator/service"
 )
@@ -21,6 +22,7 @@ var (
 
 func main() {
 	var err error
+	f := flag.New()
 
 	// Create a new logger which is used by all packages.
 	var newLogger logger.Logger
@@ -41,7 +43,9 @@ func main() {
 		{
 			serviceConfig := service.DefaultConfig()
 
+			serviceConfig.Flag = f
 			serviceConfig.Logger = newLogger
+			serviceConfig.Viper = v
 
 			serviceConfig.Description = description
 			serviceConfig.GitCommit = gitCommit
@@ -91,6 +95,14 @@ func main() {
 			panic(err)
 		}
 	}
+
+	daemonCommand := newCommand.DaemonCommand().CobraCommand()
+
+	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.Address, "", "Address used to connect to Kubernetes. When empty in-cluster config is created.")
+	daemonCommand.PersistentFlags().Bool(f.Service.Kubernetes.InCluster, true, "Whether to use the in-cluster config to authenticate with Kubernetes.")
+	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.CAFile, "", "Certificate authority file path to use to authenticate with Kubernetes.")
+	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.CrtFile, "", "Certificate file path to use to authenticate with Kubernetes.")
+	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.KeyFile, "", "Key file path to use to authenticate with Kubernetes.")
 
 	newCommand.CobraCommand().Execute()
 }

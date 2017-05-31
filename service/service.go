@@ -61,8 +61,14 @@ func New(config Config) (*Service, error) {
 	if config.KubernetesClient == nil {
 		return nil, microerror.MaskAnyf(invalidConfigError, "kubernetes client must be set")
 	}
+	if config.Flag == nil {
+		return nil, microerror.MaskAnyf(invalidConfigError, "flag must be set")
+	}
 	if config.Logger == nil {
 		return nil, microerror.MaskAnyf(invalidConfigError, "logger must not be empty")
+	}
+	if config.Viper == nil {
+		return nil, microerror.MaskAnyf(invalidConfigError, "viper must be set")
 	}
 
 	config.Logger.Log("debug", fmt.Sprintf("creating flannel-operator with config: %#v", config))
