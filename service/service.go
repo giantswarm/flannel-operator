@@ -21,9 +21,8 @@ import (
 // Config represents the configuration used to create a new service.
 type Config struct {
 	// Dependencies.
-	KubernetesClient *kubernetes.Clientset
-	Logger           micrologger.Logger
-	VaultClient      *vaultapi.Client
+	Logger      micrologger.Logger
+	VaultClient *vaultapi.Client
 
 	// Settings.
 	Flag  *flag.Flag
@@ -40,9 +39,8 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		// Dependencies.
-		KubernetesClient: nil,
-		Logger:           nil,
-		VaultClient:      nil,
+		Logger:      nil,
+		VaultClient: nil,
 
 		// Settings.
 		Flag:  nil,
@@ -58,9 +56,6 @@ func DefaultConfig() Config {
 // New creates a new configured service object.
 func New(config Config) (*Service, error) {
 	// Dependencies.
-	if config.KubernetesClient == nil {
-		return nil, microerror.MaskAnyf(invalidConfigError, "kubernetes client must be set")
-	}
 	if config.Flag == nil {
 		return nil, microerror.MaskAnyf(invalidConfigError, "flag must be set")
 	}
