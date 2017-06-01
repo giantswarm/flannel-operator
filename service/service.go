@@ -73,6 +73,7 @@ func New(config Config) (*Service, error) {
 	var k8sClient kubernetes.Interface
 	{
 		c := k8s.Config{
+			Logger: config.Logger,
 			TLS: k8s.TLSClientConfig{
 				CAFile:  config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.CAFile),
 				CrtFile: config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.CrtFile),
