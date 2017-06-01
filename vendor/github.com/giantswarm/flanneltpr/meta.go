@@ -4,7 +4,7 @@ package flanneltpr
 
 const (
 	// Name represents the name of the third party resource within Kubernetes.
-	Name = "flannel.network.giantswarm.io"
+	Name = "flannel-network.giantswarm.io"
 
 	// VersionV1 is the v1 version of this resource.
 	VersionV1 = "v1"

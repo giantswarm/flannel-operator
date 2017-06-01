@@ -1,5 +1,5 @@
-hash: 1e504aff11a84c1b1cd93bfeae28e3b6da55aaf27d0c125c0d85e66037898890
-updated: 2017-06-01T10:36:50.83561596+02:00
+hash: ec37754eabeeb8f448f8a5361197ec801c0d15efd82b36ca3e2b9c3688a06bb4
+updated: 2017-06-01T11:39:10.290477472+02:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -61,7 +61,10 @@ imports:
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/giantswarm/flanneltpr
-  version: 6bd3701261bbe6291e06ae6f6df2d448fd8d4ff8
+  version: 24a45834addc619f610ea6587e9e1b86242f5f2d
+  subpackages:
+  - host
+  - network
 - name: github.com/giantswarm/microkit
   version: ef2f8fdba32a0a0275d739abf84371e36880ecdc
   subpackages:
@@ -217,10 +220,6 @@ imports:
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/sethgrid/pester
   version: 4f4c0a67b6496764028e1ab9fd8dfb630282ed2f
-- name: github.com/Sirupsen/logrus
-  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
-  subpackages:
-  - formatters/logstash
 - name: github.com/spf13/afero
   version: 9be650865eab0c12963d8753212f4f9c66cdcf12
   subpackages:
