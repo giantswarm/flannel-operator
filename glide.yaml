@@ -1,5 +1,7 @@
 package: github.com/giantswarm/flannel-operator
 import:
+- package: github.com/giantswarm/flanneltpr
+  version: master
 - package: github.com/giantswarm/microkit
   version: master
   subpackages:
@@ -8,9 +10,9 @@ import:
   - flag
   - logger
   - server
-- package: github.com/giantswarm/operatorkit
-  version: master
 - package: github.com/golang/protobuf
   version: 8ee79997227bf9b34611aee7946ae64735e6fd93
 - package: google.golang.org/grpc
   version: 777daa17ff9b5daef1cfdf915088a2ada3332bf0
+- package: github.com/giantswarm/operatorkit
+  version: master
