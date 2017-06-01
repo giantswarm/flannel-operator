@@ -9,9 +9,11 @@ import (
 	"github.com/giantswarm/operatorkit/tpr"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/giantswarm/flannel-operator/flag"
+	"github.com/giantswarm/flannel-operator/service/flannel/k8sutil"
 	"github.com/giantswarm/flanneltpr"
 )
 
@@ -102,6 +104,30 @@ func (s *Service) Boot() {
 			s.Logger.Log("info", "successfully created flannel third-party resource")
 		}
 	})
+
+	var informer *cache.Controller
+	{
+		zeroObject := k8sutil.ZeroObjectFactoryFuncs{
+			NewObjectFunc:     func() runtime.Object { return new(flanneltpr.CustomObject) },
+			NewObjectListFunc: func() runtime.Object { return new(flanneltpr.List) },
+		}
+		observer := k8sutil.ObserverFuncs{
+			OnListFunc: func() {
+				s.Logger.Log("debug", "executing the reconciler's list function", "event", "list")
+			},
+			OnWatchFunc: func() {
+				s.Logger.Log("debug", "executing the reconciler's watch function", "event", "watch")
+			},
+		}
+		handler := cache.ResourceEventHandlerFuncs{
+			AddFunc:    s.addFunc,
+			DeleteFunc: s.deleteFunc,
+		}
+		informer = k8sutil.NewInformer(s.K8sClient, s.tpr, zeroObject, observer, handler)
+	}
+
+	s.Logger.Log("debug", "starting list/watch")
+	informer.Run(nil)
 }
 
 // addFunc does nothing as the operator reacts only on TPO delete.
@@ -110,11 +136,6 @@ func (s *Service) addFunc(obj interface{}) {}
 // deleteFunc waits for the delting cluster's namespace to be fully deleted and
 // then cleans up flannel bridges.
 func (s *Service) deleteFunc(obj interface{}) {
-	panic("TODO: implement")
+	s.Logger.Log("info", "TODO: implement")
 
-}
-
-// newListWatch returns a configured list watch for the flannel TPR.
-func (s *Service) newListWatch() *cache.ListWatch {
-	panic("TODO: implement")
 }
