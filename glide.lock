@@ -1,5 +1,5 @@
-hash: 5ddd95dfba78af9bc0f7ab6c627ccade615cf2f91b48b2be05bfd732f79abf25
-updated: 2017-05-31T16:34:42.44329776+02:00
+hash: ec37754eabeeb8f448f8a5361197ec801c0d15efd82b36ca3e2b9c3688a06bb4
+updated: 2017-06-01T10:12:41.634843443+02:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -60,38 +60,6 @@ imports:
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
-- name: github.com/giantswarm/awstpr
-  version: 2ace4f24860c84784c5df90d94162400ead447b8
-  subpackages:
-  - aws
-  - aws/hostedzones
-  - aws/ssm
-  - aws/ssm/docker
-  - aws/vpc
-- name: github.com/giantswarm/clustertpr
-  version: 13ee60687afcd5e519d1d3e8a60c1c57d2d21ccf
-  subpackages:
-  - calico
-  - cluster
-  - customer
-  - docker
-  - docker/daemon
-  - docker/registry
-  - etcd
-  - kubernetes
-  - kubernetes/api
-  - kubernetes/dns
-  - kubernetes/hyperkube
-  - kubernetes/hyperkube/docker
-  - kubernetes/ingress
-  - kubernetes/kubectl
-  - kubernetes/kubectl/docker
-  - kubernetes/kubelet
-  - kubernetes/networksetup
-  - kubernetes/networksetup/docker
-  - kubernetes/ssh
-  - node
-  - vault
 - name: github.com/giantswarm/flanneltpr
   version: 6bd3701261bbe6291e06ae6f6df2d448fd8d4ff8
 - name: github.com/giantswarm/microkit
@@ -200,6 +168,8 @@ imports:
   version: 77ed1c8a01217656d2080ad51981f6e99adaa177
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/kubernetes/client-go
+  version: e121606b0d09b2e1c467183ee46217fa85a6b672
 - name: github.com/magiconair/properties
   version: 51463bfca2576e06c62a8504b5c0f06d61312647
 - name: github.com/mailru/easyjson
