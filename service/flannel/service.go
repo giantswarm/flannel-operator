@@ -143,13 +143,23 @@ func (s *Service) addFunc(obj interface{}) {}
 // deleteFunc waits for the delting cluster's namespace to be fully deleted and
 // then cleans up flannel bridges.
 func (s *Service) deleteFunc(obj interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			s.Logger.Log("error", "recovered in deleteFunc", "panic", r, "event", "delete")
+		}
+	}()
+	err := s.deleteFuncError(obj)
+	if err != nil {
+		s.Logger.Log("error", fmt.Sprintf("%#v", err), "event", "delete")
+	}
+}
+
+func (s *Service) deleteFuncError(obj interface{}) error {
 	var spec flanneltpr.Spec
 	{
 		o, ok := obj.(*flanneltpr.CustomObject)
 		if !ok {
-			err := microerror.MaskAnyf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
-			s.Logger.Log("error", fmt.Sprintf("%#v", err))
-			return
+			return microerror.MaskAnyf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
 		}
 		spec = o.Spec
 	}
@@ -172,7 +182,10 @@ func (s *Service) deleteFunc(obj interface{}) {
 			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "namespace", spec.Namespace)
 		}
 
-		backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
+		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
+		if err != nil {
+			return microerror.MaskAnyf(err, "failed waiting for namespace %s to be deleted", spec.Namespace)
+		}
 	}
 
 	s.Logger.Log("debug", "cluster namespace deleted, cleaning flannel resources", "namespace", spec.Namespace)
@@ -183,20 +196,18 @@ func (s *Service) deleteFunc(obj interface{}) {
 		pa := newPodAffinity(spec)
 		data, err := json.Marshal(pa)
 		if err != nil {
-			s.Logger.Log("error", fmt.Sprintf("%#v", microerror.MaskAnyf(err, "marshalling podAffinity JSON")))
-			return
+			return microerror.MaskAnyf(err, "marshalling podAffinity JSON")
 		}
 		podAffinity = string(data)
 	}
 
 	var replicas int32
 	{
+		// All nodes are listed assuming that master nodes run kubelets.
 		nodes, err := s.K8sClient.CoreV1().Nodes().List(v1.ListOptions{})
 		if err != nil {
-			s.Logger.Log("error", fmt.Sprintf("%#v", microerror.MaskAnyf(err, "requesting cluster node list")))
-			return
+			return microerror.MaskAnyf(err, "requesting cluster node list")
 		}
-		// Assuming master node is running a kubelet.
 		replicas = int32(len(nodes.Items))
 	}
 
@@ -208,8 +219,7 @@ func (s *Service) deleteFunc(obj interface{}) {
 
 	_, err := s.K8sClient.ExtensionsV1beta1().Deployments(namespace).Create(deployment)
 	if err != nil {
-		s.Logger.Log("error", fmt.Sprintf("%#v", microerror.MaskAnyf(err, "creating deployment %s", deployment.Name)))
-		return
+		return microerror.MaskAnyf(err, "creating deployment %s", deployment.Name)
 	}
 
 	// Wait for the cleanup to complete and delete pods.
@@ -239,7 +249,10 @@ func (s *Service) deleteFunc(obj interface{}) {
 			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "namespace", spec.Namespace)
 		}
 
-		backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
+		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
+		if err != nil {
+			return microerror.MaskAnyf(err, "waiting for pods to finish flannel cleanup")
+		}
 	}
 
 	// Cleanup pods.
@@ -249,10 +262,10 @@ func (s *Service) deleteFunc(obj interface{}) {
 		}
 		err := s.K8sClient.CoreV1().Pods(namespace).DeleteCollection(&v1.DeleteOptions{}, opts)
 		if err != nil {
-			s.Logger.Log("error", fmt.Sprintf("%#v", microerror.MaskAnyf(err, "deleting flannel cleanup pods")))
-			return
+			return microerror.MaskAnyf(err, "deleting flannel cleanup pods")
 		}
 	}
 
 	s.Logger.Log("info", "finished flannel cleanup for cluster %s", spec.Namespace)
+	return nil
 }
