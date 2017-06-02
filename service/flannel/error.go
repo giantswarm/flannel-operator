@@ -10,3 +10,10 @@ var invalidConfigError = errgo.New("invalid config")
 func IsInvalidConfig(err error) bool {
 	return errgo.Cause(err) == invalidConfigError
 }
+
+var wrongTypeError = errgo.New("wrong type")
+
+// IsWrongTypeError asserts wrongTypeError.
+func IsWrongTypeError(err error) bool {
+	return errgo.Cause(err) == wrongTypeError
+}
