@@ -1,14 +1,18 @@
 package flannel
 
 import (
+	"errors"
 	"fmt"
 	"sync"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	microerror "github.com/giantswarm/microkit/error"
 	micrologger "github.com/giantswarm/microkit/logger"
 	"github.com/giantswarm/operatorkit/tpr"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
+	k8serrors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 
@@ -136,6 +140,34 @@ func (s *Service) addFunc(obj interface{}) {}
 // deleteFunc waits for the delting cluster's namespace to be fully deleted and
 // then cleans up flannel bridges.
 func (s *Service) deleteFunc(obj interface{}) {
-	s.Logger.Log("info", "TODO: implement")
+	spec := obj.(*flanneltpr.CustomObject).Spec
 
+	// Wait for the cluster's namespace to be deleted.
+	{
+		// op does not mask errors, they are used only to be loggen in notify.
+		op := func() error {
+			_, err := s.K8sClient.CoreV1().Namespaces().Get(spec.Namespace)
+			if err != nil && k8serrors.IsNotFound(err) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			return errors.New("still exists")
+		}
+
+		notify := func(reason error, interval time.Duration) {
+			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "namespace", spec.Namespace)
+		}
+
+		backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
+	}
+
+	s.Logger.Log("debug", "cluster namespace deleted, cleaning flannel resources", "namespace", spec.Namespace)
+
+	s.deleteFlannelResources(spec)
+}
+
+func (s *Service) deleteFlannelResources(spec flanneltpr.Spec) {
+	s.Logger.Log("warn", "TODO: implement")
 }
