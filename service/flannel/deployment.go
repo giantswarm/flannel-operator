@@ -133,7 +133,6 @@ func newDeployment(spec flanneltpr.Spec, replicas int32) *extensionsv1.Deploymen
 							Command: []string{
 								"/bin/sh",
 								"-c",
-								// TODO how to wait when bridge is deleted; there was: while [ ! -f ${NETWORK_ENV_FILE_PATH} ]; do echo \"Waiting for ${NETWORK_ENV_FILE_PATH} to be created\"; sleep 1; done;
 								"/docker-entrypoint.sh delete ${NETWORK_ENV_FILE_PATH} ${NETWORK_BRIDGE_NAME} ${NETWORK_INTERFACE_NAME} ${HOST_PRIVATE_NETWORK}",
 							},
 							Env: []apiv1.EnvVar{
