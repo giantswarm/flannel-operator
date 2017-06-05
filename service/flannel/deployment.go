@@ -17,11 +17,11 @@ func newDeployment(spec flanneltpr.Spec, replicas int32) *extensionsv1.Deploymen
 			APIVersion: "extensions/v1beta",
 		},
 		ObjectMeta: apiv1.ObjectMeta{
-			Name: app,
+			Name: destroyerApp,
 			Labels: map[string]string{
 				"cluster":  clusterName(spec),
 				"customer": clusterCustomer(spec),
-				"app":      app,
+				"app":      destroyerApp,
 			},
 		},
 		Spec: extensionsv1.DeploymentSpec{
@@ -31,11 +31,11 @@ func newDeployment(spec flanneltpr.Spec, replicas int32) *extensionsv1.Deploymen
 			Replicas: &replicas,
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: apiv1.ObjectMeta{
-					GenerateName: app,
+					GenerateName: destroyerApp,
 					Labels: map[string]string{
 						"cluster":  clusterName(spec),
 						"customer": clusterCustomer(spec),
-						"app":      app,
+						"app":      destroyerApp,
 					},
 					Annotations: map[string]string{
 						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",

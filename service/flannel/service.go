@@ -190,6 +190,15 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 	s.Logger.Log("debug", "cluster namespace deleted, cleaning flannel resources", "namespace", spec.Namespace)
 
+	// Create namespace for the cleanup job.
+	{
+		ns := newNamespace(spec)
+		_, err := s.K8sClient.CoreV1().Namespaces().Create(ns)
+		if err != nil {
+			return microerror.MaskAnyf(err, "creating namespace %s", ns.Name)
+		}
+	}
+
 	// Schedule flannel resources cleanup on every node using deployment.
 	var podAffinity string
 	{
@@ -217,7 +226,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		deployment.Spec.Template.Annotations["scheduler.alpha.kubernetes.io/affinity"] = podAffinity
 	}
 
-	_, err := s.K8sClient.ExtensionsV1beta1().Deployments(namespace).Create(deployment)
+	_, err := s.K8sClient.ExtensionsV1beta1().Deployments(destroyerNamespace(spec)).Create(deployment)
 	if err != nil {
 		return microerror.MaskAnyf(err, "creating deployment %s", deployment.Name)
 	}
@@ -229,7 +238,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 			opts := v1.ListOptions{
 				LabelSelector: "app=" + deployment.Spec.Template.ObjectMeta.Labels["app"],
 			}
-			pods, err := s.K8sClient.CoreV1().Pods(namespace).List(opts)
+			pods, err := s.K8sClient.CoreV1().Pods(destroyerNamespace(spec)).List(opts)
 			if err != nil {
 				return microerror.MaskAnyf(err, "requesting cluster pod list")
 			}
@@ -255,14 +264,12 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 	}
 
-	// Cleanup pods.
+	// Cleanup.
 	{
-		opts := v1.ListOptions{
-			LabelSelector: "app=" + deployment.Spec.Template.ObjectMeta.Labels["app"],
-		}
-		err := s.K8sClient.CoreV1().Pods(namespace).DeleteCollection(&v1.DeleteOptions{}, opts)
+		ns := destroyerNamespace(spec)
+		err := s.K8sClient.CoreV1().Namespaces().Delete(ns, &v1.DeleteOptions{})
 		if err != nil {
-			return microerror.MaskAnyf(err, "deleting flannel cleanup pods")
+			return microerror.MaskAnyf(err, "deleting namespace %s", ns)
 		}
 	}
 
