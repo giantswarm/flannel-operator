@@ -18,7 +18,7 @@ func newPodAffinity(spec flanneltpr.Spec) *api.Affinity {
 							{
 								Key:      "app",
 								Operator: unversioned.LabelSelectorOpIn,
-								Values:   []string{app},
+								Values:   []string{app(spec)},
 							},
 						},
 					},

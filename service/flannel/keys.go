@@ -5,9 +5,12 @@ import (
 )
 
 const (
-	app       = "flannel-destroyer"
 	namespace = "giantswarm"
 )
+
+func app(spec flanneltpr.Spec) string {
+	return "flannel-destroyer-" + clusterID(spec)
+}
 
 func clusterCustomer(spec flanneltpr.Spec) string {
 	// TODO pass clusterCustomer with TPO
