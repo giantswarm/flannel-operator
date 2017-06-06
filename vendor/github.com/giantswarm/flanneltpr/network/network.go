@@ -1,8 +1,13 @@
 package network
 
+import (
+	"github.com/giantswarm/flanneltpr/network/bridge"
+)
+
 // Network holds information used for the execution of the Docker entrypoint of
 // https://github.com/giantswarm/k8s-network-bridge.
 type Network struct {
+	Bridge bridge.Bridge `json:"bridge" yaml:"bridge"`
 	// BridgeName contains the value for the environment variable
 	// ${NETWORK_BRIDGE_NAME} in the Docker entrypoint of
 	// https://github.com/giantswarm/k8s-network-bridge.

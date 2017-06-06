@@ -34,8 +34,7 @@ func hostPrivateNetwork(spec flanneltpr.Spec) string {
 }
 
 func networkBridgeDockerImage(spec flanneltpr.Spec) string {
-	// TODO add networkBridgeDockerImage to flanneltpr
-	return "quay.io/giantswarm/k8s-network-bridge:201e9213e30af01c49f8ad30e5a7b9aed4755466"
+	return spec.Network.Bridge.Docker.Image
 }
 
 func networkBridgeName(spec flanneltpr.Spec) string {
