@@ -253,6 +253,14 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 	}
 
+	// Cleanup etcd.
+	{
+		err := s.cleanupEtcd(spec)
+		if err != nil {
+			return microerror.MaskAny(err)
+		}
+	}
+
 	// The operator's resources cleanup.
 	{
 		ns := destroyerNamespace(spec)

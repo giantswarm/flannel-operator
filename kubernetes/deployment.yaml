@@ -14,6 +14,7 @@ spec:
       labels:
         app: flannel-operator
     spec:
+      hostNetwork: true
       volumes:
       - name: flannel-operator-configmap
         configMap:
