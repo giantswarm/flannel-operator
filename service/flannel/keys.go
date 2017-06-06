@@ -9,7 +9,7 @@ const (
 )
 
 func destroyerNamespace(spec flanneltpr.Spec) string {
-	return "flannel-destroyer-" + clusterID(spec)
+	return destroyerApp + "-" + clusterID(spec)
 }
 
 func clusterCustomer(spec flanneltpr.Spec) string {
