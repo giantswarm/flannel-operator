@@ -220,7 +220,6 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		replicas = int32(len(nodes.Items))
 	}
 
-	s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Namespace)
 	var deployment *v1beta1.Deployment
 	{
 		deployment = newDeployment(spec, replicas)
@@ -231,6 +230,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	if err != nil {
 		return microerror.MaskAnyf(err, "creating deployment %s", deployment.Name)
 	}
+	s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Namespace)
 
 	// Wait for the cleanup to complete and delete pods.
 	{
