@@ -179,7 +179,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 
 		notify := func(reason error, interval time.Duration) {
-			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "namespace", spec.Namespace)
+			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "cluster", spec.Namespace)
 		}
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
@@ -188,7 +188,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 	}
 
-	s.Logger.Log("debug", "cluster namespace deleted, cleaning flannel resources", "namespace", spec.Namespace)
+	s.Logger.Log("debug", "cluster namespace deleted, cleaning flannel resources", "cluster", spec.Namespace)
 
 	// Create namespace for the cleanup job.
 	{
@@ -220,6 +220,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		replicas = int32(len(nodes.Items))
 	}
 
+	s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Namespace)
 	var deployment *v1beta1.Deployment
 	{
 		deployment = newDeployment(spec, replicas)
@@ -249,13 +250,14 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 				}
 			}
 			if succeeded != len(pods.Items) {
-				return fmt.Errorf("flannel cleanup in progress %d/%d", succeeded, len(pods.Items))
+				return fmt.Errorf("network bridge cleanup in progress %d/%d", succeeded, len(pods.Items))
 			}
+			s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup finished on %d nodes", suceeded), "cluster", spec.Namespace)
 			return nil
 		}
 
 		notify := func(reason error, interval time.Duration) {
-			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "namespace", spec.Namespace)
+			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "cluster", spec.Namespace)
 		}
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
@@ -273,6 +275,6 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 	}
 
-	s.Logger.Log("info", "finished flannel cleanup for cluster %s", spec.Namespace)
+	s.Logger.Log("info", "finished flannel cleanup for cluster", "cluster", spec.Namespace)
 	return nil
 }
