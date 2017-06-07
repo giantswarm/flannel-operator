@@ -37,9 +37,9 @@ spec:
         resources:
           requests:
             cpu: 100m
-            memory: 100Mi
+            memory: 20Mi
           limits:
             cpu: 250m
-            memory: 100Mi
+            memory: 20Mi
       imagePullSecrets:
       - name: giantswarm-registry

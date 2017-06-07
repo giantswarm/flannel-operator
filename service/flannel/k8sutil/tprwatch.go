@@ -44,8 +44,8 @@ type ObserverFuncs struct {
 	OnWatchFunc func()
 }
 
-func (o ObserverFuncs) OnList()  { o.OnList() }
-func (o ObserverFuncs) OnWatch() { o.OnWatch() }
+func (o ObserverFuncs) OnList()  { o.OnListFunc() }
+func (o ObserverFuncs) OnWatch() { o.OnWatchFunc() }
 
 // NewInformer returns a configured informer for the TPR.
 func NewInformer(
