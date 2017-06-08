@@ -249,8 +249,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 					succeeded++
 				}
 			}
-			if succeeded != len(pods.Items) {
-				return fmt.Errorf("network bridge cleanup in progress %d/%d", succeeded, len(pods.Items))
+			if succeeded != int(replicas) {
+				return fmt.Errorf("network bridge cleanup in progress %d/%d", succeeded, replicas)
 			}
 			s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup finished on %d nodes", succeeded), "cluster", spec.Namespace)
 			return nil
