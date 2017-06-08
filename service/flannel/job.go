@@ -40,7 +40,8 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 					},
 				},
 				Spec: apiv1.PodSpec{
-					HostNetwork: true,
+					RestartPolicy: apiv1.RestartPolicyOnFailure,
+					HostNetwork:   true,
 					Volumes: []apiv1.Volume{
 						{
 							Name: "cgroup",
