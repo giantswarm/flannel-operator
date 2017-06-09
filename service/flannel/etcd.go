@@ -14,6 +14,7 @@ func (s *Service) cleanupEtcd(spec flanneltpr.Spec) error {
 
 	config := storage.Config{
 		EtcdAddress: endpoint,
+		Kind:        storage.KindEtcd,
 	}
 
 	store, err := storage.New(config)
