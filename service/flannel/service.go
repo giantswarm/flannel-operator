@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	k8serrors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 
@@ -199,7 +198,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 	}
 
-	// Schedule flannel resources cleanup on every node using deployment.
+	// Schedule flannel resources cleanup on every node using anti affinity
+	// with hostname topology.
 	var podAffinity string
 	{
 		pa := newPodAffinity(spec)
@@ -220,53 +220,47 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		replicas = int32(len(nodes.Items))
 	}
 
-	var deployment *v1beta1.Deployment
+	// Create a bridge cleanup job.
+	var jobName string
 	{
-		deployment = newDeployment(spec, replicas)
-		deployment.Spec.Template.Annotations["scheduler.alpha.kubernetes.io/affinity"] = podAffinity
+		job := newJob(spec, replicas)
+		job.Spec.Template.Annotations["scheduler.alpha.kubernetes.io/affinity"] = podAffinity
+
+		_, err := s.K8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Create(job)
+		if err != nil {
+			return microerror.MaskAnyf(err, "creating job %s", jobName)
+		}
+		s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Namespace)
+
+		jobName = job.Name
 	}
 
-	_, err := s.K8sClient.ExtensionsV1beta1().Deployments(destroyerNamespace(spec)).Create(deployment)
-	if err != nil {
-		return microerror.MaskAnyf(err, "creating deployment %s", deployment.Name)
-	}
-	s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Namespace)
-
-	// Wait for the cleanup to complete and delete pods.
+	// Wait for the cleanup job to complete.
 	{
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
-			opts := v1.ListOptions{
-				LabelSelector: "app=" + deployment.Spec.Template.ObjectMeta.Labels["app"],
-			}
-			pods, err := s.K8sClient.CoreV1().Pods(destroyerNamespace(spec)).List(opts)
+			job, err := s.K8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Get(jobName)
 			if err != nil {
-				return microerror.MaskAnyf(err, "requesting cluster pod list")
+				return microerror.MaskAnyf(err, "requesting get job %s", jobName)
 			}
-			succeeded := 0
-			for _, p := range pods.Items {
-				if p.Status.Phase == v1.PodSucceeded {
-					succeeded++
-				}
+			if job.Status.Succeeded != replicas {
+				return fmt.Errorf("network bridge cleanup in progress %d/%d, %d failures", job.Status.Succeeded, replicas, job.Status.Failed)
 			}
-			if succeeded != int(replicas) {
-				return fmt.Errorf("network bridge cleanup in progress %d/%d", succeeded, replicas)
-			}
-			s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup finished on %d nodes", succeeded), "cluster", spec.Namespace)
+			s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup finished on %d nodes", job.Status.Succeeded), "cluster", spec.Namespace)
 			return nil
 		}
 
 		notify := func(reason error, interval time.Duration) {
-			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "cluster", spec.Namespace)
+			s.Logger.Log("debug", "waiting for the namespace to be removed, reason: "+reason.Error(), "cluster", spec.Namespace)
 		}
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
 		if err != nil {
-			return microerror.MaskAnyf(err, "waiting for pods to finish flannel cleanup")
+			return microerror.MaskAnyf(err, "waiting for pods to finish network bridge cleanup")
 		}
 	}
 
-	// Cleanup.
+	// The operator's resources cleanup.
 	{
 		ns := destroyerNamespace(spec)
 		err := s.K8sClient.CoreV1().Namespaces().Delete(ns, &v1.DeleteOptions{})

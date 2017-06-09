@@ -3,15 +3,15 @@ package flannel
 import (
 	apiunversioned "k8s.io/client-go/pkg/api/unversioned"
 	apiv1 "k8s.io/client-go/pkg/api/v1"
-	extensionsv1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	batchv1 "k8s.io/client-go/pkg/apis/batch/v1"
 
 	"github.com/giantswarm/flanneltpr"
 )
 
-func newDeployment(spec flanneltpr.Spec, replicas int32) *extensionsv1.Deployment {
+func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 	privileged := true
 
-	return &extensionsv1.Deployment{
+	return &batchv1.Job{
 		TypeMeta: apiunversioned.TypeMeta{
 			Kind:       "deployment",
 			APIVersion: "extensions/v1beta",
@@ -24,11 +24,9 @@ func newDeployment(spec flanneltpr.Spec, replicas int32) *extensionsv1.Deploymen
 				"app":      destroyerApp,
 			},
 		},
-		Spec: extensionsv1.DeploymentSpec{
-			Strategy: extensionsv1.DeploymentStrategy{
-				Type: extensionsv1.RecreateDeploymentStrategyType,
-			},
-			Replicas: &replicas,
+		Spec: batchv1.JobSpec{
+			Parallelism: &replicas,
+			Completions: &replicas,
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: apiv1.ObjectMeta{
 					GenerateName: destroyerApp,
@@ -42,7 +40,8 @@ func newDeployment(spec flanneltpr.Spec, replicas int32) *extensionsv1.Deploymen
 					},
 				},
 				Spec: apiv1.PodSpec{
-					HostNetwork: true,
+					RestartPolicy: apiv1.RestartPolicyOnFailure,
+					HostNetwork:   true,
 					Volumes: []apiv1.Volume{
 						{
 							Name: "cgroup",
