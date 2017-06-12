@@ -65,29 +65,13 @@ func New(config Config) (*Service, error) {
 		return nil, microerror.MaskAnyf(invalidConfigError, "viper must not be empty")
 	}
 
-	newService := &Service{
-		Config: config,
-
-		// Internals
-		bootOnce: sync.Once{},
-	}
-
 	var err error
-
 	var newTPR *tpr.TPR
 	{
 		tprConfig := tpr.DefaultConfig()
 
 		tprConfig.K8sClient = config.K8sClient
 		tprConfig.Logger = config.Logger
-		tprConfig.ResourceEventHandler = cache.ResourceEventHandlerFuncs{
-			AddFunc:    newService.addFunc,
-			DeleteFunc: newService.deleteFunc,
-		}
-		tprConfig.ZeroObjectFactory = tpr.ZeroObjectFactoryFuncs{
-			NewObjectFunc:     func() runtime.Object { return &flanneltpr.CustomObject{} },
-			NewObjectListFunc: func() runtime.Object { return &flanneltpr.List{} },
-		}
 
 		tprConfig.Description = flanneltpr.Description
 		tprConfig.Name = flanneltpr.Name
@@ -97,7 +81,14 @@ func New(config Config) (*Service, error) {
 		if err != nil {
 			return nil, microerror.MaskAny(err)
 		}
-		newService.tpr = newTPR
+	}
+
+	newService := &Service{
+		Config: config,
+
+		// Internals
+		bootOnce: sync.Once{},
+		tpr:      newTPR,
 	}
 
 	return newService, nil
@@ -124,7 +115,17 @@ func (s *Service) Boot() {
 		}
 
 		s.Logger.Log("debug", "starting list/watch")
-		s.tpr.NewInformer().Run(nil)
+
+		newResourceEventHandler := &cache.ResourceEventHandlerFuncs{
+			AddFunc:    s.addFunc,
+			DeleteFunc: s.deleteFunc,
+		}
+		newZeroObjectFactory := &tpr.ZeroObjectFactoryFuncs{
+			NewObjectFunc:     func() runtime.Object { return &flanneltpr.CustomObject{} },
+			NewObjectListFunc: func() runtime.Object { return &flanneltpr.List{} },
+		}
+
+		s.tpr.NewInformer(newResourceEventHandler, newZeroObjectFactory).Run(nil)
 	})
 }
 
