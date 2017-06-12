@@ -110,7 +110,7 @@ func (s *Service) Boot() {
 		if tpr.IsAlreadyExists(err) {
 			s.Logger.Log("debug", "third party resource already exists")
 		} else if err != nil {
-			s.Logger.Log("error", fmt.Sprint("%#v", err))
+			s.Logger.Log("error", fmt.Sprintf("%#v", err))
 			return
 		}
 
