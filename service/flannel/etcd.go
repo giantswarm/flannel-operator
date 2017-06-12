@@ -78,7 +78,7 @@ func loadTLSConfig(files certFiles) (*tls.Config, error) {
 
 	tlsConfig := tls.Config{
 		Certificates: []tls.Certificate{*tlsCert},
-		ClientCAs:    caCertPool,
+		RootCAs:      caCertPool,
 		MinVersion:   tls.VersionTLS12,
 	}
 	return &tlsConfig, nil
