@@ -10,7 +10,6 @@ import (
 	"github.com/cenkalti/backoff"
 	microerror "github.com/giantswarm/microkit/error"
 	micrologger "github.com/giantswarm/microkit/logger"
-	"github.com/giantswarm/operatorkit/informer"
 	"github.com/giantswarm/operatorkit/tpr"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -66,22 +65,6 @@ func New(config Config) (*Service, error) {
 		return nil, microerror.MaskAnyf(invalidConfigError, "viper must not be empty")
 	}
 
-	var err error
-
-	var newTPR *tpr.TPR
-	{
-		newTPR, err = tpr.New(tpr.Config{
-			Clientset: config.K8sClient,
-
-			Name:        flanneltpr.Name,
-			Version:     flanneltpr.VersionV1,
-			Description: flanneltpr.Description,
-		})
-		if err != nil {
-			return nil, microerror.MaskAnyf(err, "creating TPR util")
-		}
-	}
-
 	newService := &Service{
 		Config: config,
 
@@ -89,25 +72,32 @@ func New(config Config) (*Service, error) {
 		bootOnce: sync.Once{},
 	}
 
-	var newInformer *cache.Controller
-	{
-		config := informer.DefaultConfig()
+	var err error
 
-		config.ResourceEventHandler = cache.ResourceEventHandlerFuncs{
+	var newTPR *tpr.TPR
+	{
+		tprConfig := tpr.DefaultConfig()
+
+		tprConfig.K8sClient = config.K8sClient
+		tprConfig.Logger = config.Logger
+		tprConfig.ResourceEventHandler = cache.ResourceEventHandlerFuncs{
 			AddFunc:    newService.addFunc,
 			DeleteFunc: newService.deleteFunc,
 		}
-		config.TPR = newTPR
-		config.ZeroObjectFactory = informer.ZeroObjectFactoryFuncs{
+		tprConfig.ZeroObjectFactory = tpr.ZeroObjectFactoryFuncs{
 			NewObjectFunc:     func() runtime.Object { return &flanneltpr.CustomObject{} },
 			NewObjectListFunc: func() runtime.Object { return &flanneltpr.List{} },
 		}
 
-		newInformer, err = informer.New(config)
+		tprConfig.Description = flanneltpr.Description
+		tprConfig.Name = flanneltpr.Name
+		tprConfig.Version = flanneltpr.VersionV1
+
+		newTPR, err = tpr.New(tprConfig)
 		if err != nil {
-			return nil, microerror.MaskAnyf(invalidConfigError, "viper must not be empty")
+			return nil, microerror.MaskAny(err)
 		}
-		newService.informer = newInformer
+		newService.tpr = newTPR
 	}
 
 	return newService, nil
@@ -119,14 +109,22 @@ type Service struct {
 
 	// Internals.
 	bootOnce sync.Once
-	informer *cache.Controller
+	tpr      *tpr.TPR
 }
 
 // Boot starts the service and implements the watch for the flannel TPR.
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
+		err := s.tpr.CreateAndWait()
+		if tpr.IsAlreadyExists(err) {
+			s.Logger.Log("debug", "third party resource already exists")
+		} else if err != nil {
+			s.Logger.Log("error", fmt.Sprint("%#v", err))
+			return
+		}
+
 		s.Logger.Log("debug", "starting list/watch")
-		s.informer.Run(nil)
+		s.tpr.NewInformer().Run(nil)
 	})
 }
 
