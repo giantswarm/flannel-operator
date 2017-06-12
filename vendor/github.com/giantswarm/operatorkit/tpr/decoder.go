@@ -1,4 +1,4 @@
-package informer
+package tpr
 
 import (
 	"encoding/json"

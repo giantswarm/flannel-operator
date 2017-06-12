@@ -1,4 +1,4 @@
-package informer
+package tpr
 
 import (
 	"k8s.io/client-go/pkg/runtime"
