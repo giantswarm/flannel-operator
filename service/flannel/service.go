@@ -10,6 +10,7 @@ import (
 	"github.com/cenkalti/backoff"
 	microerror "github.com/giantswarm/microkit/error"
 	micrologger "github.com/giantswarm/microkit/logger"
+	"github.com/giantswarm/operatorkit/informer"
 	"github.com/giantswarm/operatorkit/tpr"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -19,7 +20,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/giantswarm/flannel-operator/flag"
-	"github.com/giantswarm/flannel-operator/service/flannel/k8sutil"
 	"github.com/giantswarm/flanneltpr"
 )
 
@@ -48,15 +48,6 @@ func DefaultConfig() Config {
 	}
 }
 
-// Service implements the Crt service interface.
-type Service struct {
-	Config
-
-	// Internals.
-	bootOnce sync.Once
-	tpr      *tpr.TPR
-}
-
 // New creates a new configured Crt service.
 func New(config Config) (*Service, error) {
 	// Dependencies.
@@ -75,15 +66,20 @@ func New(config Config) (*Service, error) {
 		return nil, microerror.MaskAnyf(invalidConfigError, "viper must not be empty")
 	}
 
-	tpr, err := tpr.New(tpr.Config{
-		Clientset: config.K8sClient,
+	var err error
 
-		Name:        flanneltpr.Name,
-		Version:     flanneltpr.VersionV1,
-		Description: flanneltpr.Description,
-	})
-	if err != nil {
-		return nil, microerror.MaskAnyf(err, "creating TPR util")
+	var newTPR *tpr.TPR
+	{
+		newTPR, err = tpr.New(tpr.Config{
+			Clientset: config.K8sClient,
+
+			Name:        flanneltpr.Name,
+			Version:     flanneltpr.VersionV1,
+			Description: flanneltpr.Description,
+		})
+		if err != nil {
+			return nil, microerror.MaskAnyf(err, "creating TPR util")
+		}
 	}
 
 	newService := &Service{
@@ -91,49 +87,47 @@ func New(config Config) (*Service, error) {
 
 		// Internals
 		bootOnce: sync.Once{},
-		tpr:      tpr,
+	}
+
+	var newInformer *cache.Controller
+	{
+		config := informer.DefaultConfig()
+
+		config.ResourceEventHandler = cache.ResourceEventHandlerFuncs{
+			AddFunc:    newService.addFunc,
+			DeleteFunc: newService.deleteFunc,
+		}
+		config.TPR = newTPR
+		config.ZeroObjectFactory = informer.ZeroObjectFactoryFuncs{
+			NewObjectFunc:     func() runtime.Object { return &flanneltpr.CustomObject{} },
+			NewObjectListFunc: func() runtime.Object { return &flanneltpr.List{} },
+		}
+
+		newInformer, err = informer.New(config)
+		if err != nil {
+			return nil, microerror.MaskAnyf(invalidConfigError, "viper must not be empty")
+		}
+		newService.informer = newInformer
 	}
 
 	return newService, nil
 }
 
+// Service implements the Flannel service.
+type Service struct {
+	Config
+
+	// Internals.
+	bootOnce sync.Once
+	informer *cache.Controller
+}
+
 // Boot starts the service and implements the watch for the flannel TPR.
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		err := s.tpr.CreateAndWait()
-		switch {
-		case tpr.IsAlreadyExists(err):
-			s.Logger.Log("info", "flannel third-party resource already exists")
-		case err != nil:
-			panic(fmt.Sprintf("could not create flannel resource: %#v", err))
-		default:
-			s.Logger.Log("info", "successfully created flannel third-party resource")
-		}
+		s.Logger.Log("debug", "starting list/watch")
+		s.informer.Run(nil)
 	})
-
-	var informer *cache.Controller
-	{
-		zeroObject := k8sutil.ZeroObjectFactoryFuncs{
-			NewObjectFunc:     func() runtime.Object { return new(flanneltpr.CustomObject) },
-			NewObjectListFunc: func() runtime.Object { return new(flanneltpr.List) },
-		}
-		observer := k8sutil.ObserverFuncs{
-			OnListFunc: func() {
-				s.Logger.Log("debug", "executing the reconciler's list function", "event", "list")
-			},
-			OnWatchFunc: func() {
-				s.Logger.Log("debug", "executing the reconciler's watch function", "event", "watch")
-			},
-		}
-		handler := cache.ResourceEventHandlerFuncs{
-			AddFunc:    s.addFunc,
-			DeleteFunc: s.deleteFunc,
-		}
-		informer = k8sutil.NewInformer(s.K8sClient, s.tpr, zeroObject, observer, handler)
-	}
-
-	s.Logger.Log("debug", "starting list/watch")
-	informer.Run(nil)
 }
 
 // addFunc does nothing as the operator reacts only on TPO delete.
