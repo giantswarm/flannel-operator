@@ -1,5 +1,5 @@
-hash: 551eb147ff7e8a2e75c31c043a99ee3534fad18b416d1e8f659b76c199bfc6df
-updated: 2017-06-12T19:00:53.85282043+02:00
+hash: 5ddd95dfba78af9bc0f7ab6c627ccade615cf2f91b48b2be05bfd732f79abf25
+updated: 2017-06-12T19:07:10.542874621+02:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -90,7 +90,7 @@ imports:
   - transaction/context/id
   - transaction/context/tracked
 - name: github.com/giantswarm/operatorkit
-  version: 0b19c319fedeb334ff466c3edfe553b8555e2bdc
+  version: 53aa66d6607dde13c3a7ebf63b52485e6ce0d19d
   subpackages:
   - client/k8s
   - tpr

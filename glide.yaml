@@ -15,4 +15,4 @@ import:
 - package: google.golang.org/grpc
   version: 777daa17ff9b5daef1cfdf915088a2ada3332bf0
 - package: github.com/giantswarm/operatorkit
-  version: informer
+  version: master
