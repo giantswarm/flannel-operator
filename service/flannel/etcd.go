@@ -16,18 +16,18 @@ import (
 )
 
 type certFiles struct {
+	CA   []string
 	Cert string
 	Key  string
-	CA   []string
 }
 
 func (s *Service) cleanupEtcd(spec flanneltpr.Spec) error {
 	var (
 		endpoint  = s.Viper.GetString(s.Flag.Service.Etcd.Endpoint)
 		certFiles = certFiles{
-			Cert: "/etc/kubernetes/ssl/etcd/etcd.pem",
-			Key:  "/etc/kubernetes/ssl/etcd/etcd-key.pem",
-			CA:   []string{"/etc/kubernetes/ssl/etcd/etcd-ca.pem"},
+			CA:   []string{s.Viper.GetString(s.Flag.Service.Etcd.TLS.CAFile)},
+			Cert: s.Viper.GetString(s.Flag.Service.Etcd.TLS.CrtFile),
+			Key:  s.Viper.GetString(s.Flag.Service.Etcd.TLS.KeyFile),
 		}
 		path = "coreos.com/network/" + networkBridgeName(spec)
 	)

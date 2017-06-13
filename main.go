@@ -99,6 +99,9 @@ func main() {
 	daemonCommand := newCommand.DaemonCommand().CobraCommand()
 
 	daemonCommand.PersistentFlags().String(f.Service.Etcd.Endpoint, "https://127.0.0.1:2379", "Endpoint used to connect to host's etcd.")
+	daemonCommand.PersistentFlags().String(f.Service.Etcd.TLS.CAFile, "/etc/kubernetes/ssl/etcd/etcd-ca.pem", "Certificate authority file path to use to authenticate with etcd.")
+	daemonCommand.PersistentFlags().String(f.Service.Etcd.TLS.CrtFile, "/etc/kubernetes/ssl/etcd/etcd.pem", "Certificate file path to use to authenticate with etcd.")
+	daemonCommand.PersistentFlags().String(f.Service.Etcd.TLS.KeyFile, "/etc/kubernetes/ssl/etcd/etcd-key.pem", "Key file path to use to authenticate with etcd.")
 	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.Address, "", "Address used to connect to Kubernetes. When empty in-cluster config is created.")
 	daemonCommand.PersistentFlags().Bool(f.Service.Kubernetes.InCluster, true, "Whether to use the in-cluster config to authenticate with Kubernetes.")
 	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.CAFile, "", "Certificate authority file path to use to authenticate with Kubernetes.")
