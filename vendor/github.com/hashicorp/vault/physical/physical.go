@@ -9,16 +9,6 @@ import (
 
 const DefaultParallelOperations = 128
 
-// The operation type
-type Operation string
-
-const (
-	DeleteOperation Operation = "delete"
-	GetOperation              = "get"
-	ListOperation             = "list"
-	PutOperation              = "put"
-)
-
 // ShutdownSignal
 type ShutdownChannel chan struct{}
 
@@ -53,12 +43,6 @@ type HABackend interface {
 
 	// Whether or not HA functionality is enabled
 	HAEnabled() bool
-}
-
-// Purgable is an optional interface for backends that support
-// purging of their caches.
-type Purgable interface {
-	Purge()
 }
 
 // RedirectDetect is an optional interface that an HABackend
@@ -131,28 +115,20 @@ var builtinBackends = map[string]Factory{
 	"inmem": func(_ map[string]string, logger log.Logger) (Backend, error) {
 		return NewInmem(logger), nil
 	},
-	"inmem_transactional": func(_ map[string]string, logger log.Logger) (Backend, error) {
-		return NewTransactionalInmem(logger), nil
-	},
 	"inmem_ha": func(_ map[string]string, logger log.Logger) (Backend, error) {
 		return NewInmemHA(logger), nil
 	},
-	"inmem_transactional_ha": func(_ map[string]string, logger log.Logger) (Backend, error) {
-		return NewTransactionalInmemHA(logger), nil
-	},
-	"file_transactional": newTransactionalFileBackend,
-	"consul":             newConsulBackend,
-	"zookeeper":          newZookeeperBackend,
-	"file":               newFileBackend,
-	"s3":                 newS3Backend,
-	"azure":              newAzureBackend,
-	"dynamodb":           newDynamoDBBackend,
-	"etcd":               newEtcdBackend,
-	"mssql":              newMsSQLBackend,
-	"mysql":              newMySQLBackend,
-	"postgresql":         newPostgreSQLBackend,
-	"swift":              newSwiftBackend,
-	"gcs":                newGCSBackend,
+	"consul":     newConsulBackend,
+	"zookeeper":  newZookeeperBackend,
+	"file":       newFileBackend,
+	"s3":         newS3Backend,
+	"azure":      newAzureBackend,
+	"dynamodb":   newDynamoDBBackend,
+	"etcd":       newEtcdBackend,
+	"mysql":      newMySQLBackend,
+	"postgresql": newPostgreSQLBackend,
+	"swift":      newSwiftBackend,
+	"gcs":     newGCSBackend,
 }
 
 // PermitPool is used to limit maximum outstanding requests

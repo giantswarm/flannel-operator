@@ -32,12 +32,6 @@ func (c *WriteCommand) Run(args []string) int {
 	}
 
 	args = flags.Args()
-	if len(args) < 1 {
-		c.Ui.Error("write requires a path")
-		flags.Usage()
-		return 1
-	}
-
 	if len(args) < 2 && !force {
 		c.Ui.Error("write expects at least two arguments; use -f to perform the write anyways")
 		flags.Usage()

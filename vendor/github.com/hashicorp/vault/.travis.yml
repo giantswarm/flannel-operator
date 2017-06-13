@@ -1,5 +1,4 @@
 sudo: required
-dist: trusty
 
 language: go
 
@@ -7,7 +6,7 @@ services:
   - docker
 
 go:
-  - 1.8.3
+  - 1.7
 
 matrix:
   allow_failures:
@@ -19,5 +18,4 @@ branches:
     - travis-testing
 
 script:
-  - make bootstrap
   - make test testrace

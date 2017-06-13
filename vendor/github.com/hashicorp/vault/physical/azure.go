@@ -12,7 +12,7 @@ import (
 
 	log "github.com/mgutz/logxi/v1"
 
-	"github.com/Azure/azure-storage-go"
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/errwrap"
 )
@@ -59,23 +59,12 @@ func newAzureBackend(conf map[string]string, logger log.Logger) (Backend, error)
 	}
 
 	client, err := storage.NewBasicClient(accountName, accountKey)
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Azure client: %v", err)
+		return nil, fmt.Errorf("Failed to create Azure client: %v", err)
 	}
 
-	contObj := client.GetBlobService().GetContainerReference(container)
-	created, err := contObj.CreateIfNotExists()
-	if err != nil {
-		return nil, fmt.Errorf("failed to upsert container: %v", err)
-	}
-	if created {
-		err = contObj.SetPermissions(storage.ContainerPermissions{
-			AccessType: storage.ContainerAccessTypePrivate,
-		}, 0, "")
-		if err != nil {
-			return nil, fmt.Errorf("failed to set permissions on newly-created container: %v", err)
-		}
-	}
+	client.GetBlobService().CreateContainerIfNotExists(container, storage.ContainerAccessTypePrivate)
 
 	maxParStr, ok := conf["max_parallel"]
 	var maxParInt int
@@ -167,8 +156,7 @@ func (a *AzureBackend) List(prefix string) ([]string, error) {
 	a.permitPool.Acquire()
 	defer a.permitPool.Release()
 
-	contObj := a.client.GetContainerReference(a.container)
-	list, err := contObj.ListBlobs(storage.ListBlobsParameters{Prefix: prefix})
+	list, err := a.client.ListBlobs(a.container, storage.ListBlobsParameters{Prefix: prefix})
 
 	if err != nil {
 		// Break early.

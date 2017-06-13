@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -16,32 +15,22 @@ import (
 
 func testHttpGet(t *testing.T, token string, addr string) *http.Response {
 	t.Logf("Token is %s", token)
-	return testHttpData(t, "GET", token, addr, nil, false)
+	return testHttpData(t, "GET", token, addr, nil)
 }
 
 func testHttpDelete(t *testing.T, token string, addr string) *http.Response {
-	return testHttpData(t, "DELETE", token, addr, nil, false)
-}
-
-// Go 1.8+ clients redirect automatically which breaks our 307 standby testing
-func testHttpDeleteDisableRedirect(t *testing.T, token string, addr string) *http.Response {
-	return testHttpData(t, "DELETE", token, addr, nil, true)
+	return testHttpData(t, "DELETE", token, addr, nil)
 }
 
 func testHttpPost(t *testing.T, token string, addr string, body interface{}) *http.Response {
-	return testHttpData(t, "POST", token, addr, body, false)
+	return testHttpData(t, "POST", token, addr, body)
 }
 
 func testHttpPut(t *testing.T, token string, addr string, body interface{}) *http.Response {
-	return testHttpData(t, "PUT", token, addr, body, false)
+	return testHttpData(t, "PUT", token, addr, body)
 }
 
-// Go 1.8+ clients redirect automatically which breaks our 307 standby testing
-func testHttpPutDisableRedirect(t *testing.T, token string, addr string, body interface{}) *http.Response {
-	return testHttpData(t, "PUT", token, addr, body, true)
-}
-
-func testHttpData(t *testing.T, method string, token string, addr string, body interface{}, disableRedirect bool) *http.Response {
+func testHttpData(t *testing.T, method string, token string, addr string, body interface{}) *http.Response {
 	bodyReader := new(bytes.Buffer)
 	if body != nil {
 		enc := json.NewEncoder(bodyReader)
@@ -68,9 +57,6 @@ func testHttpData(t *testing.T, method string, token string, addr string, body i
 	defaultRedirectLimit := 30
 
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		if disableRedirect {
-			return fmt.Errorf("checkRedirect disabled for test")
-		}
 		if len(via) > defaultRedirectLimit {
 			return fmt.Errorf("%d consecutive requests(redirects)", len(via))
 		}
@@ -86,7 +72,7 @@ func testHttpData(t *testing.T, method string, token string, addr string, body i
 	}
 
 	resp, err := client.Do(req)
-	if err != nil && !strings.Contains(err.Error(), "checkRedirect disabled for test") {
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

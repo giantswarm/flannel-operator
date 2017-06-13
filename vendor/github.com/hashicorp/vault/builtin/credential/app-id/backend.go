@@ -1,7 +1,7 @@
 package appId
 
 import (
-	"sync"
+	"fmt"
 
 	"github.com/hashicorp/vault/helper/salt"
 	"github.com/hashicorp/vault/logical"
@@ -13,14 +13,24 @@ func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
 	if err != nil {
 		return nil, err
 	}
-	return b.Backend.Setup(conf)
+	return b.Setup(conf)
 }
 
-func Backend(conf *logical.BackendConfig) (backend, error) {
+func Backend(conf *logical.BackendConfig) (*framework.Backend, error) {
+	// Initialize the salt
+	salt, err := salt.NewSalt(conf.StorageView, &salt.Config{
+		HashFunc: salt.SHA1Hash,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	var b backend
+	b.Salt = salt
 	b.MapAppId = &framework.PolicyMap{
 		PathMap: framework.PathMap{
 			Name: "app-id",
+			Salt: salt,
 			Schema: map[string]*framework.FieldSchema{
 				"display_name": &framework.FieldSchema{
 					Type:        framework.TypeString,
@@ -38,6 +48,7 @@ func Backend(conf *logical.BackendConfig) (backend, error) {
 
 	b.MapUserId = &framework.PathMap{
 		Name: "user-id",
+		Salt: salt,
 		Schema: map[string]*framework.FieldSchema{
 			"cidr_block": &framework.FieldSchema{
 				Type:        framework.TypeString,
@@ -70,57 +81,88 @@ func Backend(conf *logical.BackendConfig) (backend, error) {
 		),
 
 		AuthRenew: b.pathLoginRenew,
-
-		Invalidate: b.invalidate,
 	}
 
-	b.view = conf.StorageView
-	b.MapAppId.SaltFunc = b.Salt
-	b.MapUserId.SaltFunc = b.Salt
+	// Since the salt is new in 0.2, we need to handle this by migrating
+	// any existing keys to use the salt. We can deprecate this eventually,
+	// but for now we want a smooth upgrade experience by automatically
+	// upgrading to use salting.
+	if salt.DidGenerate() {
+		if err := b.upgradeToSalted(conf.StorageView); err != nil {
+			return nil, err
+		}
+	}
 
-	return b, nil
+	return b.Backend, nil
 }
 
 type backend struct {
 	*framework.Backend
 
-	salt      *salt.Salt
-	SaltMutex sync.RWMutex
-	view      logical.Storage
+	Salt      *salt.Salt
 	MapAppId  *framework.PolicyMap
 	MapUserId *framework.PathMap
 }
 
-func (b *backend) Salt() (*salt.Salt, error) {
-	b.SaltMutex.RLock()
-	if b.salt != nil {
-		defer b.SaltMutex.RUnlock()
-		return b.salt, nil
-	}
-	b.SaltMutex.RUnlock()
-	b.SaltMutex.Lock()
-	defer b.SaltMutex.Unlock()
-	if b.salt != nil {
-		return b.salt, nil
-	}
-	salt, err := salt.NewSalt(b.view, &salt.Config{
-		HashFunc: salt.SHA1Hash,
-		Location: salt.DefaultLocation,
-	})
-	if err != nil {
-		return nil, err
-	}
-	b.salt = salt
-	return salt, nil
-}
+// upgradeToSalted is used to upgrade the non-salted keys prior to
+// Vault 0.2 to be salted. This is done on mount time and is only
+// done once. It can be deprecated eventually, but should be around
+// long enough for all 0.1.x users to upgrade.
+func (b *backend) upgradeToSalted(view logical.Storage) error {
+	// Create a copy of MapAppId that does not use a Salt
+	nonSaltedAppId := new(framework.PathMap)
+	*nonSaltedAppId = b.MapAppId.PathMap
+	nonSaltedAppId.Salt = nil
 
-func (b *backend) invalidate(key string) {
-	switch key {
-	case salt.DefaultLocation:
-		b.SaltMutex.Lock()
-		defer b.SaltMutex.Unlock()
-		b.salt = nil
+	// Get the list of app-ids
+	keys, err := b.MapAppId.List(view, "")
+	if err != nil {
+		return fmt.Errorf("failed to list app-ids: %v", err)
 	}
+
+	// Upgrade all the existing keys
+	for _, key := range keys {
+		val, err := nonSaltedAppId.Get(view, key)
+		if err != nil {
+			return fmt.Errorf("failed to read app-id: %v", err)
+		}
+
+		if err := b.MapAppId.Put(view, key, val); err != nil {
+			return fmt.Errorf("failed to write app-id: %v", err)
+		}
+
+		if err := nonSaltedAppId.Delete(view, key); err != nil {
+			return fmt.Errorf("failed to delete app-id: %v", err)
+		}
+	}
+
+	// Create a copy of MapUserId that does not use a Salt
+	nonSaltedUserId := new(framework.PathMap)
+	*nonSaltedUserId = *b.MapUserId
+	nonSaltedUserId.Salt = nil
+
+	// Get the list of user-ids
+	keys, err = b.MapUserId.List(view, "")
+	if err != nil {
+		return fmt.Errorf("failed to list user-ids: %v", err)
+	}
+
+	// Upgrade all the existing keys
+	for _, key := range keys {
+		val, err := nonSaltedUserId.Get(view, key)
+		if err != nil {
+			return fmt.Errorf("failed to read user-id: %v", err)
+		}
+
+		if err := b.MapUserId.Put(view, key, val); err != nil {
+			return fmt.Errorf("failed to write user-id: %v", err)
+		}
+
+		if err := nonSaltedUserId.Delete(view, key); err != nil {
+			return fmt.Errorf("failed to delete user-id: %v", err)
+		}
+	}
+	return nil
 }
 
 const backendHelp = `

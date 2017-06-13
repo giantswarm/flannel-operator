@@ -151,7 +151,7 @@ of the header should be "X-Vault-Token" and the value should be the token.
         <span class="param-flags">optional</span>
         The TTL period of the token, provided as "1h", where hour is
         the largest suffix. If not provided, the token is valid for the
-        [default lease TTL](/docs/configuration/index.html), or
+        [default lease TTL](/docs/config/index.html), or
         indefinitely if the root policy is used.
       </li>
       <li>
@@ -174,13 +174,6 @@ of the header should be "X-Vault-Token" and the value should be the token.
         The maximum uses for the given token. This can be used to create
         a one-time-token or limited use token. Defaults to 0, which has
         no limit to the number of uses.
-      </li>
-      <li>
-        <span class="param">period</span>
-        <span class="param-flags">optional</span>
-        If specified, the token will be periodic; it will have no maximum TTL
-        (unless an "explicit-max-ttl" is also set) but every renewal will use
-        the given period. Requires a root/sudo token to use.
       </li>
     </ul>
   </dd>
@@ -365,19 +358,12 @@ of the header should be "X-Vault-Token" and the value should be the token.
     ```javascript
     {
       "data": {
-        "accessor": "REDACTED",
-	"creation_time": 1484093665,
-	"creation_ttl": 3600,
-	"display_name": "github-armon",
-	"explicit_max_ttl": 0,
         "id": "ClientToken",
+        "policies": ["web", "stage"],
+        "path": "auth/github/login",
         "meta": {"user": "armon", "organization": "hashicorp"},
-	"num_uses": 0,
-	"orphan": true,
-	"path": "auth/github/login",
-	"policies": ["web", "stage"],
-	"renewable": true,
-	"ttl": 3655
+        "display_name": "github-armon",
+        "num_uses": 0,
       }
     }
     ```
@@ -487,7 +473,7 @@ of the header should be "X-Vault-Token" and the value should be the token.
   </dd>
 </dl>
 
-### /auth/token/revoke
+### /auth/token/revoke[/token]
 #### POST
 
 <dl class="api">
@@ -501,7 +487,7 @@ of the header should be "X-Vault-Token" and the value should be the token.
   <dd>POST</dd>
 
   <dt>URL</dt>
-  <dd>`/auth/token/revoke`</dd>
+  <dd>`/auth/token/revoke</token>`</dd>
 
   <dt>Parameters</dt>
   <dd>
@@ -509,7 +495,7 @@ of the header should be "X-Vault-Token" and the value should be the token.
       <li>
         <span class="param">token</span>
         <span class="param-flags">required</span>
-            Token to revoke.
+            Token to revoke. This can be part of the URL or the body.
       </li>
     </ul>
   </dd>
@@ -519,7 +505,7 @@ of the header should be "X-Vault-Token" and the value should be the token.
   </dd>
 </dl>
 
-### /auth/token/revoke-accessor
+### /auth/token/revoke-accessor[/accessor]
 #### POST
 
 <dl class="api">
@@ -534,7 +520,7 @@ of the header should be "X-Vault-Token" and the value should be the token.
   <dd>POST</dd>
 
   <dt>URL</dt>
-  <dd>`/auth/token/revoke-accessor`</dd>
+  <dd>`/auth/token/revoke-accessor</accessor>`</dd>
 
   <dt>Parameters</dt>
   <dd>
@@ -542,7 +528,7 @@ of the header should be "X-Vault-Token" and the value should be the token.
       <li>
         <span class="param">accessor</span>
         <span class="param-flags">required</span>
-            Accessor of the token.
+            Accessor of the token. This can be part of the URL or the body.
       </li>
     </ul>
   </dd>

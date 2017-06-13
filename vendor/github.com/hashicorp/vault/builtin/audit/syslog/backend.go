@@ -1,23 +1,18 @@
-package syslog
+package file
 
 import (
 	"bytes"
 	"fmt"
 	"strconv"
-	"sync"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/vault/audit"
-	"github.com/hashicorp/vault/helper/salt"
 	"github.com/hashicorp/vault/logical"
 )
 
 func Factory(conf *audit.BackendConfig) (audit.Backend, error) {
-	if conf.SaltConfig == nil {
-		return nil, fmt.Errorf("nil salt config")
-	}
-	if conf.SaltView == nil {
-		return nil, fmt.Errorf("nil salt view")
+	if conf.Salt == nil {
+		return nil, fmt.Errorf("Nil salt passed in")
 	}
 
 	// Get facility or default to AUTH
@@ -69,26 +64,19 @@ func Factory(conf *audit.BackendConfig) (audit.Backend, error) {
 	}
 
 	b := &Backend{
-		logger:     logger,
-		saltConfig: conf.SaltConfig,
-		saltView:   conf.SaltView,
+		logger: logger,
 		formatConfig: audit.FormatterConfig{
 			Raw:          logRaw,
+			Salt:         conf.Salt,
 			HMACAccessor: hmacAccessor,
 		},
 	}
 
 	switch format {
 	case "json":
-		b.formatter.AuditFormatWriter = &audit.JSONFormatWriter{
-			Prefix:   conf.Config["prefix"],
-			SaltFunc: b.Salt,
-		}
+		b.formatter.AuditFormatWriter = &audit.JSONFormatWriter{}
 	case "jsonx":
-		b.formatter.AuditFormatWriter = &audit.JSONxFormatWriter{
-			Prefix:   conf.Config["prefix"],
-			SaltFunc: b.Salt,
-		}
+		b.formatter.AuditFormatWriter = &audit.JSONxFormatWriter{}
 	}
 
 	return b, nil
@@ -100,19 +88,10 @@ type Backend struct {
 
 	formatter    audit.AuditFormatter
 	formatConfig audit.FormatterConfig
-
-	saltMutex  sync.RWMutex
-	salt       *salt.Salt
-	saltConfig *salt.Config
-	saltView   logical.Storage
 }
 
-func (b *Backend) GetHash(data string) (string, error) {
-	salt, err := b.Salt()
-	if err != nil {
-		return "", err
-	}
-	return audit.HashString(salt, data), nil
+func (b *Backend) GetHash(data string) string {
+	return audit.HashString(b.formatConfig.Salt, data)
 }
 
 func (b *Backend) LogRequest(auth *logical.Auth, req *logical.Request, outerErr error) error {
@@ -126,43 +105,18 @@ func (b *Backend) LogRequest(auth *logical.Auth, req *logical.Request, outerErr 
 	return err
 }
 
-func (b *Backend) LogResponse(auth *logical.Auth, req *logical.Request, resp *logical.Response, err error) error {
+func (b *Backend) LogResponse(auth *logical.Auth, req *logical.Request,
+	resp *logical.Response, err error) error {
 	var buf bytes.Buffer
 	if err := b.formatter.FormatResponse(&buf, b.formatConfig, auth, req, resp, err); err != nil {
 		return err
 	}
 
-	// Write out to syslog
+	// Write otu to syslog
 	_, err = b.logger.Write(buf.Bytes())
 	return err
 }
 
 func (b *Backend) Reload() error {
 	return nil
-}
-
-func (b *Backend) Salt() (*salt.Salt, error) {
-	b.saltMutex.RLock()
-	if b.salt != nil {
-		defer b.saltMutex.RUnlock()
-		return b.salt, nil
-	}
-	b.saltMutex.RUnlock()
-	b.saltMutex.Lock()
-	defer b.saltMutex.Unlock()
-	if b.salt != nil {
-		return b.salt, nil
-	}
-	salt, err := salt.NewSalt(b.saltView, b.saltConfig)
-	if err != nil {
-		return nil, err
-	}
-	b.salt = salt
-	return salt, nil
-}
-
-func (b *Backend) Invalidate() {
-	b.saltMutex.Lock()
-	defer b.saltMutex.Unlock()
-	b.salt = nil
 }

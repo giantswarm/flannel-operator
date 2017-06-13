@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -108,7 +107,7 @@ func (b *backend) verifyCredentials(req *logical.Request, token string) (*verify
 	if err != nil {
 		return nil, nil, err
 	}
-	if config.Organization == "" {
+	if config.Org == "" {
 		return nil, logical.ErrorResponse(
 			"configure the github credential backend first"), nil
 	}
@@ -127,7 +126,7 @@ func (b *backend) verifyCredentials(req *logical.Request, token string) (*verify
 	}
 
 	// Get the user
-	user, _, err := client.Users.Get(context.Background(), "")
+	user, _, err := client.Users.Get("")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -141,7 +140,7 @@ func (b *backend) verifyCredentials(req *logical.Request, token string) (*verify
 
 	var allOrgs []*github.Organization
 	for {
-		orgs, resp, err := client.Organizations.List(context.Background(), "", orgOpt)
+		orgs, resp, err := client.Organizations.List("", orgOpt)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -153,7 +152,7 @@ func (b *backend) verifyCredentials(req *logical.Request, token string) (*verify
 	}
 
 	for _, o := range allOrgs {
-		if strings.ToLower(*o.Login) == strings.ToLower(config.Organization) {
+		if strings.ToLower(*o.Login) == strings.ToLower(config.Org) {
 			org = o
 			break
 		}
@@ -171,7 +170,7 @@ func (b *backend) verifyCredentials(req *logical.Request, token string) (*verify
 
 	var allTeams []*github.Team
 	for {
-		teams, resp, err := client.Organizations.ListUserTeams(context.Background(), teamOpt)
+		teams, resp, err := client.Organizations.ListUserTeams(teamOpt)
 		if err != nil {
 			return nil, nil, err
 		}

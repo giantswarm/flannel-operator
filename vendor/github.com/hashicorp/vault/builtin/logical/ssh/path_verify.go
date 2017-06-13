@@ -57,11 +57,7 @@ func (b *backend) pathVerifyWrite(req *logical.Request, d *framework.FieldData) 
 	// Create the salt of OTP because entry would have been create with the
 	// salt and not directly of the OTP. Salt will yield the same value which
 	// because the seed is the same, the backend salt.
-	salt, err := b.Salt()
-	if err != nil {
-		return nil, err
-	}
-	otpSalted := salt.SaltID(otp)
+	otpSalted := b.salt.SaltID(otp)
 
 	// Return nil if there is no entry found for the OTP
 	otpEntry, err := b.getOTP(req.Storage, otpSalted)

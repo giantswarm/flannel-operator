@@ -20,10 +20,6 @@ func pathDuoConfig() *framework.Path {
 				Type:        framework.TypeString,
 				Description: "Format string given auth backend username as argument to create Duo username (default '%s')",
 			},
-			"push_info": &framework.FieldSchema{
-				Type:        framework.TypeString,
-				Description: "A string of URL-encoded key/value pairs that provides additional context about the authentication attemmpt in the Duo Mobile app",
-			},
 		},
 
 		Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -54,16 +50,11 @@ func GetDuoConfig(req *logical.Request) (*DuoConfig, error) {
 func pathDuoConfigWrite(
 	req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	username_format := d.Get("username_format").(string)
-	if username_format == "" {
-		username_format = "%s"
-	}
 	if !strings.Contains(username_format, "%s") {
 		return nil, errors.New("username_format must include username ('%s')")
 	}
 	entry, err := logical.StorageEntryJSON("duo/config", DuoConfig{
 		UsernameFormat: username_format,
-		UserAgent:      d.Get("user_agent").(string),
-		PushInfo:       d.Get("push_info").(string),
 	})
 	if err != nil {
 		return nil, err
@@ -90,8 +81,6 @@ func pathDuoConfigRead(
 	return &logical.Response{
 		Data: map[string]interface{}{
 			"username_format": config.UsernameFormat,
-			"user_agent":      config.UserAgent,
-			"push_info":       config.PushInfo,
 		},
 	}, nil
 }
@@ -99,7 +88,6 @@ func pathDuoConfigRead(
 type DuoConfig struct {
 	UsernameFormat string `json:"username_format"`
 	UserAgent      string `json:"user_agent"`
-	PushInfo       string `json:"push_info"`
 }
 
 const pathDuoConfigHelpSyn = `

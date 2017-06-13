@@ -35,7 +35,6 @@ func TestSysAudit(t *testing.T) {
 				"type":        "noop",
 				"description": "",
 				"options":     map[string]interface{}{},
-				"local":       false,
 			},
 		},
 		"noop/": map[string]interface{}{
@@ -43,7 +42,6 @@ func TestSysAudit(t *testing.T) {
 			"type":        "noop",
 			"description": "",
 			"options":     map[string]interface{}{},
-			"local":       false,
 		},
 	}
 	testResponseStatus(t, resp, 200)

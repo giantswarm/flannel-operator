@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/logformat"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/physical"
@@ -52,11 +52,9 @@ func TestClusterHAFetching(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	keys, _ := TestCoreInit(t, c)
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(c, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	key, _ := TestCoreInit(t, c)
+	if _, err := TestCoreUnseal(c, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -100,7 +98,7 @@ func TestCluster_ListenForRequests(t *testing.T) {
 	checkListenersFunc := func(expectFail bool) {
 		tlsConfig, err := cores[0].ClusterTLSConfig()
 		if err != nil {
-			if err.Error() != consts.ErrSealed.Error() {
+			if err.Error() != ErrSealed.Error() {
 				t.Fatal(err)
 			}
 			tlsConfig = lastTLSConfig
@@ -112,7 +110,7 @@ func TestCluster_ListenForRequests(t *testing.T) {
 		for _, ln := range cores[0].Listeners {
 			tcpAddr, ok := ln.Addr().(*net.TCPAddr)
 			if !ok {
-				t.Fatalf("%s not a TCP port", tcpAddr.String())
+				t.Fatal("%s not a TCP port", tcpAddr.String())
 			}
 
 			conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", tcpAddr.IP.String(), tcpAddr.Port+10), tlsConfig)
@@ -175,10 +173,18 @@ func TestCluster_ForwardRequests(t *testing.T) {
 	// Make this nicer for tests
 	manualStepDownSleepPeriod = 5 * time.Second
 
-	testCluster_ForwardRequestsCommon(t)
+	testCluster_ForwardRequestsCommon(t, false)
+	testCluster_ForwardRequestsCommon(t, true)
+	os.Setenv("VAULT_USE_GRPC_REQUEST_FORWARDING", "")
 }
 
-func testCluster_ForwardRequestsCommon(t *testing.T) {
+func testCluster_ForwardRequestsCommon(t *testing.T, rpc bool) {
+	if rpc {
+		os.Setenv("VAULT_USE_GRPC_REQUEST_FORWARDING", "1")
+	} else {
+		os.Setenv("VAULT_USE_GRPC_REQUEST_FORWARDING", "")
+	}
+
 	handler1 := http.NewServeMux()
 	handler1.HandleFunc("/core1", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "application/json")

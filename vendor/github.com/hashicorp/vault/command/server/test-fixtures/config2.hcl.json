@@ -1,5 +1,4 @@
 {
-  "ui":true,
   "listener":[
     {
       "tcp":{
@@ -12,12 +11,12 @@
       }
     }
   ],
-  "storage":{
+  "backend":{
     "consul":{
       "foo":"bar"
     }
   },
-  "ha_storage":{
+  "ha_backend":{
     "consul":{
       "bar":"baz",
       "disable_clustering": "true"

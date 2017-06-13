@@ -32,7 +32,7 @@ ciphertext; "wrapped" will return the ciphertext only.`,
 
 			"nonce": &framework.FieldSchema{
 				Type:        framework.TypeString,
-				Description: "Nonce for when convergent encryption v1 is used (only in Vault 0.6.1)",
+				Description: "Nonce for when convergent encryption is used",
 			},
 
 			"bits": &framework.FieldSchema{
@@ -40,14 +40,6 @@ ciphertext; "wrapped" will return the ciphertext only.`,
 				Description: `Number of bits for the key; currently 128, 256,
 and 512 bits are supported. Defaults to 256.`,
 				Default: 256,
-			},
-
-			"key_version": &framework.FieldSchema{
-				Type: framework.TypeInt,
-				Description: `The version of the Vault key to use for
-encryption of the data key. Must be 0 (for latest)
-or a value greater than or equal to the
-min_encryption_version configured on the key.`,
 			},
 		},
 
@@ -63,7 +55,6 @@ min_encryption_version configured on the key.`,
 func (b *backend) pathDatakeyWrite(
 	req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	name := d.Get("name").(string)
-	ver := d.Get("key_version").(int)
 
 	plaintext := d.Get("plaintext").(string)
 	plaintextAllowed := false
@@ -106,7 +97,7 @@ func (b *backend) pathDatakeyWrite(
 		return nil, err
 	}
 	if p == nil {
-		return logical.ErrorResponse("encryption key not found"), logical.ErrInvalidRequest
+		return logical.ErrorResponse("policy not found"), logical.ErrInvalidRequest
 	}
 
 	newKey := make([]byte, 32)
@@ -125,7 +116,7 @@ func (b *backend) pathDatakeyWrite(
 		return nil, err
 	}
 
-	ciphertext, err := p.Encrypt(ver, context, nonce, base64.StdEncoding.EncodeToString(newKey))
+	ciphertext, err := p.Encrypt(context, nonce, base64.StdEncoding.EncodeToString(newKey))
 	if err != nil {
 		switch err.(type) {
 		case errutil.UserError:

@@ -3,6 +3,7 @@ package audit
 import (
 	"io"
 
+	"github.com/hashicorp/vault/helper/salt"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -18,6 +19,7 @@ type Formatter interface {
 
 type FormatterConfig struct {
 	Raw          bool
+	Salt         *salt.Salt
 	HMACAccessor bool
 
 	// This should only ever be used in a testing context
