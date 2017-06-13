@@ -1,5 +1,5 @@
 hash: 5ddd95dfba78af9bc0f7ab6c627ccade615cf2f91b48b2be05bfd732f79abf25
-updated: 2017-06-13T11:19:17.754743879+02:00
+updated: 2017-06-13T16:33:59.02458896+02:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -73,7 +73,7 @@ imports:
   - network/bridge
   - network/bridge/docker
 - name: github.com/giantswarm/microkit
-  version: 725ff3a04ac4bad327dc9c149c8cc091048eff9e
+  version: 28d34059fef4aab66f1339baf4d03024339282d1
   subpackages:
   - command
   - command/daemon
@@ -91,11 +91,12 @@ imports:
   - storage/etcd
   - storage/etcdv2
   - storage/memory
+  - tls
   - transaction
   - transaction/context/id
   - transaction/context/tracked
 - name: github.com/giantswarm/operatorkit
-  version: 2e5ac4d847f5f3c148fc28a4317d722b597733a9
+  version: 6a44808050fe99263d026ab4647280d647eaa709
   subpackages:
   - client/k8s
   - tpr
