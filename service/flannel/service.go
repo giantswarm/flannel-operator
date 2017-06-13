@@ -1,6 +1,7 @@
 package flannel
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"github.com/cenkalti/backoff"
 	microerror "github.com/giantswarm/microkit/error"
 	micrologger "github.com/giantswarm/microkit/logger"
+	"github.com/giantswarm/microkit/storage"
+	"github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/operatorkit/tpr"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -66,6 +69,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	var err error
+
 	var newTPR *tpr.TPR
 	{
 		tprConfig := tpr.DefaultConfig()
@@ -83,12 +87,40 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var store storage.Service
+	{
+		endpoint := config.Viper.GetString(config.Flag.Service.Etcd.Endpoint)
+		rootCAs := []string{}
+		{
+			v := config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile)
+			if v != "" {
+				rootCAs = []string{v}
+			}
+		}
+		certFiles := tls.CertFiles{
+			RootCAs: rootCAs,
+			Cert:    config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
+			Key:     config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
+		}
+
+		config := storage.DefaultConfig()
+		config.EtcdAddress = endpoint
+		config.EtcdTLS = certFiles
+		config.Kind = storage.KindEtcdV2
+
+		store, err = storage.New(config)
+		if err != nil {
+			return nil, microerror.MaskAnyf(err, "creating storage for etcd endpoint %s and certificates %#v", endpoint, certFiles)
+		}
+	}
+
 	newService := &Service{
 		Config: config,
 
 		// Internals
 		bootOnce: sync.Once{},
 		tpr:      newTPR,
+		store:    store,
 	}
 
 	return newService, nil
@@ -101,6 +133,7 @@ type Service struct {
 	// Internals.
 	bootOnce sync.Once
 	tpr      *tpr.TPR
+	store    storage.Service
 }
 
 // Boot starts the service and implements the watch for the flannel TPR.
@@ -255,9 +288,11 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 	// Cleanup etcd.
 	{
-		err := s.cleanupEtcd(spec)
+		path := "coreos.com/network/" + networkBridgeName(spec)
+
+		err := s.store.Delete(context.TODO(), path)
 		if err != nil {
-			return microerror.MaskAny(err)
+			return microerror.MaskAnyf(err, "deleting etcd path %s", path)
 		}
 	}
 
