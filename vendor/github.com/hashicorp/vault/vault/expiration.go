@@ -6,18 +6,13 @@ import (
 	"path"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
 	log "github.com/mgutz/logxi/v1"
 
-	"github.com/hashicorp/errwrap"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/jsonutil"
-	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -61,8 +56,6 @@ type ExpirationManager struct {
 
 	pending     map[string]*time.Timer
 	pendingLock sync.Mutex
-
-	tidyLock int64
 }
 
 // NewExpirationManager creates a new ExpirationManager that is backed
@@ -99,7 +92,6 @@ func (c *Core) setupExpiration() error {
 	c.tokenStore.SetExpirationManager(mgr)
 
 	// Restore the existing state
-	c.logger.Info("expiration: restoring leases")
 	if err := c.expiration.Restore(); err != nil {
 		return fmt.Errorf("expiration state restore failed: %v", err)
 	}
@@ -120,113 +112,6 @@ func (c *Core) stopExpiration() error {
 	return nil
 }
 
-// Tidy cleans up the dangling storage entries for leases. It scans the storage
-// view to find all the available leases, checks if the token embedded in it is
-// either empty or invalid and in both the cases, it revokes them. It also uses
-// a token cache to avoid multiple lookups of the same token ID. It is normally
-// not required to use the API that invokes this. This is only intended to
-// clean up the corrupt storage due to bugs.
-func (m *ExpirationManager) Tidy() error {
-	var tidyErrors *multierror.Error
-
-	if !atomic.CompareAndSwapInt64(&m.tidyLock, 0, 1) {
-		m.logger.Warn("expiration: tidy operation on leases is already in progress")
-		return fmt.Errorf("tidy operation on leases is already in progress")
-	}
-
-	defer atomic.CompareAndSwapInt64(&m.tidyLock, 1, 0)
-
-	m.logger.Info("expiration: beginning tidy operation on leases")
-	defer m.logger.Info("expiration: finished tidy operation on leases")
-
-	// Create a cache to keep track of looked up tokens
-	tokenCache := make(map[string]bool)
-	var countLease, revokedCount, deletedCountInvalidToken, deletedCountEmptyToken int64
-
-	tidyFunc := func(leaseID string) {
-		countLease++
-		if countLease%500 == 0 {
-			m.logger.Info("expiration: tidying leases", "progress", countLease)
-		}
-
-		le, err := m.loadEntry(leaseID)
-		if err != nil {
-			tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to load the lease ID %q: %v", leaseID, err))
-			return
-		}
-
-		if le == nil {
-			tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("nil entry for lease ID %q: %v", leaseID, err))
-			return
-		}
-
-		var isValid, ok bool
-		revokeLease := false
-		if le.ClientToken == "" {
-			m.logger.Trace("expiration: revoking lease which has an empty token", "lease_id", leaseID)
-			revokeLease = true
-			deletedCountEmptyToken++
-			goto REVOKE_CHECK
-		}
-
-		isValid, ok = tokenCache[le.ClientToken]
-		if !ok {
-			saltedID := m.tokenStore.SaltID(le.ClientToken)
-			lock := locksutil.LockForKey(m.tokenStore.tokenLocks, le.ClientToken)
-			lock.RLock()
-			te, err := m.tokenStore.lookupSalted(saltedID, true)
-			lock.RUnlock()
-
-			if err != nil {
-				tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to lookup token: %v", err))
-				return
-			}
-
-			if te == nil {
-				m.logger.Trace("expiration: revoking lease which holds an invalid token", "lease_id", leaseID)
-				revokeLease = true
-				deletedCountInvalidToken++
-				tokenCache[le.ClientToken] = false
-			} else {
-				tokenCache[le.ClientToken] = true
-			}
-			goto REVOKE_CHECK
-		} else {
-			if isValid {
-				return
-			} else {
-				m.logger.Trace("expiration: revoking lease which contains an invalid token", "lease_id", leaseID)
-				revokeLease = true
-				deletedCountInvalidToken++
-			}
-			goto REVOKE_CHECK
-		}
-
-	REVOKE_CHECK:
-		if revokeLease {
-			// Force the revocation and skip going through the token store
-			// again
-			err = m.revokeCommon(leaseID, true, true)
-			if err != nil {
-				tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to revoke an invalid lease with ID %q: %v", leaseID, err))
-				return
-			}
-			revokedCount++
-		}
-	}
-
-	if err := logical.ScanView(m.idView, tidyFunc); err != nil {
-		return err
-	}
-
-	m.logger.Debug("expiration: number of leases scanned", "count", countLease)
-	m.logger.Debug("expiration: number of leases which had empty tokens", "count", deletedCountEmptyToken)
-	m.logger.Debug("expiration: number of leases which had invalid tokens", "count", deletedCountInvalidToken)
-	m.logger.Debug("expiration: number of leases successfully revoked", "count", revokedCount)
-
-	return tidyErrors.ErrorOrNil()
-}
-
 // Restore is used to recover the lease states when starting.
 // This is used after starting the vault.
 func (m *ExpirationManager) Restore() error {
@@ -234,119 +119,45 @@ func (m *ExpirationManager) Restore() error {
 	defer m.pendingLock.Unlock()
 
 	// Accumulate existing leases
-	m.logger.Debug("expiration: collecting leases")
-	existing, err := logical.CollectKeys(m.idView)
+	existing, err := CollectKeys(m.idView)
 	if err != nil {
 		return fmt.Errorf("failed to scan for leases: %v", err)
 	}
-	m.logger.Debug("expiration: leases collected", "num_existing", len(existing))
 
-	// Make the channels used for the worker pool
-	broker := make(chan string)
-	quit := make(chan bool)
-	// Buffer these channels to prevent deadlocks
-	errs := make(chan error, len(existing))
-	result := make(chan *leaseEntry, len(existing))
-
-	// Use a wait group
-	wg := &sync.WaitGroup{}
-
-	// Create 64 workers to distribute work to
-	for i := 0; i < consts.ExpirationRestoreWorkerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			for {
-				select {
-				case leaseID, ok := <-broker:
-					// broker has been closed, we are done
-					if !ok {
-						return
-					}
-
-					le, err := m.loadEntry(leaseID)
-					if err != nil {
-						errs <- err
-						continue
-					}
-
-					// Write results out to the result channel
-					result <- le
-
-				// quit early
-				case <-quit:
-					return
-				}
-			}
-		}()
-	}
-
-	// Distribute the collected keys to the workers in a go routine
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for i, leaseID := range existing {
-			if i%500 == 0 {
-				m.logger.Trace("expiration: leases loading", "progress", i)
-			}
-
-			select {
-			case <-quit:
-				return
-
-			default:
-				broker <- leaseID
-			}
-		}
-
-		// Close the broker, causing worker routines to exit
-		close(broker)
-	}()
-
-	// Restore each key by pulling from the result chan
-	for i := 0; i < len(existing); i++ {
-		select {
-		case err := <-errs:
-			// Close all go routines
-			close(quit)
-
+	// Restore each key
+	for _, leaseID := range existing {
+		// Load the entry
+		le, err := m.loadEntry(leaseID)
+		if err != nil {
 			return err
-
-		case le := <-result:
-
-			// If there is no entry, nothing to restore
-			if le == nil {
-				continue
-			}
-
-			// If there is no expiry time, don't do anything
-			if le.ExpireTime.IsZero() {
-				continue
-			}
-
-			// Determine the remaining time to expiration
-			expires := le.ExpireTime.Sub(time.Now())
-			if expires <= 0 {
-				expires = minRevokeDelay
-			}
-
-			// Setup revocation timer
-			m.pending[le.LeaseID] = time.AfterFunc(expires, func() {
-				m.expireID(le.LeaseID)
-			})
 		}
+
+		// If there is no entry, nothing to restore
+		if le == nil {
+			continue
+		}
+
+		// If there is no expiry time, don't do anything
+		if le.ExpireTime.IsZero() {
+			continue
+		}
+
+		// Determine the remaining time to expiration
+		expires := le.ExpireTime.Sub(time.Now())
+		if expires <= 0 {
+			expires = minRevokeDelay
+		}
+
+		// Setup revocation timer
+		m.pending[le.LeaseID] = time.AfterFunc(expires, func() {
+			m.expireID(le.LeaseID)
+		})
 	}
-
-	// Let all go routines finish
-	wg.Wait()
-
 	if len(m.pending) > 0 {
 		if m.logger.IsInfo() {
 			m.logger.Info("expire: leases restored", "restored_lease_count", len(m.pending))
 		}
 	}
-
 	return nil
 }
 
@@ -481,7 +292,7 @@ func (m *ExpirationManager) revokePrefixCommon(prefix string, force bool) error 
 
 	// Accumulate existing leases
 	sub := m.idView.SubView(prefix)
-	existing, err := logical.CollectKeys(sub)
+	existing, err := CollectKeys(sub)
 	if err != nil {
 		return fmt.Errorf("failed to scan for leases: %v", err)
 	}
@@ -508,7 +319,7 @@ func (m *ExpirationManager) Renew(leaseID string, increment time.Duration) (*log
 	}
 
 	// Check if the lease is renewable
-	if _, err := le.renewable(); err != nil {
+	if err := le.renewable(); err != nil {
 		return nil, err
 	}
 
@@ -563,7 +374,7 @@ func (m *ExpirationManager) RenewToken(req *logical.Request, source string, toke
 
 	// Check if the lease is renewable. Note that this also checks for a nil
 	// lease and errors in that case as well.
-	if _, err := le.renewable(); err != nil {
+	if err := le.renewable(); err != nil {
 		return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 	}
 
@@ -611,13 +422,8 @@ func (m *ExpirationManager) RenewToken(req *logical.Request, source string, toke
 // Register is used to take a request and response with an associated
 // lease. The secret gets assigned a LeaseID and the management of
 // of lease is assumed by the expiration manager.
-func (m *ExpirationManager) Register(req *logical.Request, resp *logical.Response) (id string, retErr error) {
+func (m *ExpirationManager) Register(req *logical.Request, resp *logical.Response) (string, error) {
 	defer metrics.MeasureSince([]string{"expire", "register"}, time.Now())
-
-	if req.ClientToken == "" {
-		return "", fmt.Errorf("expiration: cannot register a lease with an empty client token")
-	}
-
 	// Ignore if there is no leased secret
 	if resp == nil || resp.Secret == nil {
 		return "", nil
@@ -633,34 +439,8 @@ func (m *ExpirationManager) Register(req *logical.Request, resp *logical.Respons
 	if err != nil {
 		return "", err
 	}
-
-	leaseID := path.Join(req.Path, leaseUUID)
-
-	defer func() {
-		// If there is an error we want to rollback as much as possible (note
-		// that errors here are ignored to do as much cleanup as we can). We
-		// want to revoke a generated secret (since an error means we may not
-		// be successfully tracking it), remove indexes, and delete the entry.
-		if retErr != nil {
-			revResp, err := m.router.Route(logical.RevokeRequest(req.Path, resp.Secret, resp.Data))
-			if err != nil {
-				retErr = multierror.Append(retErr, errwrap.Wrapf("an additional internal error was encountered revoking the newly-generated secret: {{err}}", err))
-			} else if revResp != nil && revResp.IsError() {
-				retErr = multierror.Append(retErr, errwrap.Wrapf("an additional error was encountered revoking the newly-generated secret: {{err}}", revResp.Error()))
-			}
-
-			if err := m.deleteEntry(leaseID); err != nil {
-				retErr = multierror.Append(retErr, errwrap.Wrapf("an additional error was encountered deleting any lease associated with the newly-generated secret: {{err}}", err))
-			}
-
-			if err := m.removeIndexByToken(req.ClientToken, leaseID); err != nil {
-				retErr = multierror.Append(retErr, errwrap.Wrapf("an additional error was encountered removing lease indexes associated with the newly-generated secret: {{err}}", err))
-			}
-		}
-	}()
-
 	le := leaseEntry{
-		LeaseID:     leaseID,
+		LeaseID:     path.Join(req.Path, leaseUUID),
 		ClientToken: req.ClientToken,
 		Path:        req.Path,
 		Data:        resp.Data,
@@ -691,14 +471,6 @@ func (m *ExpirationManager) Register(req *logical.Request, resp *logical.Respons
 // the expiration manager.
 func (m *ExpirationManager) RegisterAuth(source string, auth *logical.Auth) error {
 	defer metrics.MeasureSince([]string{"expire", "register-auth"}, time.Now())
-
-	if auth.ClientToken == "" {
-		return fmt.Errorf("expiration: cannot register an auth lease with an empty token")
-	}
-
-	if strings.Contains(source, "..") {
-		return fmt.Errorf("expiration: %s", consts.ErrPathContainsParentReferences)
-	}
 
 	// Create a lease entry
 	le := leaseEntry{
@@ -820,7 +592,7 @@ func (m *ExpirationManager) revokeEntry(le *leaseEntry) error {
 	// Revocation of login tokens is special since we can by-pass the
 	// backend and directly interact with the token store
 	if le.Auth != nil {
-		if err := m.tokenStore.RevokeTree(le.ClientToken); err != nil {
+		if err := m.tokenStore.RevokeTree(le.Auth.ClientToken); err != nil {
 			return fmt.Errorf("failed to revoke token: %v", err)
 		}
 
@@ -993,34 +765,29 @@ type leaseEntry struct {
 }
 
 // encode is used to JSON encode the lease entry
-func (le *leaseEntry) encode() ([]byte, error) {
-	return json.Marshal(le)
+func (l *leaseEntry) encode() ([]byte, error) {
+	return json.Marshal(l)
 }
 
-func (le *leaseEntry) renewable() (bool, error) {
-	var err error
-	switch {
+func (le *leaseEntry) renewable() error {
 	// If there is no entry, cannot review
-	case le == nil || le.ExpireTime.IsZero():
-		err = fmt.Errorf("lease not found or lease is not renewable")
+	if le == nil || le.ExpireTime.IsZero() {
+		return fmt.Errorf("lease not found or lease is not renewable")
+	}
+
 	// Determine if the lease is expired
-	case le.ExpireTime.Before(time.Now()):
-		err = fmt.Errorf("lease expired")
+	if le.ExpireTime.Before(time.Now()) {
+		return fmt.Errorf("lease expired")
+	}
+
 	// Determine if the lease is renewable
-	case le.Secret != nil && !le.Secret.Renewable:
-		err = fmt.Errorf("lease is not renewable")
-	case le.Auth != nil && !le.Auth.Renewable:
-		err = fmt.Errorf("lease is not renewable")
+	if le.Secret != nil && !le.Secret.Renewable {
+		return fmt.Errorf("lease is not renewable")
 	}
-
-	if err != nil {
-		return false, err
+	if le.Auth != nil && !le.Auth.Renewable {
+		return fmt.Errorf("lease is not renewable")
 	}
-	return true, nil
-}
-
-func (le *leaseEntry) ttl() int64 {
-	return int64(le.ExpireTime.Sub(time.Now().Round(time.Second)).Seconds())
+	return nil
 }
 
 // decodeLeaseEntry is used to reverse encode and return a new entry

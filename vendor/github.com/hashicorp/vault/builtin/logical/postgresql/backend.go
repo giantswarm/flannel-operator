@@ -34,8 +34,6 @@ func Backend(conf *logical.BackendConfig) *backend {
 		},
 
 		Clean: b.ResetDB,
-
-		Invalidate: b.invalidate,
 	}
 
 	b.logger = conf.Logger
@@ -126,13 +124,6 @@ func (b *backend) ResetDB() {
 	}
 
 	b.db = nil
-}
-
-func (b *backend) invalidate(key string) {
-	switch key {
-	case "config/connection":
-		b.ResetDB()
-	}
 }
 
 // Lease returns the lease information

@@ -40,10 +40,10 @@ func testKeyUpgradeCommon(t *testing.T, lm *LockManager) {
 		t.Fatal("expected an upsert")
 	}
 
-	testBytes := make([]byte, len(p.Keys[1].Key))
-	copy(testBytes, p.Keys[1].Key)
+	testBytes := make([]byte, len(p.Keys[1].AESKey))
+	copy(testBytes, p.Keys[1].AESKey)
 
-	p.Key = p.Keys[1].Key
+	p.Key = p.Keys[1].AESKey
 	p.Keys = nil
 	p.MigrateKeyToKeysMap()
 	if p.Key != nil {
@@ -52,7 +52,7 @@ func testKeyUpgradeCommon(t *testing.T, lm *LockManager) {
 	if len(p.Keys) != 1 {
 		t.Fatal("policy.Keys is the wrong size")
 	}
-	if !reflect.DeepEqual(testBytes, p.Keys[1].Key) {
+	if !reflect.DeepEqual(testBytes, p.Keys[1].AESKey) {
 		t.Fatal("key mismatch")
 	}
 }
@@ -198,8 +198,7 @@ func Test_Archiving(t *testing.T) {
 func testArchivingCommon(t *testing.T, lm *LockManager) {
 	resetKeysArchive()
 
-	// First, we generate a policy and rotate it a number of times. Each time
-	// we'll ensure that we have the expected number of keys in the archive and
+	// First, we generate a policy and rotate it a number of times. Each time // we'll ensure that we have the expected number of keys in the archive and
 	// the main keys object, which without changing the min version should be
 	// zero and latest, respectively
 
@@ -331,21 +330,14 @@ func checkKeys(t *testing.T,
 	}
 
 	for i := p.MinDecryptionVersion; i <= p.LatestVersion; i++ {
-		// Travis has weird time zone issues and gets super unhappy
-		if !p.Keys[i].CreationTime.Equal(keysArchive[i].CreationTime) {
-			t.Fatalf("key %d not equivalent between policy keys and test keys archive; policy keys:\n%#v\ntest keys archive:\n%#v\n", i, p.Keys[i], keysArchive[i])
-		}
-		polKey := p.Keys[i]
-		polKey.CreationTime = keysArchive[i].CreationTime
-		p.Keys[i] = polKey
 		if !reflect.DeepEqual(p.Keys[i], keysArchive[i]) {
-			t.Fatalf("key %d not equivalent between policy keys and test keys archive; policy keys:\n%#v\ntest keys archive:\n%#v\n", i, p.Keys[i], keysArchive[i])
+			t.Fatalf("key %d not equivalent between policy keys and test keys archive", i)
 		}
 	}
 
 	for i := 1; i < len(archive.Keys); i++ {
-		if !reflect.DeepEqual(archive.Keys[i].Key, keysArchive[i].Key) {
-			t.Fatalf("key %d not equivalent between policy archive and test keys archive; policy archive:\n%#v\ntest keys archive:\n%#v\n", i, archive.Keys[i].Key, keysArchive[i].Key)
+		if !reflect.DeepEqual(archive.Keys[i].AESKey, keysArchive[i].AESKey) {
+			t.Fatalf("key %d not equivalent between policy archive and test keys archive", i)
 		}
 	}
 }

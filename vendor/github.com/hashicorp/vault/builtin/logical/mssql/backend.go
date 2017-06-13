@@ -31,10 +31,6 @@ func Backend() *backend {
 		Secrets: []*framework.Secret{
 			secretCreds(&b),
 		},
-
-		Invalidate: b.invalidate,
-
-		Clean: b.ResetDB,
 	}
 
 	return &b
@@ -78,7 +74,7 @@ func (b *backend) DB(s logical.Storage) (*sql.DB, error) {
 	}
 	connString := connConfig.ConnectionString
 
-	db, err := sql.Open("sqlserver", connString)
+	db, err := sql.Open("mssql", connString)
 	if err != nil {
 		return nil, err
 	}
@@ -112,13 +108,6 @@ func (b *backend) ResetDB() {
 	}
 
 	b.db = nil
-}
-
-func (b *backend) invalidate(key string) {
-	switch key {
-	case "config/connection":
-		b.ResetDB()
-	}
 }
 
 // LeaseConfig returns the lease configuration

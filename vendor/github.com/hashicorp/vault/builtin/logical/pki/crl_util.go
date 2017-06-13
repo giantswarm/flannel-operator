@@ -31,7 +31,7 @@ func revokeCert(b *backend, req *logical.Request, serial string, fromLease bool)
 	alreadyRevoked := false
 	var revInfo revocationInfo
 
-	revEntry, err := fetchCertBySerial(req, "revoked/", serial)
+	certEntry, err := fetchCertBySerial(req, "revoked/", serial)
 	if err != nil {
 		switch err.(type) {
 		case errutil.UserError:
@@ -40,9 +40,15 @@ func revokeCert(b *backend, req *logical.Request, serial string, fromLease bool)
 			return nil, err
 		}
 	}
-	if revEntry != nil {
+	if certEntry != nil {
 		// Set the revocation info to the existing values
 		alreadyRevoked = true
+
+		revEntry, err := req.Storage.Get("revoked/" + serial)
+		if revEntry == nil || err != nil {
+			return nil, fmt.Errorf("Error getting existing revocation info")
+		}
+
 		err = revEntry.DecodeJSON(&revInfo)
 		if err != nil {
 			return nil, fmt.Errorf("Error decoding existing revocation info")
@@ -50,7 +56,7 @@ func revokeCert(b *backend, req *logical.Request, serial string, fromLease bool)
 	}
 
 	if !alreadyRevoked {
-		certEntry, err := fetchCertBySerial(req, "certs/", serial)
+		certEntry, err = fetchCertBySerial(req, "certs/", serial)
 		if err != nil {
 			switch err.(type) {
 			case errutil.UserError:
@@ -65,7 +71,7 @@ func revokeCert(b *backend, req *logical.Request, serial string, fromLease bool)
 
 		cert, err := x509.ParseCertificate(certEntry.Value)
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing certificate: %s", err)
+			return nil, fmt.Errorf("Error parsing certificate")
 		}
 		if cert == nil {
 			return nil, fmt.Errorf("Got a nil certificate")
@@ -86,12 +92,12 @@ func revokeCert(b *backend, req *logical.Request, serial string, fromLease bool)
 		revInfo.RevocationTime = currTime.Unix()
 		revInfo.RevocationTimeUTC = currTime.UTC()
 
-		revEntry, err = logical.StorageEntryJSON("revoked/"+normalizeSerial(serial), revInfo)
+		certEntry, err = logical.StorageEntryJSON("revoked/"+serial, revInfo)
 		if err != nil {
 			return nil, fmt.Errorf("Error creating revocation entry")
 		}
 
-		err = req.Storage.Put(revEntry)
+		err = req.Storage.Put(certEntry)
 		if err != nil {
 			return nil, fmt.Errorf("Error saving revoked certificate to new location")
 		}

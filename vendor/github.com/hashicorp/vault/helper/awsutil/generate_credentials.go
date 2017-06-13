@@ -48,7 +48,7 @@ func (c *CredentialsConfig) GenerateCredentialChain() (*credentials.Credentials,
 				SecretAccessKey: c.SecretKey,
 				SessionToken:    c.SessionToken,
 			}})
-	case c.AccessKey == "" && c.SecretKey == "":
+	case c.AccessKey == "" && c.AccessKey == "":
 		// Attempt to get credentials from the IAM instance role below
 
 	default: // Have one or the other but not both and not neither

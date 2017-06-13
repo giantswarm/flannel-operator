@@ -4,24 +4,20 @@ import (
 	"os"
 
 	auditFile "github.com/hashicorp/vault/builtin/audit/file"
-	auditSocket "github.com/hashicorp/vault/builtin/audit/socket"
 	auditSyslog "github.com/hashicorp/vault/builtin/audit/syslog"
 	"github.com/hashicorp/vault/version"
 
 	credAppId "github.com/hashicorp/vault/builtin/credential/app-id"
 	credAppRole "github.com/hashicorp/vault/builtin/credential/approle"
-	credAws "github.com/hashicorp/vault/builtin/credential/aws"
+	credAwsEc2 "github.com/hashicorp/vault/builtin/credential/aws-ec2"
 	credCert "github.com/hashicorp/vault/builtin/credential/cert"
 	credGitHub "github.com/hashicorp/vault/builtin/credential/github"
 	credLdap "github.com/hashicorp/vault/builtin/credential/ldap"
-	credOkta "github.com/hashicorp/vault/builtin/credential/okta"
-	credRadius "github.com/hashicorp/vault/builtin/credential/radius"
 	credUserpass "github.com/hashicorp/vault/builtin/credential/userpass"
 
 	"github.com/hashicorp/vault/builtin/logical/aws"
 	"github.com/hashicorp/vault/builtin/logical/cassandra"
 	"github.com/hashicorp/vault/builtin/logical/consul"
-	"github.com/hashicorp/vault/builtin/logical/database"
 	"github.com/hashicorp/vault/builtin/logical/mongodb"
 	"github.com/hashicorp/vault/builtin/logical/mssql"
 	"github.com/hashicorp/vault/builtin/logical/mysql"
@@ -29,7 +25,6 @@ import (
 	"github.com/hashicorp/vault/builtin/logical/postgresql"
 	"github.com/hashicorp/vault/builtin/logical/rabbitmq"
 	"github.com/hashicorp/vault/builtin/logical/ssh"
-	"github.com/hashicorp/vault/builtin/logical/totp"
 	"github.com/hashicorp/vault/builtin/logical/transit"
 
 	"github.com/hashicorp/vault/audit"
@@ -68,18 +63,15 @@ func Commands(metaPtr *meta.Meta) map[string]cli.CommandFactory {
 				AuditBackends: map[string]audit.Factory{
 					"file":   auditFile.Factory,
 					"syslog": auditSyslog.Factory,
-					"socket": auditSocket.Factory,
 				},
 				CredentialBackends: map[string]logical.Factory{
 					"approle":  credAppRole.Factory,
 					"cert":     credCert.Factory,
-					"aws":      credAws.Factory,
+					"aws-ec2":  credAwsEc2.Factory,
 					"app-id":   credAppId.Factory,
 					"github":   credGitHub.Factory,
 					"userpass": credUserpass.Factory,
 					"ldap":     credLdap.Factory,
-					"okta":     credOkta.Factory,
-					"radius":   credRadius.Factory,
 				},
 				LogicalBackends: map[string]logical.Factory{
 					"aws":        aws.Factory,
@@ -93,8 +85,6 @@ func Commands(metaPtr *meta.Meta) map[string]cli.CommandFactory {
 					"mysql":      mysql.Factory,
 					"ssh":        ssh.Factory,
 					"rabbitmq":   rabbitmq.Factory,
-					"database":   database.Factory,
-					"totp":       totp.Factory,
 				},
 				ShutdownCh: command.MakeShutdownCh(),
 				SighupCh:   command.MakeSighupCh(),
@@ -118,12 +108,9 @@ func Commands(metaPtr *meta.Meta) map[string]cli.CommandFactory {
 				Meta: *metaPtr,
 				Handlers: map[string]command.AuthHandler{
 					"github":   &credGitHub.CLIHandler{},
-					"userpass": &credUserpass.CLIHandler{DefaultMount: "userpass"},
+					"userpass": &credUserpass.CLIHandler{},
 					"ldap":     &credLdap.CLIHandler{},
-					"okta":     &credOkta.CLIHandler{},
 					"cert":     &credCert.CLIHandler{},
-					"aws":      &credAws.CLIHandler{},
-					"radius":   &credUserpass.CLIHandler{DefaultMount: "radius"},
 				},
 			}, nil
 		},

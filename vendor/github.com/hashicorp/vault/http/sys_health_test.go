@@ -45,7 +45,7 @@ func TestSysHealth_get(t *testing.T) {
 		t.Fatalf("bad: expected:%#v\nactual:%#v", expected, actual)
 	}
 
-	keys, _ := vault.TestCoreInit(t, core)
+	key, _ := vault.TestCoreInit(t, core)
 	resp, err = http.Get(addr + "/v1/sys/health")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -75,10 +75,8 @@ func TestSysHealth_get(t *testing.T) {
 		t.Fatalf("bad: expected:%#v\nactual:%#v", expected, actual)
 	}
 
-	for _, key := range keys {
-		if _, err := vault.TestCoreUnseal(core, vault.TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	if _, err := vault.TestCoreUnseal(core, vault.TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 	resp, err = http.Get(addr + "/v1/sys/health")
 	if err != nil {
@@ -150,7 +148,7 @@ func TestSysHealth_customcodes(t *testing.T) {
 		t.Fatalf("bad: expected:%#v\nactual:%#v", expected, actual)
 	}
 
-	keys, _ := vault.TestCoreInit(t, core)
+	key, _ := vault.TestCoreInit(t, core)
 	resp, err = http.Get(queryurl.String())
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -181,10 +179,8 @@ func TestSysHealth_customcodes(t *testing.T) {
 		t.Fatalf("bad: expected:%#v\nactual:%#v", expected, actual)
 	}
 
-	for _, key := range keys {
-		if _, err := vault.TestCoreUnseal(core, vault.TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	if _, err := vault.TestCoreUnseal(core, vault.TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 	resp, err = http.Get(queryurl.String())
 	if err != nil {

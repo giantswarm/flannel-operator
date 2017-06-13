@@ -8,40 +8,19 @@ import (
 )
 
 type InmemHABackend struct {
-	Backend
+	InmemBackend
 	locks  map[string]string
 	l      sync.Mutex
 	cond   *sync.Cond
 	logger log.Logger
 }
 
-type TransactionalInmemHABackend struct {
-	Transactional
-	InmemHABackend
-}
-
 // NewInmemHA constructs a new in-memory HA backend. This is only for testing.
 func NewInmemHA(logger log.Logger) *InmemHABackend {
 	in := &InmemHABackend{
-		Backend: NewInmem(logger),
-		locks:   make(map[string]string),
-		logger:  logger,
-	}
-	in.cond = sync.NewCond(&in.l)
-	return in
-}
-
-func NewTransactionalInmemHA(logger log.Logger) *TransactionalInmemHABackend {
-	transInmem := NewTransactionalInmem(logger)
-	inmemHA := InmemHABackend{
-		Backend: transInmem,
-		locks:   make(map[string]string),
-		logger:  logger,
-	}
-
-	in := &TransactionalInmemHABackend{
-		InmemHABackend: inmemHA,
-		Transactional:  transInmem,
+		InmemBackend: *NewInmem(logger),
+		locks:        make(map[string]string),
+		logger:       logger,
 	}
 	in.cond = sync.NewCond(&in.l)
 	return in

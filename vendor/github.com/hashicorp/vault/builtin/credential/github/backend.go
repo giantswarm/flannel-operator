@@ -1,8 +1,6 @@
 package github
 
 import (
-	"context"
-
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/vault/logical"
@@ -65,8 +63,7 @@ type backend struct {
 func (b *backend) Client(token string) (*github.Client, error) {
 	tc := cleanhttp.DefaultClient()
 	if token != "" {
-		ctx := context.WithValue(context.Background(), oauth2.HTTPClient, tc)
-		tc = oauth2.NewClient(ctx, &tokenSource{Value: token})
+		tc = oauth2.NewClient(oauth2.NoContext, &tokenSource{Value: token})
 	}
 
 	return github.NewClient(tc), nil

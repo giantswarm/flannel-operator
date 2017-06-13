@@ -53,7 +53,6 @@ type SealStatusResponse struct {
 	T           int    `json:"t"`
 	N           int    `json:"n"`
 	Progress    int    `json:"progress"`
-	Nonce       string `json:"nonce"`
 	Version     string `json:"version"`
 	ClusterName string `json:"cluster_name,omitempty"`
 	ClusterID   string `json:"cluster_id,omitempty"`

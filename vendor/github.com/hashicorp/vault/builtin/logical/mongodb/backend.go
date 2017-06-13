@@ -33,8 +33,6 @@ func Backend() *framework.Backend {
 		},
 
 		Clean: b.ResetSession,
-
-		Invalidate: b.invalidate,
 	}
 
 	return b.Backend
@@ -97,13 +95,6 @@ func (b *backend) ResetSession() {
 	}
 
 	b.session = nil
-}
-
-func (b *backend) invalidate(key string) {
-	switch key {
-	case "config/connection":
-		b.ResetSession()
-	}
 }
 
 // LeaseConfig returns the lease configuration

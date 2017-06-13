@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/vault/helper/logformat"
 	log "github.com/mgutz/logxi/v1"
 
-	"github.com/Azure/azure-storage-go"
+	"github.com/Azure/azure-sdk-for-go/storage"
 )
 
 func TestAzureBackend(t *testing.T) {
@@ -35,8 +35,7 @@ func TestAzureBackend(t *testing.T) {
 	})
 
 	defer func() {
-		contObj := cleanupClient.GetBlobService().GetContainerReference(container)
-		contObj.DeleteIfExists()
+		cleanupClient.GetBlobService().DeleteContainerIfExists(container)
 	}()
 
 	if err != nil {

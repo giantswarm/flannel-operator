@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Custom Secret Backend"
+page_title: "Secret Backend: Custom"
 sidebar_current: "docs-secrets-custom"
 description: |-
   Create custom secret backends for Vault.

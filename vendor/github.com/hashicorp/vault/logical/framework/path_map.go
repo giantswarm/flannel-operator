@@ -21,7 +21,6 @@ type PathMap struct {
 	Schema        map[string]*FieldSchema
 	CaseSensitive bool
 	Salt          *salt.Salt
-	SaltFunc      func() (*salt.Salt, error)
 
 	once sync.Once
 }
@@ -42,7 +41,7 @@ func (p *PathMap) init() {
 }
 
 // pathStruct returns the pathStruct for this mapping
-func (p *PathMap) pathStruct(s logical.Storage, k string) (*PathStruct, error) {
+func (p *PathMap) pathStruct(k string) *PathStruct {
 	p.once.Do(p.init)
 
 	// If we don't care about casing, store everything lowercase
@@ -50,90 +49,30 @@ func (p *PathMap) pathStruct(s logical.Storage, k string) (*PathStruct, error) {
 		k = strings.ToLower(k)
 	}
 
-	// The original key before any salting
-	origKey := k
-
 	// If we have a salt, apply it before lookup
-	salt := p.Salt
-	var err error
-	if p.SaltFunc != nil {
-		salt, err = p.SaltFunc()
-		if err != nil {
-			return nil, err
-		}
-	}
-	if salt != nil {
-		k = salt.SaltID(k)
+	if p.Salt != nil {
+		k = p.Salt.SaltID(k)
 	}
 
-	finalName := fmt.Sprintf("map/%s/%s", p.Name, k)
-	ps := &PathStruct{
-		Name:   finalName,
+	return &PathStruct{
+		Name:   fmt.Sprintf("map/%s/%s", p.Name, k),
 		Schema: p.Schema,
 	}
-
-	// Check for unsalted version and upgrade if so
-	if k != origKey {
-		// Generate the unsalted name
-		unsaltedName := fmt.Sprintf("map/%s/%s", p.Name, origKey)
-		// Set the path struct to use the unsalted name
-		ps.Name = unsaltedName
-		// Ensure that no matter what happens what is returned is the final
-		// path
-		defer func() {
-			ps.Name = finalName
-		}()
-		val, err := ps.Get(s)
-		if err != nil {
-			return nil, err
-		}
-		// If not nil, we have an unsalted entry -- upgrade it
-		if val != nil {
-			// Set the path struct to use the desired final name
-			ps.Name = finalName
-			err = ps.Put(s, val)
-			if err != nil {
-				return nil, err
-			}
-			// Set it back to the old path and delete
-			ps.Name = unsaltedName
-			err = ps.Delete(s)
-			if err != nil {
-				return nil, err
-			}
-			// We'll set this in the deferred function but doesn't hurt here
-			ps.Name = finalName
-		}
-	}
-
-	return ps, nil
 }
 
 // Get reads a value out of the mapping
 func (p *PathMap) Get(s logical.Storage, k string) (map[string]interface{}, error) {
-	ps, err := p.pathStruct(s, k)
-	if err != nil {
-		return nil, err
-	}
-	return ps.Get(s)
+	return p.pathStruct(k).Get(s)
 }
 
 // Put writes a value into the mapping
 func (p *PathMap) Put(s logical.Storage, k string, v map[string]interface{}) error {
-	ps, err := p.pathStruct(s, k)
-	if err != nil {
-		return err
-	}
-	return ps.Put(s, v)
+	return p.pathStruct(k).Put(s, v)
 }
 
 // Delete removes a value from the mapping
 func (p *PathMap) Delete(s logical.Storage, k string) error {
-	ps, err := p.pathStruct(s, k)
-	if err != nil {
-		return err
-	}
-	return ps.Delete(s)
+	return p.pathStruct(k).Delete(s)
 }
 
 // List reads the keys under a given path
@@ -167,7 +106,7 @@ func (p *PathMap) Paths() []*Path {
 
 	return []*Path{
 		&Path{
-			Pattern: fmt.Sprintf("%s/%s/?$", p.Prefix, p.Name),
+			Pattern: fmt.Sprintf("%s/%s$", p.Prefix, p.Name),
 
 			Callbacks: map[logical.Operation]OperationFunc{
 				logical.ListOperation: p.pathList,
@@ -198,7 +137,7 @@ func (p *PathMap) Paths() []*Path {
 
 func (p *PathMap) pathList(
 	req *logical.Request, d *FieldData) (*logical.Response, error) {
-	keys, err := p.List(req.Storage, "")
+	keys, err := req.Storage.List(req.Path)
 	if err != nil {
 		return nil, err
 	}

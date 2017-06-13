@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hashicorp/vault/helper/parseutil"
-	"github.com/hashicorp/vault/helper/strutil"
+	"github.com/hashicorp/vault/helper/duration"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -31,8 +30,7 @@ func (d *FieldData) Validate() error {
 		}
 
 		switch schema.Type {
-		case TypeBool, TypeInt, TypeMap, TypeDurationSecond, TypeString, TypeSlice,
-			TypeStringSlice, TypeCommaStringSlice:
+		case TypeBool, TypeInt, TypeMap, TypeDurationSecond, TypeString:
 			_, _, err := d.getPrimitive(field, schema)
 			if err != nil {
 				return fmt.Errorf("Error converting input %v for field %s: %s", value, field, err)
@@ -107,8 +105,7 @@ func (d *FieldData) GetOkErr(k string) (interface{}, bool, error) {
 	}
 
 	switch schema.Type {
-	case TypeBool, TypeInt, TypeMap, TypeDurationSecond, TypeString,
-		TypeSlice, TypeStringSlice, TypeCommaStringSlice:
+	case TypeBool, TypeInt, TypeMap, TypeDurationSecond, TypeString:
 		return d.getPrimitive(k, schema)
 	default:
 		return nil, false,
@@ -164,7 +161,7 @@ func (d *FieldData) getPrimitive(
 		case float64:
 			result = int(inp)
 		case string:
-			dur, err := parseutil.ParseDurationSecond(inp)
+			dur, err := duration.ParseDurationSecond(inp)
 			if err != nil {
 				return nil, true, err
 			}
@@ -179,36 +176,6 @@ func (d *FieldData) getPrimitive(
 			return nil, false, fmt.Errorf("invalid input '%v'", raw)
 		}
 		return result, true, nil
-
-	case TypeSlice:
-		var result []interface{}
-		if err := mapstructure.WeakDecode(raw, &result); err != nil {
-			return nil, true, err
-		}
-		return result, true, nil
-
-	case TypeStringSlice:
-		var result []string
-		if err := mapstructure.WeakDecode(raw, &result); err != nil {
-			return nil, true, err
-		}
-		return strutil.TrimStrings(result), true, nil
-
-	case TypeCommaStringSlice:
-		var result []string
-		config := &mapstructure.DecoderConfig{
-			Result:           &result,
-			WeaklyTypedInput: true,
-			DecodeHook:       mapstructure.StringToSliceHookFunc(","),
-		}
-		decoder, err := mapstructure.NewDecoder(config)
-		if err != nil {
-			return nil, false, err
-		}
-		if err := decoder.Decode(raw); err != nil {
-			return nil, false, err
-		}
-		return strutil.TrimStrings(result), true, nil
 
 	default:
 		panic(fmt.Sprintf("Unknown type: %s", schema.Type))

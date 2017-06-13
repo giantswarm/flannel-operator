@@ -26,7 +26,7 @@ func (c *RenewCommand) Run(args []string) int {
 	if len(args) < 1 || len(args) >= 3 {
 		flags.Usage()
 		c.Ui.Error(fmt.Sprintf(
-			"\nrenew expects at least one argument: the lease ID to renew"))
+			"\nRenew expects at least one argument: the lease ID to renew"))
 		return 1
 	}
 

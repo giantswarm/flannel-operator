@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/audit"
-	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/logformat"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/physical"
@@ -73,7 +72,7 @@ func TestCore_Unseal_MultiShare(t *testing.T) {
 		t.Fatalf("should be sealed")
 	}
 
-	if prog, _ := c.SecretProgress(); prog != 0 {
+	if prog := c.SecretProgress(); prog != 0 {
 		t.Fatalf("bad progress: %d", prog)
 	}
 
@@ -92,14 +91,14 @@ func TestCore_Unseal_MultiShare(t *testing.T) {
 			if !unseal {
 				t.Fatalf("should be unsealed")
 			}
-			if prog, _ := c.SecretProgress(); prog != 0 {
+			if prog := c.SecretProgress(); prog != 0 {
 				t.Fatalf("bad progress: %d", prog)
 			}
 		} else {
 			if unseal {
 				t.Fatalf("should not be unsealed")
 			}
-			if prog, _ := c.SecretProgress(); prog != i+1 {
+			if prog := c.SecretProgress(); prog != i+1 {
 				t.Fatalf("bad progress: %d", prog)
 			}
 		}
@@ -161,7 +160,7 @@ func TestCore_Unseal_Single(t *testing.T) {
 		t.Fatalf("should be sealed")
 	}
 
-	if prog, _ := c.SecretProgress(); prog != 0 {
+	if prog := c.SecretProgress(); prog != 0 {
 		t.Fatalf("bad progress: %d", prog)
 	}
 
@@ -173,7 +172,7 @@ func TestCore_Unseal_Single(t *testing.T) {
 	if !unseal {
 		t.Fatalf("should be unsealed")
 	}
-	if prog, _ := c.SecretProgress(); prog != 0 {
+	if prog := c.SecretProgress(); prog != 0 {
 		t.Fatalf("bad progress: %d", prog)
 	}
 
@@ -199,7 +198,7 @@ func TestCore_Route_Sealed(t *testing.T) {
 		Path:      "sys/mounts",
 	}
 	_, err := c.HandleRequest(req)
-	if err != consts.ErrSealed {
+	if err != ErrSealed {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -229,18 +228,12 @@ func TestCore_Route_Sealed(t *testing.T) {
 
 // Attempt to unseal after doing a first seal
 func TestCore_SealUnseal(t *testing.T) {
-	c, keys, root := TestCoreUnsealed(t)
+	c, key, root := TestCoreUnsealed(t)
 	if err := c.Seal(root); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for i, key := range keys {
-		unseal, err := TestCoreUnseal(c, key)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if i+1 == len(keys) && !unseal {
-			t.Fatalf("err: should be unsealed")
-		}
+	if unseal, err := TestCoreUnseal(c, key); err != nil || !unseal {
+		t.Fatalf("err: %v", err)
 	}
 }
 
@@ -986,11 +979,9 @@ func TestCore_Standby_Seal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	keys, root := TestCoreInit(t, core)
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	key, root := TestCoreInit(t, core)
+	if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -1014,7 +1005,7 @@ func TestCore_Standby_Seal(t *testing.T) {
 		t.Fatalf("should be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Create the second core and initialize it
@@ -1028,10 +1019,8 @@ func TestCore_Standby_Seal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -1061,7 +1050,7 @@ func TestCore_Standby_Seal(t *testing.T) {
 		t.Fatalf("should not be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Seal the standby core with the correct token. Shouldn't go down
@@ -1097,11 +1086,9 @@ func TestCore_StepDown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	keys, root := TestCoreInit(t, core)
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	key, root := TestCoreInit(t, core)
+	if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -1125,7 +1112,7 @@ func TestCore_StepDown(t *testing.T) {
 		t.Fatalf("should be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Create the second core and initialize it
@@ -1139,10 +1126,8 @@ func TestCore_StepDown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -1172,7 +1157,7 @@ func TestCore_StepDown(t *testing.T) {
 		t.Fatalf("should not be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	req := &logical.Request{
@@ -1213,7 +1198,7 @@ func TestCore_StepDown(t *testing.T) {
 		t.Fatalf("should be leader")
 	}
 	if advertise != redirectOriginal2 {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal2)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Check the leader is not local
@@ -1225,7 +1210,7 @@ func TestCore_StepDown(t *testing.T) {
 		t.Fatalf("should not be leader")
 	}
 	if advertise != redirectOriginal2 {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal2)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Step down core2
@@ -1256,7 +1241,7 @@ func TestCore_StepDown(t *testing.T) {
 		t.Fatalf("should be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Check the leader is not local
@@ -1268,7 +1253,7 @@ func TestCore_StepDown(t *testing.T) {
 		t.Fatalf("should not be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 }
 
@@ -1288,11 +1273,9 @@ func TestCore_CleanLeaderPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	keys, root := TestCoreInit(t, core)
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	key, root := TestCoreInit(t, core)
+	if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -1343,7 +1326,7 @@ func TestCore_CleanLeaderPrefix(t *testing.T) {
 		t.Fatalf("should be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Create a second core, attached to same in-memory store
@@ -1357,10 +1340,8 @@ func TestCore_CleanLeaderPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -1390,7 +1371,7 @@ func TestCore_CleanLeaderPrefix(t *testing.T) {
 		t.Fatalf("should not be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Seal the first core, should step down
@@ -1420,7 +1401,7 @@ func TestCore_CleanLeaderPrefix(t *testing.T) {
 		t.Fatalf("should be leader")
 	}
 	if advertise != redirectOriginal2 {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal2)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Give time for the entries to clear out; it is conservative at 1/second
@@ -1460,11 +1441,9 @@ func testCore_Standby_Common(t *testing.T, inm physical.Backend, inmha physical.
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	keys, root := TestCoreInit(t, core)
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	key, root := TestCoreInit(t, core)
+	if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -1502,7 +1481,7 @@ func testCore_Standby_Common(t *testing.T, inm physical.Backend, inmha physical.
 		t.Fatalf("should be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Create a second core, attached to same in-memory store
@@ -1516,10 +1495,8 @@ func testCore_Standby_Common(t *testing.T, inm physical.Backend, inmha physical.
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Verify unsealed
@@ -1542,7 +1519,7 @@ func testCore_Standby_Common(t *testing.T, inm physical.Backend, inmha physical.
 
 	// Request should fail in standby mode
 	_, err = core2.HandleRequest(req)
-	if err != consts.ErrStandby {
+	if err != ErrStandby {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1555,7 +1532,7 @@ func testCore_Standby_Common(t *testing.T, inm physical.Backend, inmha physical.
 		t.Fatalf("should not be leader")
 	}
 	if advertise != redirectOriginal {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	// Seal the first core, should step down
@@ -1601,7 +1578,7 @@ func testCore_Standby_Common(t *testing.T, inm physical.Backend, inmha physical.
 		t.Fatalf("should be leader")
 	}
 	if advertise != redirectOriginal2 {
-		t.Fatalf("Bad advertise: %v, orig is %v", advertise, redirectOriginal2)
+		t.Fatalf("Bad advertise: %v", advertise)
 	}
 
 	if inm.(*physical.InmemHABackend) == inmha.(*physical.InmemHABackend) {
@@ -1956,7 +1933,7 @@ path "secret/*" {
 	}
 }
 
-func TestCore_HandleRequest_MountPointType(t *testing.T) {
+func TestCore_HandleRequest_MountPoint(t *testing.T) {
 	noop := &NoopBackend{
 		Response: &logical.Response{},
 	}
@@ -1986,14 +1963,11 @@ func TestCore_HandleRequest_MountPointType(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Verify Path, MountPoint, and MountType
+	// Verify Path and MountPoint
 	if noop.Requests[0].Path != "test" {
 		t.Fatalf("bad: %#v", noop.Requests)
 	}
 	if noop.Requests[0].MountPoint != "foo/" {
-		t.Fatalf("bad: %#v", noop.Requests)
-	}
-	if noop.Requests[0].MountType != "noop" {
 		t.Fatalf("bad: %#v", noop.Requests)
 	}
 }
@@ -2014,11 +1988,9 @@ func TestCore_Standby_Rotate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	keys, root := TestCoreInit(t, core)
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	key, root := TestCoreInit(t, core)
+	if _, err := TestCoreUnseal(core, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Wait for core to become active
@@ -2035,10 +2007,8 @@ func TestCore_Standby_Rotate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for _, key := range keys {
-		if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
-			t.Fatalf("unseal err: %s", err)
-		}
+	if _, err := TestCoreUnseal(core2, TestKeyCopy(key)); err != nil {
+		t.Fatalf("unseal err: %s", err)
 	}
 
 	// Rotate the encryption key

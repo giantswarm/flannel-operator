@@ -36,9 +36,6 @@ type PolicyRequest struct {
 	// Whether to enable convergent encryption
 	Convergent bool
 
-	// Whether to allow export
-	Exportable bool
-
 	// Whether to upsert
 	Upsert bool
 }
@@ -69,15 +66,6 @@ func NewLockManager(cacheDisabled bool) *LockManager {
 
 func (lm *LockManager) CacheActive() bool {
 	return lm.cache != nil
-}
-
-func (lm *LockManager) InvalidatePolicy(name string) {
-	// Check if it's in our cache. If so, return right away.
-	if lm.CacheActive() {
-		lm.cacheMutex.Lock()
-		defer lm.cacheMutex.Unlock()
-		delete(lm.cache, name)
-	}
 }
 
 func (lm *LockManager) policyLock(name string, lockType bool) *sync.RWMutex {
@@ -248,12 +236,7 @@ func (lm *LockManager) getPolicyCommon(req PolicyRequest, lockType bool) (*Polic
 
 		case KeyType_ECDSA_P256:
 			if req.Derived || req.Convergent {
-				return nil, nil, false, fmt.Errorf("key derivation and convergent encryption not supported for keys of type %v", KeyType_ECDSA_P256)
-			}
-
-		case KeyType_ED25519:
-			if req.Convergent {
-				return nil, nil, false, fmt.Errorf("convergent encryption not not supported for keys of type %v", KeyType_ED25519)
+				return nil, nil, false, fmt.Errorf("key derivation and convergent encryption not supported for keys of type %s", KeyType_ECDSA_P256)
 			}
 
 		default:
@@ -261,10 +244,9 @@ func (lm *LockManager) getPolicyCommon(req PolicyRequest, lockType bool) (*Polic
 		}
 
 		p = &Policy{
-			Name:       req.Name,
-			Type:       req.KeyType,
-			Derived:    req.Derived,
-			Exportable: req.Exportable,
+			Name:    req.Name,
+			Type:    req.KeyType,
+			Derived: req.Derived,
 		}
 		if req.Derived {
 			p.KDF = Kdf_hkdf_sha256

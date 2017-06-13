@@ -17,12 +17,6 @@ func Backend() *backend {
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
 
-		PathsSpecial: &logical.Paths{
-			LocalStorage: []string{
-				framework.WALPrefix,
-			},
-		},
-
 		Paths: []*framework.Path{
 			pathConfigRoot(),
 			pathConfigLease(&b),

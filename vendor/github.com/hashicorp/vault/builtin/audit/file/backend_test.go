@@ -9,10 +9,11 @@ import (
 
 	"github.com/hashicorp/vault/audit"
 	"github.com/hashicorp/vault/helper/salt"
-	"github.com/hashicorp/vault/logical"
 )
 
 func TestAuditFile_fileModeNew(t *testing.T) {
+	salter, _ := salt.NewSalt(nil, nil)
+
 	modeStr := "0777"
 	mode, err := strconv.ParseUint(modeStr, 8, 32)
 
@@ -27,9 +28,8 @@ func TestAuditFile_fileModeNew(t *testing.T) {
 	}
 
 	_, err = Factory(&audit.BackendConfig{
-		SaltConfig: &salt.Config{},
-		SaltView:   &logical.InmemStorage{},
-		Config:     config,
+		Salt:   salter,
+		Config: config,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -45,6 +45,8 @@ func TestAuditFile_fileModeNew(t *testing.T) {
 }
 
 func TestAuditFile_fileModeExisting(t *testing.T) {
+	salter, _ := salt.NewSalt(nil, nil)
+
 	f, err := ioutil.TempFile("", "test")
 	if err != nil {
 		t.Fatalf("Failure to create test file.")
@@ -66,9 +68,8 @@ func TestAuditFile_fileModeExisting(t *testing.T) {
 	}
 
 	_, err = Factory(&audit.BackendConfig{
-		Config:     config,
-		SaltConfig: &salt.Config{},
-		SaltView:   &logical.InmemStorage{},
+		Salt:   salter,
+		Config: config,
 	})
 	if err != nil {
 		t.Fatal(err)
