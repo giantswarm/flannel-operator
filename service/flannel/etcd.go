@@ -3,14 +3,16 @@ package flannel
 import (
 	"context"
 	"crypto/tls"
+	"net"
+	"net/http"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/pkg/tlsutil"
 	"github.com/giantswarm/flanneltpr"
 	microerror "github.com/giantswarm/microkit/error"
 	"github.com/giantswarm/microkit/storage"
-	"github.com/giantswarm/microkit/storage/etcd"
+	"github.com/giantswarm/microkit/storage/etcdv2"
 )
 
 type certFiles struct {
@@ -44,25 +46,49 @@ func (s *Service) cleanupEtcd(spec flanneltpr.Spec) error {
 }
 
 func newStorage(endpoint string, certFiles certFiles) (storage.Service, error) {
+	etcdClient, err := newEtcdClient(endpoint, certFiles)
+	if err != nil {
+		return nil, microerror.MaskAnyf(err, "creating etcd client")
+	}
+
+	config := etcdv2.Config{
+		EtcdClient: etcdClient,
+	}
+
+	store, err := etcdv2.New(config)
+	if err != nil {
+		return nil, microerror.MaskAny(err)
+	}
+	return store, nil
+}
+
+func newEtcdClient(endpoint string, certFiles certFiles) (client.Client, error) {
 	tlsConfig, err := loadTLSConfig(certFiles)
 	if err != nil {
 		return nil, microerror.MaskAny(err)
 	}
 
-	etcdConfig := clientv3.Config{
-		Endpoints:   []string{endpoint},
-		DialTimeout: 5 * time.Second,
-		TLS:         tlsConfig,
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+		TLSClientConfig:     tlsConfig,
 	}
-	etcdClient, err := clientv3.New(etcdConfig)
+
+	config := client.Config{
+		Endpoints:               []string{endpoint},
+		Transport:               transport,
+		HeaderTimeoutPerRequest: time.Second * 5,
+	}
+
+	client, err := client.New(config)
 	if err != nil {
 		return nil, microerror.MaskAny(err)
 	}
-
-	config := etcd.DefaultConfig()
-	config.EtcdClient = etcdClient
-	store, err := etcd.New(config)
-	return store, microerror.MaskAny(err)
+	return client, nil
 }
 
 func loadTLSConfig(files certFiles) (*tls.Config, error) {
