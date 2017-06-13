@@ -8,3 +8,9 @@ data:
     server:
       listen:
         address: 'http://0.0.0.0:8000'
+    etcd:
+      endpoint: 'https://127.0.0.1:2379'
+      tls:
+        cafile: '/etc/kubernetes/ssl/etcd/etcd-ca.pem'
+        crtfile: '/etc/kubernetes/ssl/etcd/etcd.pem'
+        keyfile: '/etc/kubernetes/ssl/etcd/etcd-key.pem'
