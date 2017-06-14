@@ -1,5 +1,5 @@
 hash: 5ddd95dfba78af9bc0f7ab6c627ccade615cf2f91b48b2be05bfd732f79abf25
-updated: 2017-06-13T16:33:59.02458896+02:00
+updated: 2017-06-14T14:03:17.95397616+02:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -73,7 +73,7 @@ imports:
   - network/bridge
   - network/bridge/docker
 - name: github.com/giantswarm/microkit
-  version: 28d34059fef4aab66f1339baf4d03024339282d1
+  version: 1ac51fb9905e0c7ab5a8d12fec127c6fbfd75aac
   subpackages:
   - command
   - command/daemon
