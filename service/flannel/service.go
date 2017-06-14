@@ -291,12 +291,10 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		path := "coreos.com/network/" + networkBridgeName(spec)
 
 		err := s.store.Delete(context.TODO(), path)
-		if err != nil {
-			if storage.IsNotFound(err) {
-				s.Logger.Log("warn", fmt.Sprintf("etcd path '%s' not found", path))
-			} else {
-				return microerror.MaskAnyf(err, "deleting etcd path %s", path)
-			}
+		if storage.IsNotFound(err) {
+			s.Logger.Log("debug", fmt.Sprintf("etcd path '%s' not found", path))
+		} else if err != nil {
+			return microerror.MaskAnyf(err, "deleting etcd path %s", path)
 		}
 	}
 
