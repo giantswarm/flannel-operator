@@ -14,7 +14,11 @@ spec:
       labels:
         app: flannel-operator
     spec:
+      hostNetwork: true
       volumes:
+      - name: etcd-certs
+        hostPath:
+          path: /etc/giantswarm/g8s/ssl/etcd/
       - name: flannel-operator-configmap
         configMap:
           name: flannel-operator-configmap
@@ -27,6 +31,8 @@ spec:
         volumeMounts:
         - name: flannel-operator-configmap
           mountPath: /var/run/flannel-operator/configmap/
+        - name: etcd-certs
+          mountPath: /etc/kubernetes/ssl/etcd/
         ports:
         - name: http
           containerPort: 8000
