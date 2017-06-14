@@ -204,12 +204,12 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 
 		notify := func(reason error, interval time.Duration) {
-			s.Logger.Log("debug", "waiting for the namespace to be removed", "reason", reason.Error(), "cluster", spec.Namespace)
+			s.Logger.Log("debug", "waiting for the namespace to be removed, reason: "+reason.Error(), "cluster", spec.Namespace)
 		}
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
 		if err != nil {
-			return microerror.MaskAnyf(err, "failed waiting for namespace %s to be deleted", spec.Namespace)
+			return microerror.MaskAnyf(err, "failed waiting for the namespace %s to be deleted", spec.Namespace)
 		}
 	}
 
@@ -270,14 +270,14 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 				return microerror.MaskAnyf(err, "requesting get job %s", jobName)
 			}
 			if job.Status.Succeeded != replicas {
-				return fmt.Errorf("network bridge cleanup in progress %d/%d, %d failures", job.Status.Succeeded, replicas, job.Status.Failed)
+				return fmt.Errorf("progress %d/%d", job.Status.Succeeded, replicas)
 			}
 			s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup finished on %d nodes", job.Status.Succeeded), "cluster", spec.Namespace)
 			return nil
 		}
 
 		notify := func(reason error, interval time.Duration) {
-			s.Logger.Log("debug", "waiting for the namespace to be removed, reason: "+reason.Error(), "cluster", spec.Namespace)
+			s.Logger.Log("debug", "waiting for network bridge cleanup to complete, reason: "+reason.Error(), "cluster", spec.Namespace)
 		}
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
@@ -292,7 +292,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 		err := s.store.Delete(context.TODO(), path)
 		if storage.IsNotFound(err) {
-			s.Logger.Log("debug", fmt.Sprintf("etcd path '%s' not found", path))
+			s.Logger.Log("debug", fmt.Sprintf("etcd path '%s' not found", path), "cluster", spec.Namespace)
 		} else if err != nil {
 			return microerror.MaskAnyf(err, "deleting etcd path %s", path)
 		}
