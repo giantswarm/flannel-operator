@@ -292,7 +292,11 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 		err := s.store.Delete(context.TODO(), path)
 		if err != nil {
-			return microerror.MaskAnyf(err, "deleting etcd path %s", path)
+			if storage.IsNotFound(err) {
+				s.Logger.Log("warn", fmt.Sprintf("etcd path '%s' not found", path))
+			} else {
+				return microerror.MaskAnyf(err, "deleting etcd path %s", path)
+			}
 		}
 	}
 
