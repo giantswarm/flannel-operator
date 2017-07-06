@@ -234,7 +234,13 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		if err != nil {
 			return microerror.MaskAnyf(err, "requesting cluster node list")
 		}
-		replicas = int32(len(nodes.Items))
+
+		// Run only on scheduleable nodes.
+		for _, n := range nodes.Items {
+			if !n.Spec.Unschedulable {
+				replicas++
+			}
+		}
 	}
 
 	// Create a bridge cleanup job.
