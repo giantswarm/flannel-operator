@@ -3,15 +3,15 @@ package flannel
 import (
 	"github.com/giantswarm/flanneltpr"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api"
+	apiv1 "k8s.io/client-go/pkg/api/v1"
 )
 
 // newPodAffinity create an affinity ensuring that pod of the app in the
 // namespace will not be scheduled on the same node.
-func newPodAffinity(spec flanneltpr.Spec) *api.Affinity {
-	return &api.Affinity{
-		PodAntiAffinity: &api.PodAntiAffinity{
-			RequiredDuringSchedulingIgnoredDuringExecution: []api.PodAffinityTerm{
+func newPodAffinity(spec flanneltpr.Spec) *apiv1.Affinity {
+	return &apiv1.Affinity{
+		PodAntiAffinity: &apiv1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []apiv1.PodAffinityTerm{
 				{
 					LabelSelector: &apismetav1.LabelSelector{
 						MatchExpressions: []apismetav1.LabelSelectorRequirement{
