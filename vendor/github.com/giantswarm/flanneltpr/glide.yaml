@@ -1,7 +1,3 @@
 package: github.com/giantswarm/flanneltpr
 import:
-- package: k8s.io/client-go
-  version: ~2.0.0-alpha.0
-  subpackages:
-  - pkg/api/unversioned
-  - pkg/api/v1
+- package: k8s.io/apimachinery

@@ -2,8 +2,8 @@ package flannel
 
 import (
 	"github.com/giantswarm/flanneltpr"
+	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/api/unversioned"
 )
 
 // newPodAffinity create an affinity ensuring that pod of the app in the
@@ -13,11 +13,11 @@ func newPodAffinity(spec flanneltpr.Spec) *api.Affinity {
 		PodAntiAffinity: &api.PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []api.PodAffinityTerm{
 				{
-					LabelSelector: &unversioned.LabelSelector{
-						MatchExpressions: []unversioned.LabelSelectorRequirement{
+					LabelSelector: &apismetav1.LabelSelector{
+						MatchExpressions: []apismetav1.LabelSelectorRequirement{
 							{
 								Key:      "app",
-								Operator: unversioned.LabelSelectorOpIn,
+								Operator: apismetav1.LabelSelectorOpIn,
 								Values:   []string{destroyerApp},
 							},
 						},
