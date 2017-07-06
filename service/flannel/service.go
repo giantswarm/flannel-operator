@@ -2,7 +2,6 @@ package flannel
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -226,15 +225,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 	// Schedule flannel resources cleanup on every node using anti affinity
 	// with hostname topology.
-	var podAffinity string
-	{
-		pa := newPodAffinity(spec)
-		data, err := json.Marshal(pa)
-		if err != nil {
-			return microerror.MaskAnyf(err, "marshalling podAffinity JSON")
-		}
-		podAffinity = string(data)
-	}
+	podAffinity := newPodAffinity(spec)
 
 	var replicas int32
 	{
@@ -250,7 +241,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	var jobName string
 	{
 		job := newJob(spec, replicas)
-		job.Spec.Template.Annotations["scheduler.alpha.kubernetes.io/affinity"] = podAffinity
+		job.Spec.Template.Spec.Affinity = podAffinity
 
 		_, err := s.K8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Create(job)
 		if err != nil {
