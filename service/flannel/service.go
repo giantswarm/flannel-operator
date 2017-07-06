@@ -15,10 +15,10 @@ import (
 	"github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/operatorkit/tpr"
 	"github.com/spf13/viper"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	k8serrors "k8s.io/client-go/pkg/api/errors"
-	"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/giantswarm/flannel-operator/flag"
@@ -193,8 +193,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	{
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
-			_, err := s.K8sClient.CoreV1().Namespaces().Get(spec.Namespace)
-			if err != nil && k8serrors.IsNotFound(err) {
+			_, err := s.K8sClient.CoreV1().Namespaces().Get(spec.Namespace, apismetav1.GetOptions{})
+			if err != nil && apierrors.IsNotFound(err) {
 				return nil
 			}
 			if err != nil {
@@ -239,7 +239,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	var replicas int32
 	{
 		// All nodes are listed assuming that master nodes run kubelets.
-		nodes, err := s.K8sClient.CoreV1().Nodes().List(v1.ListOptions{})
+		nodes, err := s.K8sClient.CoreV1().Nodes().List(apismetav1.ListOptions{})
 		if err != nil {
 			return microerror.MaskAnyf(err, "requesting cluster node list")
 		}
@@ -265,7 +265,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	{
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
-			job, err := s.K8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Get(jobName)
+			job, err := s.K8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Get(jobName, apismetav1.GetOptions{})
 			if err != nil {
 				return microerror.MaskAnyf(err, "requesting get job %s", jobName)
 			}
@@ -301,7 +301,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	// The operator's resources cleanup.
 	{
 		ns := destroyerNamespace(spec)
-		err := s.K8sClient.CoreV1().Namespaces().Delete(ns, &v1.DeleteOptions{})
+		err := s.K8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
 		if err != nil {
 			return microerror.MaskAnyf(err, "deleting namespace %s", ns)
 		}

@@ -1,7 +1,7 @@
 package flannel
 
 import (
-	apiunversioned "k8s.io/client-go/pkg/api/unversioned"
+	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiv1 "k8s.io/client-go/pkg/api/v1"
 	batchv1 "k8s.io/client-go/pkg/apis/batch/v1"
 
@@ -12,11 +12,11 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 	privileged := true
 
 	return &batchv1.Job{
-		TypeMeta: apiunversioned.TypeMeta{
+		TypeMeta: apismetav1.TypeMeta{
 			Kind:       "deployment",
 			APIVersion: "extensions/v1beta",
 		},
-		ObjectMeta: apiv1.ObjectMeta{
+		ObjectMeta: apismetav1.ObjectMeta{
 			Name: destroyerApp,
 			Labels: map[string]string{
 				"cluster":  clusterName(spec),
@@ -28,7 +28,7 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 			Parallelism: &replicas,
 			Completions: &replicas,
 			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: apiv1.ObjectMeta{
+				ObjectMeta: apismetav1.ObjectMeta{
 					GenerateName: destroyerApp,
 					Labels: map[string]string{
 						"cluster":  clusterName(spec),
