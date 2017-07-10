@@ -16,6 +16,7 @@ func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
 	}
 
 	containers := newDaemonSetContainers(spec)
+	volumes := newDaemonSetVolumes()
 
 	return &apisextensions.DaemonSet{
 		TypeMeta: apismeta.TypeMeta{
@@ -37,6 +38,7 @@ func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
 				},
 				Spec: api.PodSpec{
 					Containers: containers,
+					Volumes:    volumes,
 				},
 			},
 		},
@@ -155,6 +157,91 @@ func newDaemonSetContainers(spec flanneltpr.Spec) []api.Container {
 				{
 					Name:      "sys-class-net",
 					MountPath: "/sys/class/net/",
+				},
+			},
+		},
+	}
+}
+
+func newDaemonSetVolumes() []api.Volume {
+	return []api.Volume{
+		{
+			Name: "cgroup",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/sys/fs/cgroup",
+				},
+			},
+		},
+		{
+			Name: "dbus",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/var/run/dbus",
+				},
+			},
+		},
+		{
+			Name: "environment",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/etc/environment",
+				},
+			},
+		},
+		{
+			Name: "etcd-certs",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/etc/giantswarm/g8s/ssl/etcd/",
+				},
+			},
+		},
+		{
+			Name: "etc-systemd",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/etc/systemd/",
+				},
+			},
+		},
+		{
+			Name: "flannel",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/run/flannel",
+				},
+			},
+		},
+		{
+			Name: "ssl",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/etc/ssl/certs",
+				},
+			},
+		},
+		{
+			Name: "systemctl",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/usr/bin/systemctl",
+				},
+			},
+		},
+		{
+			Name: "systemd",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/run/systemd",
+				},
+			},
+		},
+		{
+			Name: "sys-class-net",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/sys/class/net/",
 				},
 			},
 		},
