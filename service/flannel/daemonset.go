@@ -16,7 +16,7 @@ func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
 	}
 
 	containers := newDaemonSetContainers(spec)
-	volumes := newDaemonSetVolumes()
+	volumes := newDaemonSetVolumes(spec)
 
 	return &apisextensions.DaemonSet{
 		TypeMeta: apismeta.TypeMeta{
@@ -163,7 +163,7 @@ func newDaemonSetContainers(spec flanneltpr.Spec) []api.Container {
 	}
 }
 
-func newDaemonSetVolumes() []api.Volume {
+func newDaemonSetVolumes(spec flanneltpr.Spec) []api.Volume {
 	return []api.Volume{
 		{
 			Name: "cgroup",
