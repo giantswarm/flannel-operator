@@ -1,5 +1,5 @@
 hash: 3f3fc6522aab06ca662f4acd64447a2bd82adcc0576ef9e475bc8e1ae094e78c
-updated: 2017-07-07T19:12:06.894089867+02:00
+updated: 2017-07-10T11:39:17.437181359+02:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -46,7 +46,7 @@ imports:
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/giantswarm/flanneltpr
-  version: 9cff63aacac6d63ae3ebd5e8afe6d024901dbca9
+  version: c7b21f4c955f0c4a8adc9a6a974c7403930ce278
   subpackages:
   - bridge
   - cluster
@@ -110,6 +110,8 @@ imports:
   subpackages:
   - jsonpb
   - proto
+- name: github.com/golang/snappy
+  version: 553a641470496b2327abcac10b36396bd98e45c9
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/gorilla/context
@@ -136,7 +138,7 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/vault
-  version: 322abf26f99752d1784afb756bbc8a1bd6ba2a60
+  version: 48ab9c54f009fd1d9ceed0766c7d9eb320e929bc
   subpackages:
   - api
   - helper/compressutil
