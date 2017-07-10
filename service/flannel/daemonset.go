@@ -209,7 +209,7 @@ func newDaemonSetVolumes() []api.Volume {
 			Name: "flannel",
 			VolumeSource: api.VolumeSource{
 				HostPath: &api.HostPathVolumeSource{
-					Path: "/run/flannel",
+					Path: flannelRunDir(spec),
 				},
 			},
 		},

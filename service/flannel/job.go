@@ -87,7 +87,7 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 							Name: "flannel",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/run/flannel",
+									Path: flannelRunDir(spec),
 								},
 							},
 						},

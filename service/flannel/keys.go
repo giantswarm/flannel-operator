@@ -44,6 +44,10 @@ func flannelDockerImage(spec flanneltpr.Spec) string {
 	return spec.Flannel.Docker.Image
 }
 
+func flannelRunDir(spec flanneltpr.Spec) string {
+	return spec.Flannel.Config.RunDir
+}
+
 func hostPrivateNetwork(spec flanneltpr.Spec) string {
 	return spec.Bridge.Config.PrivateNetwork
 }
@@ -65,7 +69,7 @@ func networkDNSBlock(spec flanneltpr.Spec) string {
 }
 
 func networkEnvFilePath(spec flanneltpr.Spec) string {
-	return fmt.Sprintf("/run/flannel/networks/%s.env", networkBridgeName(spec))
+	return fmt.Sprintf("%s/networks/%s.env", flannelRunDir(spec), networkBridgeName(spec))
 }
 
 func networkInterfaceName(spec flanneltpr.Spec) string {
