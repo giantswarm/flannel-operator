@@ -37,8 +37,9 @@ func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
 					},
 				},
 				Spec: api.PodSpec{
-					Containers: containers,
-					Volumes:    volumes,
+					HostNetwork: true,
+					Containers:  containers,
+					Volumes:     volumes,
 				},
 			},
 		},
