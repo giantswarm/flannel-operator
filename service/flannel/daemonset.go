@@ -32,7 +32,7 @@ func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
 		Spec: apisextensions.DaemonSetSpec{
 			Template: api.PodTemplateSpec{
 				ObjectMeta: apismeta.ObjectMeta{
-					GenerateName: creatorApp,
+					GenerateName: app,
 					Labels:       labels,
 					Annotations: map[string]string{
 						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",

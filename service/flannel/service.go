@@ -242,7 +242,7 @@ func (s *Service) addFuncError(obj interface{}) error {
 	// Create a dameonset running flanneld and creating network bridge.
 	{
 		daemonSet := newDaemonSet(spec)
-		_, err := s.K8sClient.ExtensionsV1beta1().DaemonSets(creatorNamespace(spec)).Create(daemonSet)
+		_, err := s.K8sClient.ExtensionsV1beta1().DaemonSets(networkNamespace(spec)).Create(daemonSet)
 		if apierrors.IsAlreadyExists(err) {
 			s.Logger.Log("debug", "daemonSet "+daemonSet.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
 		} else if err != nil {
@@ -299,6 +299,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		if err != nil {
 			return microerror.MaskAnyf(err, "failed waiting for the namespace %s to be deleted", name)
 		}
+
+		return nil
 	}
 
 	// Wait for the cluster's namespace to be deleted.
@@ -307,7 +309,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 		err := waitForNamespaceDeleted(spec.Cluster.Namespace)
 		if err != nil {
-			return microerror.MaskAnyf(err)
+			return microerror.MaskAny(err)
 		}
 	}
 
@@ -324,7 +326,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 		err = waitForNamespaceDeleted(ns)
 		if err != nil {
-			return microerror.MaskAnyf(err)
+			return microerror.MaskAny(err)
 		}
 	}
 
