@@ -37,7 +37,7 @@ func clusterNamespace(spec flanneltpr.Spec) string {
 }
 
 func etcdPath(spec flanneltpr.Spec) string {
-	return "coreos.com/network/" + networkBridgeName(spec)
+	return "coreos.com/network/" + networkBridgeName(spec) + "/config"
 }
 
 func flannelDockerImage(spec flanneltpr.Spec) string {
