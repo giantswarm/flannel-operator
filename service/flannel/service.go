@@ -185,6 +185,7 @@ func (s *Service) addFuncError(obj interface{}) error {
 		spec = o.Spec
 	}
 
+	// Create flannel etcd config.
 	{
 		path := etcdPath(spec)
 
@@ -229,7 +230,7 @@ func (s *Service) addFuncError(obj interface{}) error {
 
 	// Create namespace for the cleanup job.
 	{
-		ns := newNamespace(spec, creatorNamespace(spec))
+		ns := newNamespace(spec, networkNamespace(spec))
 		_, err := s.K8sClient.CoreV1().Namespaces().Create(ns)
 		if apierrors.IsAlreadyExists(err) {
 			s.Logger.Log("debug", "namespace "+ns.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
@@ -277,11 +278,10 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		spec = o.Spec
 	}
 
-	// Wait for the cluster's namespace to be deleted.
-	{
+	waitForNamespaceDeleted := func(name string) error {
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
-			_, err := s.K8sClient.CoreV1().Namespaces().Get(spec.Cluster.Namespace, apismetav1.GetOptions{})
+			_, err := s.K8sClient.CoreV1().Namespaces().Get(name, apismetav1.GetOptions{})
 			if err != nil && apierrors.IsNotFound(err) {
 				return nil
 			}
@@ -292,16 +292,41 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 
 		notify := func(reason error, interval time.Duration) {
-			s.Logger.Log("debug", "waiting for the namespace to be removed, reason: "+reason.Error(), "cluster", spec.Cluster.ID)
+			s.Logger.Log("debug", "waiting for the namespace "+name+" to be removed, reason: "+reason.Error(), "cluster", spec.Cluster.ID)
 		}
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
 		if err != nil {
-			return microerror.MaskAnyf(err, "failed waiting for the namespace %s to be deleted", spec.Cluster.Namespace)
+			return microerror.MaskAnyf(err, "failed waiting for the namespace %s to be deleted", name)
 		}
 	}
 
-	s.Logger.Log("debug", "cluster namespace deleted, cleaning flannel resources", "cluster", spec.Cluster.ID)
+	// Wait for the cluster's namespace to be deleted.
+	{
+		s.Logger.Log("debug", "waiting for the cluster namespace to be deleted", "cluster", spec.Cluster.ID)
+
+		err := waitForNamespaceDeleted(spec.Cluster.Namespace)
+		if err != nil {
+			return microerror.MaskAnyf(err)
+		}
+	}
+
+	// Delete flannel network namespace.
+	{
+		s.Logger.Log("debug", "deleting flannel network namespace", "cluster", spec.Cluster.ID)
+
+		ns := networkNamespace(spec)
+
+		err := s.K8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
+		if err != nil {
+			return microerror.MaskAnyf(err, "deleting namespace %s failed", ns)
+		}
+
+		err = waitForNamespaceDeleted(ns)
+		if err != nil {
+			return microerror.MaskAnyf(err)
+		}
+	}
 
 	// Create namespace for the cleanup job.
 	{
@@ -335,6 +360,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	// Create a bridge cleanup job.
 	var jobName string
 	{
+		s.Logger.Log("debug", "creating network bridge cleanup job", "cluster", spec.Cluster.ID)
+
 		job := newJob(spec, replicas)
 		job.Spec.Template.Spec.Affinity = podAffinity
 
@@ -349,6 +376,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 	// Wait for the cleanup job to complete.
 	{
+		s.Logger.Log("debug", "waiting for network bridge cleanup job to complete", "cluster", spec.Cluster.ID)
+
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
 			job, err := s.K8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Get(jobName, apismetav1.GetOptions{})
@@ -374,6 +403,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 	// Cleanup etcd.
 	{
+		s.Logger.Log("debug", "removing flannel etcd config", "cluster", spec.Cluster.ID)
+
 		path := etcdPath(spec)
 
 		err := s.store.Delete(context.TODO(), path)
@@ -386,6 +417,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 	// The operator's resources cleanup.
 	{
+		s.Logger.Log("debug", "removing cleanup resources", "cluster", spec.Cluster.ID)
+
 		ns := destroyerNamespace(spec)
 		err := s.K8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
 		if err != nil {

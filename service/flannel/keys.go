@@ -8,14 +8,22 @@ import (
 )
 
 const (
-	creatorApp   = "flannel-creator"
+	// networkApp is the app label for resources running flannel
+	// components.
+	networkApp = "flannel-network"
+	// networkApp is the app label for resources cleaning flannel network
+	// and bridges.
 	destroyerApp = "flannel-destroyer"
 )
 
-func creatorNamespace(spec flanneltpr.Spec) string {
-	return creatorApp + "-" + clusterID(spec)
+// networkNamespace returns the namespace in which the operator's resources run
+// in.
+func networkNamespace(spec flanneltpr.Spec) string {
+	return networkApp + "-" + clusterID(spec)
 }
 
+// destroyerNamespace returns the namespace in which resources performing
+// cleanup run in.
 func destroyerNamespace(spec flanneltpr.Spec) string {
 	return destroyerApp + "-" + clusterID(spec)
 }

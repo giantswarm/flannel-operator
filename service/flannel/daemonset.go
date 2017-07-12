@@ -9,10 +9,12 @@ import (
 )
 
 func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
+	app := networkApp
+
 	labels := map[string]string{
 		"cluster":  clusterName(spec),
 		"customer": clusterCustomer(spec),
-		"app":      destroyerApp,
+		"app":      app,
 	}
 
 	containers := newDaemonSetContainers(spec)
@@ -24,7 +26,7 @@ func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
 			APIVersion: "extensions/v1beta",
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name:   destroyerApp,
+			Name:   app,
 			Labels: labels,
 		},
 		Spec: apisextensions.DaemonSetSpec{
