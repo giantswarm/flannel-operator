@@ -57,7 +57,7 @@ func networkBridgeDockerImage(spec flanneltpr.Spec) string {
 }
 
 func networkBridgeName(spec flanneltpr.Spec) string {
-	return spec.Bridge.Config.Name
+	return "br-" + clusterID(spec)
 }
 
 func networkDNSBlock(spec flanneltpr.Spec) string {

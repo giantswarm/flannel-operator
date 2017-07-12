@@ -1,5 +1,5 @@
 hash: 3f3fc6522aab06ca662f4acd64447a2bd82adcc0576ef9e475bc8e1ae094e78c
-updated: 2017-07-10T11:39:17.437181359+02:00
+updated: 2017-07-12T11:28:28.304706177+02:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -46,7 +46,7 @@ imports:
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/giantswarm/flanneltpr
-  version: c7b21f4c955f0c4a8adc9a6a974c7403930ce278
+  version: c26ea02f231c32a07896e5cb4f599f9af7f04037
   subpackages:
   - bridge
   - cluster
@@ -97,7 +97,7 @@ imports:
 - name: github.com/go-openapi/swag
   version: 1d0bd113de87027671077d3c71eb3ac5d7dbba72
 - name: github.com/go-stack/stack
-  version: 7a2f19628aabfe68f0766b59e74d6315f8347d22
+  version: 54be5f394ed2c3e19dac9134a40a95ba5a017f7b
 - name: github.com/gogo/protobuf
   version: 909568be09de550ed094403c2bf8a261b5bb730a
   subpackages:
@@ -138,7 +138,7 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/vault
-  version: 48ab9c54f009fd1d9ceed0766c7d9eb320e929bc
+  version: 4dd846657ce34e3529dd1386ff0780321b8bcd6a
   subpackages:
   - api
   - helper/compressutil
@@ -152,7 +152,7 @@ imports:
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/magiconair/properties
-  version: 51463bfca2576e06c62a8504b5c0f06d61312647
+  version: be5ece7dd465ab0765a9682137865547526d1dfb
 - name: github.com/mailru/easyjson
   version: d5b7844b561a7bc640052f1b935f7b800330d7e0
   subpackages:
