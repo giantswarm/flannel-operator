@@ -162,7 +162,8 @@ func (s *Service) Boot() {
 	})
 }
 
-// addFunc does nothing as the operator reacts only on TPO delete.
+// addFunc creates flannel etcd configuration, schedules flanneld container in
+// daemonset and creates network bridge configuration for the cluster.
 func (s *Service) addFunc(obj interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
