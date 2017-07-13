@@ -1,50 +1,93 @@
 package flannel
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/giantswarm/flanneltpr"
 )
 
 const (
+	// networkApp is the app label for resources running flannel
+	// components.
+	networkApp = "flannel-network"
+	// networkApp is the app label for resources cleaning flannel network
+	// and bridges.
 	destroyerApp = "flannel-destroyer"
 )
 
+// networkNamespace returns the namespace in which the operator's resources run
+// in.
+func networkNamespace(spec flanneltpr.Spec) string {
+	return networkApp + "-" + clusterID(spec)
+}
+
+// destroyerNamespace returns the namespace in which resources performing
+// cleanup run in.
 func destroyerNamespace(spec flanneltpr.Spec) string {
 	return destroyerApp + "-" + clusterID(spec)
 }
 
 func clusterCustomer(spec flanneltpr.Spec) string {
-	// TODO pass clusterCustomer with TPO
-	return ""
+	return spec.Cluster.Customer
 }
 
 func clusterID(spec flanneltpr.Spec) string {
-	return clusterNamespace(spec)
+	return spec.Cluster.ID
 }
 
 func clusterName(spec flanneltpr.Spec) string {
-	return clusterNamespace(spec)
+	return clusterID(spec)
 }
 
 func clusterNamespace(spec flanneltpr.Spec) string {
-	return spec.Namespace
+	return spec.Cluster.Namespace
+}
+
+func etcdPath(spec flanneltpr.Spec) string {
+	return "coreos.com/network/" + networkBridgeName(spec) + "/config"
+}
+
+func flannelDockerImage(spec flanneltpr.Spec) string {
+	return spec.Flannel.Docker.Image
+}
+
+func flannelRunDir(spec flanneltpr.Spec) string {
+	return spec.Flannel.Spec.RunDir
 }
 
 func hostPrivateNetwork(spec flanneltpr.Spec) string {
-	return spec.Host.PrivateNetwork
+	return spec.Bridge.Spec.PrivateNetwork
 }
 
 func networkBridgeDockerImage(spec flanneltpr.Spec) string {
-	return spec.Network.Bridge.Docker.Image
+	return spec.Bridge.Docker.Image
 }
 
 func networkBridgeName(spec flanneltpr.Spec) string {
-	return spec.Network.BridgeName
+	return "br-" + clusterID(spec)
+}
+
+func networkDNSBlock(spec flanneltpr.Spec) string {
+	var parts []string
+	for _, s := range spec.Bridge.Spec.DNS.Servers {
+		parts = append(parts, fmt.Sprintf("DNS=%s", s.String()))
+	}
+	return strings.Join(parts, "\n")
 }
 
 func networkEnvFilePath(spec flanneltpr.Spec) string {
-	return spec.Network.EnvFilePath
+	return fmt.Sprintf("%s/networks/%s.env", flannelRunDir(spec), networkBridgeName(spec))
 }
 
 func networkInterfaceName(spec flanneltpr.Spec) string {
-	return spec.Network.InterfaceName
+	return spec.Bridge.Spec.Interface
+}
+
+func networkNTPBlock(spec flanneltpr.Spec) string {
+	var parts []string
+	for _, s := range spec.Bridge.Spec.NTP.Servers {
+		parts = append(parts, fmt.Sprintf("NTP=%s", s.String()))
+	}
+	return strings.Join(parts, "\n")
 }

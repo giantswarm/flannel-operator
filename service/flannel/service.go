@@ -2,6 +2,7 @@ package flannel
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -161,8 +162,98 @@ func (s *Service) Boot() {
 	})
 }
 
-// addFunc does nothing as the operator reacts only on TPO delete.
-func (s *Service) addFunc(obj interface{}) {}
+// addFunc creates flannel etcd configuration, schedules flanneld container in
+// daemonset and creates network bridge configuration for the cluster.
+func (s *Service) addFunc(obj interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			s.Logger.Log("error", "recovered in addFunc", "panic", r, "event", "add")
+		}
+	}()
+	err := s.addFuncError(obj)
+	if err != nil {
+		s.Logger.Log("error", fmt.Sprintf("%#v", err), "event", "add")
+	}
+}
+
+func (s *Service) addFuncError(obj interface{}) error {
+	var spec flanneltpr.Spec
+	{
+		o, ok := obj.(*flanneltpr.CustomObject)
+		if !ok {
+			return microerror.MaskAnyf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
+		}
+		spec = o.Spec
+	}
+
+	// Create flannel etcd config.
+	{
+		path := etcdPath(spec)
+
+		type flannelBackend struct {
+			Type string
+			VNI  int
+		}
+
+		type flannelConfig struct {
+			Network   string
+			SubnetLen int
+			Backend   flannelBackend
+		}
+
+		config := flannelConfig{
+			Network:   spec.Flannel.Spec.Network,
+			SubnetLen: spec.Flannel.Spec.SubnetLen,
+			Backend: flannelBackend{
+				Type: "vxlan",
+				VNI:  spec.Flannel.Spec.VNI,
+			},
+		}
+
+		bytes, err := json.Marshal(config)
+		if err != nil {
+			return microerror.MaskAnyf(err, "marshaling %#v", config)
+		}
+
+		exists, err := s.store.Exists(context.TODO(), path)
+		if err != nil {
+			return microerror.MaskAnyf(err, "checking %s etcd key existence", path)
+		}
+		if exists {
+			s.Logger.Log("debug", "etcd key "+path+" already exists", "event", "add", "cluster", spec.Cluster.ID)
+		} else {
+			err := s.store.Create(context.TODO(), path, string(bytes))
+			if err != nil {
+				return microerror.MaskAnyf(err, "createing %s etcd key", path)
+			}
+		}
+	}
+
+	// Create namespace for the cleanup job.
+	{
+		ns := newNamespace(spec, networkNamespace(spec))
+		_, err := s.K8sClient.CoreV1().Namespaces().Create(ns)
+		if apierrors.IsAlreadyExists(err) {
+			s.Logger.Log("debug", "namespace "+ns.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
+		} else if err != nil {
+			return microerror.MaskAnyf(err, "creating namespace %s", ns.Name)
+		}
+	}
+
+	// Create a dameonset running flanneld and creating network bridge.
+	{
+		daemonSet := newDaemonSet(spec)
+		_, err := s.K8sClient.ExtensionsV1beta1().DaemonSets(networkNamespace(spec)).Create(daemonSet)
+		if apierrors.IsAlreadyExists(err) {
+			s.Logger.Log("debug", "daemonSet "+daemonSet.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
+		} else if err != nil {
+			return microerror.MaskAnyf(err, "creating daemonSet %s", daemonSet.Name)
+		}
+	}
+
+	s.Logger.Log("info", "started flanneld", "event", "add", "cluster", spec.Cluster.ID)
+	return nil
+}
 
 // deleteFunc waits for the delting cluster's namespace to be fully deleted and
 // then cleans up flannel bridges.
@@ -188,11 +279,10 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		spec = o.Spec
 	}
 
-	// Wait for the cluster's namespace to be deleted.
-	{
+	waitForNamespaceDeleted := func(name string) error {
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
-			_, err := s.K8sClient.CoreV1().Namespaces().Get(spec.Namespace, apismetav1.GetOptions{})
+			_, err := s.K8sClient.CoreV1().Namespaces().Get(name, apismetav1.GetOptions{})
 			if err != nil && apierrors.IsNotFound(err) {
 				return nil
 			}
@@ -203,20 +293,47 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 
 		notify := func(reason error, interval time.Duration) {
-			s.Logger.Log("debug", "waiting for the namespace to be removed, reason: "+reason.Error(), "cluster", spec.Namespace)
+			s.Logger.Log("debug", "waiting for the namespace "+name+" to be removed, reason: "+reason.Error(), "cluster", spec.Cluster.ID)
 		}
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
 		if err != nil {
-			return microerror.MaskAnyf(err, "failed waiting for the namespace %s to be deleted", spec.Namespace)
+			return microerror.MaskAnyf(err, "failed waiting for the namespace %s to be deleted", name)
+		}
+
+		return nil
+	}
+
+	// Wait for the cluster's namespace to be deleted.
+	{
+		s.Logger.Log("debug", "waiting for the cluster namespace to be deleted", "cluster", spec.Cluster.ID)
+
+		err := waitForNamespaceDeleted(spec.Cluster.Namespace)
+		if err != nil {
+			return microerror.MaskAny(err)
 		}
 	}
 
-	s.Logger.Log("debug", "cluster namespace deleted, cleaning flannel resources", "cluster", spec.Namespace)
+	// Delete flannel network namespace.
+	{
+		s.Logger.Log("debug", "deleting flannel network namespace", "cluster", spec.Cluster.ID)
+
+		ns := networkNamespace(spec)
+
+		err := s.K8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
+		if err != nil {
+			return microerror.MaskAnyf(err, "deleting namespace %s failed", ns)
+		}
+
+		err = waitForNamespaceDeleted(ns)
+		if err != nil {
+			return microerror.MaskAny(err)
+		}
+	}
 
 	// Create namespace for the cleanup job.
 	{
-		ns := newNamespace(spec)
+		ns := newNamespace(spec, destroyerNamespace(spec))
 		_, err := s.K8sClient.CoreV1().Namespaces().Create(ns)
 		if err != nil {
 			return microerror.MaskAnyf(err, "creating namespace %s", ns.Name)
@@ -246,6 +363,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	// Create a bridge cleanup job.
 	var jobName string
 	{
+		s.Logger.Log("debug", "creating network bridge cleanup job", "cluster", spec.Cluster.ID)
+
 		job := newJob(spec, replicas)
 		job.Spec.Template.Spec.Affinity = podAffinity
 
@@ -253,13 +372,15 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		if err != nil {
 			return microerror.MaskAnyf(err, "creating job %s", jobName)
 		}
-		s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Namespace)
+		s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Cluster.ID)
 
 		jobName = job.Name
 	}
 
 	// Wait for the cleanup job to complete.
 	{
+		s.Logger.Log("debug", "waiting for network bridge cleanup job to complete", "cluster", spec.Cluster.ID)
+
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
 			job, err := s.K8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Get(jobName, apismetav1.GetOptions{})
@@ -269,12 +390,12 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 			if job.Status.Succeeded != replicas {
 				return fmt.Errorf("progress %d/%d", job.Status.Succeeded, replicas)
 			}
-			s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup finished on %d nodes", job.Status.Succeeded), "cluster", spec.Namespace)
+			s.Logger.Log("debug", fmt.Sprintf("network bridge cleanup finished on %d nodes", job.Status.Succeeded), "cluster", spec.Cluster.ID)
 			return nil
 		}
 
 		notify := func(reason error, interval time.Duration) {
-			s.Logger.Log("debug", "waiting for network bridge cleanup to complete, reason: "+reason.Error(), "cluster", spec.Namespace)
+			s.Logger.Log("debug", "waiting for network bridge cleanup to complete, reason: "+reason.Error(), "cluster", spec.Cluster.ID)
 		}
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
@@ -285,11 +406,13 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 	// Cleanup etcd.
 	{
-		path := "coreos.com/network/" + networkBridgeName(spec)
+		s.Logger.Log("debug", "removing flannel etcd config", "cluster", spec.Cluster.ID)
+
+		path := etcdPath(spec)
 
 		err := s.store.Delete(context.TODO(), path)
 		if storage.IsNotFound(err) {
-			s.Logger.Log("debug", fmt.Sprintf("etcd path '%s' not found", path), "cluster", spec.Namespace)
+			s.Logger.Log("debug", fmt.Sprintf("etcd path '%s' not found", path), "cluster", spec.Cluster.ID)
 		} else if err != nil {
 			return microerror.MaskAnyf(err, "deleting etcd path %s", path)
 		}
@@ -297,6 +420,8 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 
 	// The operator's resources cleanup.
 	{
+		s.Logger.Log("debug", "removing cleanup resources", "cluster", spec.Cluster.ID)
+
 		ns := destroyerNamespace(spec)
 		err := s.K8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
 		if err != nil {
@@ -304,6 +429,6 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 		}
 	}
 
-	s.Logger.Log("info", "finished flannel cleanup for cluster", "cluster", spec.Namespace)
+	s.Logger.Log("info", "finished flannel cleanup for cluster", "cluster", spec.Cluster.ID)
 	return nil
 }

@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"context"
+
 	microerror "github.com/giantswarm/microkit/error"
 	micrologger "github.com/giantswarm/microkit/logger"
 	kitendpoint "github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
-	"golang.org/x/net/context"
 
 	"github.com/giantswarm/flannel-operator/server/middleware"
 	"github.com/giantswarm/flannel-operator/service"

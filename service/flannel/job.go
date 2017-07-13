@@ -11,30 +11,30 @@ import (
 func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 	privileged := true
 
+	app := destroyerApp
+
+	labels := map[string]string{
+		"cluster":  clusterName(spec),
+		"customer": clusterCustomer(spec),
+		"app":      app,
+	}
+
 	return &batchv1.Job{
 		TypeMeta: apismetav1.TypeMeta{
 			Kind:       "deployment",
 			APIVersion: "extensions/v1beta",
 		},
 		ObjectMeta: apismetav1.ObjectMeta{
-			Name: destroyerApp,
-			Labels: map[string]string{
-				"cluster":  clusterName(spec),
-				"customer": clusterCustomer(spec),
-				"app":      destroyerApp,
-			},
+			Name:   app,
+			Labels: labels,
 		},
 		Spec: batchv1.JobSpec{
 			Parallelism: &replicas,
 			Completions: &replicas,
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: apismetav1.ObjectMeta{
-					GenerateName: destroyerApp,
-					Labels: map[string]string{
-						"cluster":  clusterName(spec),
-						"customer": clusterCustomer(spec),
-						"app":      destroyerApp,
-					},
+					GenerateName: app,
+					Labels:       labels,
 					Annotations: map[string]string{
 						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",
 					},
@@ -87,7 +87,7 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 							Name: "flannel",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/run/flannel",
+									Path: flannelRunDir(spec),
 								},
 							},
 						},
