@@ -1,6 +1,8 @@
 package flannel
 
 import (
+	"fmt"
+
 	"github.com/giantswarm/flanneltpr"
 )
 
@@ -43,6 +45,11 @@ func networkBridgeName(spec flanneltpr.Spec) string {
 
 func networkEnvFilePath(spec flanneltpr.Spec) string {
 	return spec.Network.EnvFilePath
+}
+
+// TODO use Flannel VNI from spec.
+func networkFlannelDevice(spec flanneltpr.Spec) string {
+	return fmt.Sprintf("flannel.%d", "TODO")
 }
 
 func networkInterfaceName(spec flanneltpr.Spec) string {

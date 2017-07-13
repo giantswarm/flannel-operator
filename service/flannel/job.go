@@ -148,6 +148,10 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 									Value: networkEnvFilePath(spec),
 								},
 								{
+									Name:  "NETWORK_FLANNEL_DEVICE",
+									Value: networkFlannelDevice(spec),
+								},
+								{
 									Name:  "NETWORK_INTERFACE_NAME",
 									Value: networkInterfaceName(spec),
 								},
