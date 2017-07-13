@@ -1,7 +1,7 @@
-package bridge
+package spec
 
 import "net"
 
-type NTP struct {
+type DNS struct {
 	Servers []net.IP `json:"servers" yaml:"servers"`
 }

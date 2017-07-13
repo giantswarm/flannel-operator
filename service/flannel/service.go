@@ -201,11 +201,11 @@ func (s *Service) addFuncError(obj interface{}) error {
 		}
 
 		config := flannelConfig{
-			Network:   spec.Flannel.Config.Network,
-			SubnetLen: spec.Flannel.Config.SubnetLen,
+			Network:   spec.Flannel.Spec.Network,
+			SubnetLen: spec.Flannel.Spec.SubnetLen,
 			Backend: flannelBackend{
 				Type: "vxlan",
-				VNI:  spec.Flannel.Config.VNI,
+				VNI:  spec.Flannel.Spec.VNI,
 			},
 		}
 

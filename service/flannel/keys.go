@@ -53,11 +53,11 @@ func flannelDockerImage(spec flanneltpr.Spec) string {
 }
 
 func flannelRunDir(spec flanneltpr.Spec) string {
-	return spec.Flannel.Config.RunDir
+	return spec.Flannel.Spec.RunDir
 }
 
 func hostPrivateNetwork(spec flanneltpr.Spec) string {
-	return spec.Bridge.Config.PrivateNetwork
+	return spec.Bridge.Spec.PrivateNetwork
 }
 
 func networkBridgeDockerImage(spec flanneltpr.Spec) string {
@@ -70,7 +70,7 @@ func networkBridgeName(spec flanneltpr.Spec) string {
 
 func networkDNSBlock(spec flanneltpr.Spec) string {
 	var parts []string
-	for _, s := range spec.Bridge.Config.DNS.Servers {
+	for _, s := range spec.Bridge.Spec.DNS.Servers {
 		parts = append(parts, fmt.Sprintf("DNS=%s", s.String()))
 	}
 	return strings.Join(parts, "\n")
@@ -81,12 +81,12 @@ func networkEnvFilePath(spec flanneltpr.Spec) string {
 }
 
 func networkInterfaceName(spec flanneltpr.Spec) string {
-	return spec.Bridge.Config.Interface
+	return spec.Bridge.Spec.Interface
 }
 
 func networkNTPBlock(spec flanneltpr.Spec) string {
 	var parts []string
-	for _, s := range spec.Bridge.Config.NTP.Servers {
+	for _, s := range spec.Bridge.Spec.NTP.Servers {
 		parts = append(parts, fmt.Sprintf("NTP=%s", s.String()))
 	}
 	return strings.Join(parts, "\n")

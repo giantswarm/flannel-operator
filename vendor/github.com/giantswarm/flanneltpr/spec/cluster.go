@@ -1,4 +1,4 @@
-package cluster
+package spec
 
 // Cluster holds the configuration of the cluster for which flannel is
 // configured.
