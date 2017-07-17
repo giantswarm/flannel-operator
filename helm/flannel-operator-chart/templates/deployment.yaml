@@ -27,7 +27,7 @@ spec:
               path: config.yml
       containers:
       - name: flannel-operator
-        image: quay.io/giantswarm/flannel-operator:{{ .SHA }}
+        image: quay.io/giantswarm/flannel-operator:[[ .SHA ]]
         volumeMounts:
         - name: flannel-operator-configmap
           mountPath: /var/run/flannel-operator/configmap/
