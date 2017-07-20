@@ -3,9 +3,17 @@
 FEATURES:
 
  * **CouchDB Storage**: CouchDB can now be used for Vault storage
+ * **SAP HANA Database Plugin**: The `databases` backend can now manage users
+   for SAP HANA databases
 
 IMPROVEMENTS:
 
+ * api: Add client method for a secret renewer background process [GH-2886]
+ * api: Add `RenewTokenAsSelf` [GH-2886]
+ * audit/socket: Enhance reconnection logic and don't require the connection to
+   be established at unseal time [GH-2934]
+ * command/auth: Add `-token-only` flag to `vault auth` that returns only the
+   token on stdout and does not store it via the token helper [GH-2855]
  * core: CORS allowed origins can now be configured [GH-2021]
  * secret/ssh: Allow specifying the key ID format using template values for CA
    type [GH-2888]
@@ -23,6 +31,7 @@ BUG FIXES:
    `transit` key [GH-2958]
  * auth/token: Don't allow using the same token ID twice when manually
    specifying [GH-2916]
+* cli: Fix issue with parsing keys that start with special characters [GH-2998]
  * core: Relocated `sys/leases/renew` returns same payload as original 
    `sys/leases` endpoint [GH-2891]
  * secret/totp: Ensure codes can only be used once. This makes some automated
