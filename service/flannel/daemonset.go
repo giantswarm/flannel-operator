@@ -101,10 +101,6 @@ func newDaemonSetContainers(spec flanneltpr.Spec) []api.Container {
 			},
 			Env: []api.EnvVar{
 				{
-					Name:  "NETWORK_ENV_FILE_PATH",
-					Value: networkEnvFilePath(spec),
-				},
-				{
 					Name:  "HOST_PRIVATE_NETWORK",
 					Value: hostPrivateNetwork(spec),
 				},
@@ -117,12 +113,20 @@ func newDaemonSetContainers(spec flanneltpr.Spec) []api.Container {
 					Value: networkDNSBlock(spec),
 				},
 				{
-					Name:  "NETWORK_NTP_BLOCK",
-					Value: networkNTPBlock(spec),
+					Name:  "NETWORK_ENV_FILE_PATH",
+					Value: networkEnvFilePath(spec),
+				},
+				{
+					Name:  "NETWORK_FLANNEL_DEVICE",
+					Value: networkFlannelDevice(spec),
 				},
 				{
 					Name:  "NETWORK_INTERFACE_NAME",
 					Value: networkInterfaceName(spec),
+				},
+				{
+					Name:  "NETWORK_NTP_BLOCK",
+					Value: networkNTPBlock(spec),
 				},
 			},
 			SecurityContext: &api.SecurityContext{
