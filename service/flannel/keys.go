@@ -80,6 +80,10 @@ func networkEnvFilePath(spec flanneltpr.Spec) string {
 	return fmt.Sprintf("%s/networks/%s.env", flannelRunDir(spec), networkBridgeName(spec))
 }
 
+func networkFlannelDevice(spec flanneltpr.Spec) string {
+	return fmt.Sprintf("flannel.%d", spec.Flannel.Spec.VNI)
+}
+
 func networkInterfaceName(spec flanneltpr.Spec) string {
 	return spec.Bridge.Spec.Interface
 }

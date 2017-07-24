@@ -136,16 +136,20 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 							},
 							Env: []apiv1.EnvVar{
 								{
-									Name:  "NETWORK_ENV_FILE_PATH",
-									Value: networkEnvFilePath(spec),
-								},
-								{
 									Name:  "HOST_PRIVATE_NETWORK",
 									Value: hostPrivateNetwork(spec),
 								},
 								{
 									Name:  "NETWORK_BRIDGE_NAME",
 									Value: networkBridgeName(spec),
+								},
+								{
+									Name:  "NETWORK_ENV_FILE_PATH",
+									Value: networkEnvFilePath(spec),
+								},
+								{
+									Name:  "NETWORK_FLANNEL_DEVICE",
+									Value: networkFlannelDevice(spec),
 								},
 								{
 									Name:  "NETWORK_INTERFACE_NAME",
