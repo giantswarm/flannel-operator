@@ -23,8 +23,8 @@ spec:
         configMap:
           name: flannel-operator-configmap
           items:
-            - key: config.yml
-              path: config.yml
+            - key: config.yaml
+              path: config.yaml
       containers:
       - name: flannel-operator
         image: quay.io/giantswarm/flannel-operator:[[ .SHA ]]
@@ -48,4 +48,4 @@ spec:
             cpu: 250m
             memory: 200Mi
       imagePullSecrets:
-      - name: giantswarm-registry
+      - name: flannel-operator-pull-secret
