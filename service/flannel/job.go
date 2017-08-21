@@ -100,14 +100,6 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 							},
 						},
 						{
-							Name: "systemctl",
-							VolumeSource: apiv1.VolumeSource{
-								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/usr/bin/systemctl",
-								},
-							},
-						},
-						{
 							Name: "systemd",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
@@ -179,10 +171,6 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 								{
 									Name:      "flannel",
 									MountPath: "/run/flannel",
-								},
-								{
-									Name:      "systemctl",
-									MountPath: "/usr/bin/systemctl",
 								},
 								{
 									Name:      "systemd",

@@ -154,10 +154,6 @@ func newDaemonSetContainers(spec flanneltpr.Spec) []api.Container {
 					MountPath: "/run/flannel",
 				},
 				{
-					Name:      "systemctl",
-					MountPath: "/usr/bin/systemctl",
-				},
-				{
 					Name:      "systemd",
 					MountPath: "/run/systemd",
 				},
@@ -225,14 +221,6 @@ func newDaemonSetVolumes(spec flanneltpr.Spec) []api.Volume {
 			VolumeSource: api.VolumeSource{
 				HostPath: &api.HostPathVolumeSource{
 					Path: "/etc/ssl/certs",
-				},
-			},
-		},
-		{
-			Name: "systemctl",
-			VolumeSource: api.VolumeSource{
-				HostPath: &api.HostPathVolumeSource{
-					Path: "/usr/bin/systemctl",
 				},
 			},
 		},
