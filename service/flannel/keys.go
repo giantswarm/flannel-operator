@@ -91,7 +91,7 @@ func networkInterfaceName(spec flanneltpr.Spec) string {
 func networkNTPBlock(spec flanneltpr.Spec) string {
 	var parts []string
 	for _, s := range spec.Bridge.Spec.NTP.Servers {
-		parts = append(parts, fmt.Sprintf("NTP=%s", s.String()))
+		parts = append(parts, fmt.Sprintf("NTP=%s", s))
 	}
 	return strings.Join(parts, "\n")
 }

@@ -1,7 +1,5 @@
 package spec
 
-import "net"
-
 type NTP struct {
-	Servers []net.IP `json:"servers" yaml:"servers"`
+	Servers []string `json:"servers" yaml:"servers"`
 }
