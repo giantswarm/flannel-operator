@@ -2,6 +2,7 @@ package dbplugin_test
 
 import (
 	"errors"
+	stdhttp "net/http"
 	"os"
 	"testing"
 	"time"
@@ -72,20 +73,26 @@ func (m *mockPlugin) Close() error {
 	return nil
 }
 
-func getCluster(t *testing.T) (*vault.TestCluster, logical.SystemView) {
+func getCore(t *testing.T) ([]*vault.TestClusterCore, logical.SystemView) {
 	coreConfig := &vault.CoreConfig{}
 
-	cluster := vault.NewTestCluster(t, coreConfig, false)
-	cluster.StartListeners()
-	cores := cluster.Cores
-	cores[0].Handler.Handle("/", http.Handler(cores[0].Core))
-	cores[1].Handler.Handle("/", http.Handler(cores[1].Core))
-	cores[2].Handler.Handle("/", http.Handler(cores[2].Core))
+	handler1 := stdhttp.NewServeMux()
+	handler2 := stdhttp.NewServeMux()
+	handler3 := stdhttp.NewServeMux()
 
-	sys := vault.TestDynamicSystemView(cores[0].Core)
-	vault.TestAddTestPlugin(t, cores[0].Core, "test-plugin", "TestPlugin_Main")
+	// Chicken-and-egg: Handler needs a core. So we create handlers first, then
+	// add routes chained to a Handler-created handler.
+	cores := vault.TestCluster(t, []stdhttp.Handler{handler1, handler2, handler3}, coreConfig, false)
+	handler1.Handle("/", http.Handler(cores[0].Core))
+	handler2.Handle("/", http.Handler(cores[1].Core))
+	handler3.Handle("/", http.Handler(cores[2].Core))
 
-	return cluster, sys
+	core := cores[0]
+
+	sys := vault.TestDynamicSystemView(core.Core)
+	vault.TestAddTestPlugin(t, core.Core, "test-plugin", "TestPlugin_Main")
+
+	return cores, sys
 }
 
 // This is not an actual test case, it's a helper function that will be executed
@@ -109,8 +116,10 @@ func TestPlugin_Main(t *testing.T) {
 }
 
 func TestPlugin_Initialize(t *testing.T) {
-	cluster, sys := getCluster(t)
-	defer cluster.CloseListeners()
+	cores, sys := getCore(t)
+	for _, core := range cores {
+		defer core.CloseListeners()
+	}
 
 	dbRaw, err := dbplugin.PluginFactory("test-plugin", sys, &log.NullLogger{})
 	if err != nil {
@@ -133,8 +142,10 @@ func TestPlugin_Initialize(t *testing.T) {
 }
 
 func TestPlugin_CreateUser(t *testing.T) {
-	cluster, sys := getCluster(t)
-	defer cluster.CloseListeners()
+	cores, sys := getCore(t)
+	for _, core := range cores {
+		defer core.CloseListeners()
+	}
 
 	db, err := dbplugin.PluginFactory("test-plugin", sys, &log.NullLogger{})
 	if err != nil {
@@ -173,8 +184,10 @@ func TestPlugin_CreateUser(t *testing.T) {
 }
 
 func TestPlugin_RenewUser(t *testing.T) {
-	cluster, sys := getCluster(t)
-	defer cluster.CloseListeners()
+	cores, sys := getCore(t)
+	for _, core := range cores {
+		defer core.CloseListeners()
+	}
 
 	db, err := dbplugin.PluginFactory("test-plugin", sys, &log.NullLogger{})
 	if err != nil {
@@ -207,8 +220,10 @@ func TestPlugin_RenewUser(t *testing.T) {
 }
 
 func TestPlugin_RevokeUser(t *testing.T) {
-	cluster, sys := getCluster(t)
-	defer cluster.CloseListeners()
+	cores, sys := getCore(t)
+	for _, core := range cores {
+		defer core.CloseListeners()
+	}
 
 	db, err := dbplugin.PluginFactory("test-plugin", sys, &log.NullLogger{})
 	if err != nil {

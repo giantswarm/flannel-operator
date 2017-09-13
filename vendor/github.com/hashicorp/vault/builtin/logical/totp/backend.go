@@ -2,11 +2,9 @@ package totp
 
 import (
 	"strings"
-	"time"
 
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
-	cache "github.com/patrickmn/go-cache"
 )
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
@@ -27,15 +25,11 @@ func Backend(conf *logical.BackendConfig) *backend {
 		Secrets: []*framework.Secret{},
 	}
 
-	b.usedCodes = cache.New(0, 30*time.Second)
-
 	return &b
 }
 
 type backend struct {
 	*framework.Backend
-
-	usedCodes *cache.Cache
 }
 
 const backendHelp = `

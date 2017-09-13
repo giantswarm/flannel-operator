@@ -214,9 +214,6 @@ func TestExpiration_Tidy(t *testing.T) {
 	}
 
 	root, err := exp.tokenStore.rootToken()
-	if err != nil {
-		t.Fatal(err)
-	}
 	le.ClientToken = root.ID
 
 	// Attach a valid token with the leases
@@ -288,10 +285,7 @@ func benchmarkExpirationBackend(b *testing.B, physicalBackend physical.Backend, 
 	if err != nil {
 		b.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		b.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	// Register fake leases
 	for i := 0; i < numLeases; i++ {
@@ -347,10 +341,7 @@ func TestExpiration_Restore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	paths := []string{
 		"prod/aws/foo",
@@ -517,10 +508,7 @@ func TestExpiration_Revoke(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	req := &logical.Request{
 		Operation:   logical.ReadOperation,
@@ -563,10 +551,7 @@ func TestExpiration_RevokeOnExpire(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	req := &logical.Request{
 		Operation:   logical.ReadOperation,
@@ -620,10 +605,7 @@ func TestExpiration_RevokePrefix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	paths := []string{
 		"prod/aws/foo",
@@ -688,10 +670,7 @@ func TestExpiration_RevokeByToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	paths := []string{
 		"prod/aws/foo",
@@ -821,10 +800,7 @@ func TestExpiration_Renew(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	req := &logical.Request{
 		Operation:   logical.ReadOperation,
@@ -891,10 +867,7 @@ func TestExpiration_Renew_NotRenewable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	req := &logical.Request{
 		Operation:   logical.ReadOperation,
@@ -941,10 +914,7 @@ func TestExpiration_Renew_RevokeOnExpire(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "prod/aws/", &MountEntry{Path: "prod/aws/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "prod/aws/", &MountEntry{UUID: meUUID}, view)
 
 	req := &logical.Request{
 		Operation:   logical.ReadOperation,
@@ -1017,10 +987,7 @@ func TestExpiration_revokeEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "foo/bar/", &MountEntry{Path: "foo/bar/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "", &MountEntry{UUID: meUUID}, view)
 
 	le := &leaseEntry{
 		LeaseID: "foo/bar/1234",
@@ -1047,10 +1014,13 @@ func TestExpiration_revokeEntry(t *testing.T) {
 
 	req := noop.Requests[0]
 	if req.Operation != logical.RevokeOperation {
-		t.Fatalf("bad: operation; req: %#v", req)
+		t.Fatalf("Bad: %v", req)
+	}
+	if req.Path != le.Path {
+		t.Fatalf("Bad: %v", req)
 	}
 	if !reflect.DeepEqual(req.Data, le.Data) {
-		t.Fatalf("bad: data; req: %#v\n le: %#v\n", req, le)
+		t.Fatalf("Bad: %v", req)
 	}
 }
 
@@ -1148,10 +1118,7 @@ func TestExpiration_renewEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "foo/bar/", &MountEntry{Path: "foo/bar/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "", &MountEntry{UUID: meUUID}, view)
 
 	le := &leaseEntry{
 		LeaseID: "foo/bar/1234",
@@ -1184,6 +1151,9 @@ func TestExpiration_renewEntry(t *testing.T) {
 	if req.Operation != logical.RenewOperation {
 		t.Fatalf("Bad: %v", req)
 	}
+	if req.Path != le.Path {
+		t.Fatalf("Bad: %v", req)
+	}
 	if !reflect.DeepEqual(req.Data, le.Data) {
 		t.Fatalf("Bad: %v", req)
 	}
@@ -1214,10 +1184,7 @@ func TestExpiration_renewAuthEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = exp.router.Mount(noop, "auth/foo/", &MountEntry{Path: "auth/foo/", Type: "noop", UUID: meUUID, Accessor: "noop-accessor"}, view)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exp.router.Mount(noop, "auth/foo/", &MountEntry{UUID: meUUID}, view)
 
 	le := &leaseEntry{
 		LeaseID: "auth/foo/1234",
@@ -1385,10 +1352,9 @@ func TestExpiration_RevokeForce(t *testing.T) {
 
 	core.logicalBackends["badrenew"] = badRenewFactory
 	me := &MountEntry{
-		Table:    mountTableType,
-		Path:     "badrenew/",
-		Type:     "badrenew",
-		Accessor: "badrenewaccessor",
+		Table: mountTableType,
+		Path:  "badrenew/",
+		Type:  "badrenew",
 	}
 
 	err := core.mount(me)

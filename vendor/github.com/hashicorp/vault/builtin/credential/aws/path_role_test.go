@@ -463,9 +463,6 @@ func TestBackend_pathRoleMixedTypes(t *testing.T) {
 		t.Fatalf("didn't allow creation of role resolving unique IDs")
 	}
 	resp, err = submitRequest("withInternalIdResolution", logical.ReadOperation)
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.Data["bound_iam_principal_id"] != "FakeUniqueId1" {
 		t.Fatalf("expected fake unique ID of FakeUniqueId1, got %q", resp.Data["bound_iam_principal_id"])
 	}
