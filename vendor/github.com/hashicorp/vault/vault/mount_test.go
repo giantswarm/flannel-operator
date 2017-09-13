@@ -93,18 +93,16 @@ func TestCore_Mount_Local(t *testing.T) {
 		Type: mountTableType,
 		Entries: []*MountEntry{
 			&MountEntry{
-				Table:    mountTableType,
-				Path:     "noop/",
-				Type:     "generic",
-				UUID:     "abcd",
-				Accessor: "generic-abcd",
+				Table: mountTableType,
+				Path:  "noop/",
+				Type:  "generic",
+				UUID:  "abcd",
 			},
 			&MountEntry{
-				Table:    mountTableType,
-				Path:     "noop2/",
-				Type:     "generic",
-				UUID:     "bcde",
-				Accessor: "generic-bcde",
+				Table: mountTableType,
+				Path:  "noop2/",
+				Type:  "generic",
+				UUID:  "bcde",
 			},
 		},
 	}
@@ -428,8 +426,7 @@ func TestCore_Remount_Protected(t *testing.T) {
 }
 
 func TestDefaultMountTable(t *testing.T) {
-	c, _, _ := TestCoreUnsealed(t)
-	table := c.defaultMountTable()
+	table := defaultMountTable()
 	verifyDefaultTable(t, table)
 }
 

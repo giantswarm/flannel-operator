@@ -8,24 +8,25 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"sync"
 
-	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/hashicorp/vault/helper/tlsutil"
 	"github.com/hashicorp/vault/vault"
 )
 
 // ListenerFactory is the factory function to create a listener.
-type ListenerFactory func(map[string]interface{}, io.Writer) (net.Listener, map[string]string, vault.ReloadFunc, error)
+type ListenerFactory func(map[string]string, io.Writer) (net.Listener, map[string]string, vault.ReloadFunc, error)
 
 // BuiltinListeners is the list of built-in listener types.
 var BuiltinListeners = map[string]ListenerFactory{
-	"tcp": tcpListenerFactory,
+	"tcp":   tcpListenerFactory,
+	"atlas": atlasListenerFactory,
 }
 
 // NewListener creates a new listener of the given type with the given
 // configuration. The type is looked up in the BuiltinListeners map.
-func NewListener(t string, config map[string]interface{}, logger io.Writer) (net.Listener, map[string]string, vault.ReloadFunc, error) {
+func NewListener(t string, config map[string]string, logger io.Writer) (net.Listener, map[string]string, vault.ReloadFunc, error) {
 	f, ok := BuiltinListeners[t]
 	if !ok {
 		return nil, nil, nil, fmt.Errorf("unknown listener type: %s", t)
@@ -37,11 +38,11 @@ func NewListener(t string, config map[string]interface{}, logger io.Writer) (net
 func listenerWrapTLS(
 	ln net.Listener,
 	props map[string]string,
-	config map[string]interface{}) (net.Listener, map[string]string, vault.ReloadFunc, error) {
+	config map[string]string) (net.Listener, map[string]string, vault.ReloadFunc, error) {
 	props["tls"] = "disabled"
 
 	if v, ok := config["tls_disable"]; ok {
-		disabled, err := parseutil.ParseBool(v)
+		disabled, err := strconv.ParseBool(v)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("invalid value for 'tls_disable': %v", err)
 		}
@@ -60,25 +61,17 @@ func listenerWrapTLS(
 		return nil, nil, nil, fmt.Errorf("'tls_key_file' must be set")
 	}
 
-	addrRaw, ok := config["address"]
-	if !ok {
-		return nil, nil, nil, fmt.Errorf("'address' must be set")
-	}
-	addr := addrRaw.(string)
 	cg := &certificateGetter{
-		id: addr,
+		id: config["address"],
 	}
 
 	if err := cg.reload(config); err != nil {
 		return nil, nil, nil, fmt.Errorf("error loading TLS cert: %s", err)
 	}
 
-	var tlsvers string
-	tlsversRaw, ok := config["tls_min_version"]
+	tlsvers, ok := config["tls_min_version"]
 	if !ok {
 		tlsvers = "tls12"
-	} else {
-		tlsvers = tlsversRaw.(string)
 	}
 
 	tlsConf := &tls.Config{}
@@ -91,21 +84,21 @@ func listenerWrapTLS(
 	tlsConf.ClientAuth = tls.RequestClientCert
 
 	if v, ok := config["tls_cipher_suites"]; ok {
-		ciphers, err := tlsutil.ParseCiphers(v.(string))
+		ciphers, err := tlsutil.ParseCiphers(v)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("invalid value for 'tls_cipher_suites': %v", err)
 		}
 		tlsConf.CipherSuites = ciphers
 	}
 	if v, ok := config["tls_prefer_server_cipher_suites"]; ok {
-		preferServer, err := parseutil.ParseBool(v)
+		preferServer, err := strconv.ParseBool(v)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("invalid value for 'tls_prefer_server_cipher_suites': %v", err)
 		}
 		tlsConf.PreferServerCipherSuites = preferServer
 	}
 	if v, ok := config["tls_require_and_verify_client_cert"]; ok {
-		requireClient, err := parseutil.ParseBool(v)
+		requireClient, err := strconv.ParseBool(v)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("invalid value for 'tls_require_and_verify_client_cert': %v", err)
 		}
@@ -127,12 +120,12 @@ type certificateGetter struct {
 	id string
 }
 
-func (cg *certificateGetter) reload(config map[string]interface{}) error {
-	if config["address"].(string) != cg.id {
+func (cg *certificateGetter) reload(config map[string]string) error {
+	if config["address"] != cg.id {
 		return nil
 	}
 
-	cert, err := tls.LoadX509KeyPair(config["tls_cert_file"].(string), config["tls_key_file"].(string))
+	cert, err := tls.LoadX509KeyPair(config["tls_cert_file"], config["tls_key_file"])
 	if err != nil {
 		return err
 	}

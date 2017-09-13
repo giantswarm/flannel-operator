@@ -1793,19 +1793,6 @@ func TestCore_RenewSameLease(t *testing.T) {
 	if resp.Secret.LeaseID != original {
 		t.Fatalf("lease id changed: %s %s", original, resp.Secret.LeaseID)
 	}
-
-	// Renew the lease (alternate path)
-	req = logical.TestRequest(t, logical.UpdateOperation, "sys/leases/renew/"+resp.Secret.LeaseID)
-	req.ClientToken = root
-	resp, err = c.HandleRequest(req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Verify the lease did not change
-	if resp.Secret.LeaseID != original {
-		t.Fatalf("lease id changed: %s %s", original, resp.Secret.LeaseID)
-	}
 }
 
 // Renew of a token should not create a new lease
@@ -1950,7 +1937,7 @@ path "secret/*" {
 	}
 
 	// Renew the lease
-	req = logical.TestRequest(t, logical.UpdateOperation, "sys/leases/renew")
+	req = logical.TestRequest(t, logical.UpdateOperation, "sys/renew")
 	req.Data = map[string]interface{}{
 		"lease_id": resp.Secret.LeaseID,
 	}

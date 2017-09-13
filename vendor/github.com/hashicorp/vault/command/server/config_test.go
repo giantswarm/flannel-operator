@@ -21,8 +21,17 @@ func TestLoadConfigFile(t *testing.T) {
 	expected := &Config{
 		Listeners: []*Listener{
 			&Listener{
+				Type: "atlas",
+				Config: map[string]string{
+					"token":          "foobar",
+					"infrastructure": "foo/bar",
+					"endpoint":       "https://foo.bar:1111",
+					"node_id":        "foo_node",
+				},
+			},
+			&Listener{
 				Type: "tcp",
-				Config: map[string]interface{}{
+				Config: map[string]string{
 					"address": "127.0.0.1:443",
 				},
 			},
@@ -49,8 +58,6 @@ func TestLoadConfigFile(t *testing.T) {
 			StatsdAddr:      "bar",
 			StatsiteAddr:    "foo",
 			DisableHostname: false,
-			DogStatsDAddr:   "127.0.0.1:7254",
-			DogStatsDTags:   []string{"tag_1:val_1", "tag_2:val_2"},
 		},
 
 		DisableCache:    true,
@@ -83,8 +90,17 @@ func TestLoadConfigFile_json(t *testing.T) {
 		Listeners: []*Listener{
 			&Listener{
 				Type: "tcp",
-				Config: map[string]interface{}{
+				Config: map[string]string{
 					"address": "127.0.0.1:443",
+				},
+			},
+			&Listener{
+				Type: "atlas",
+				Config: map[string]string{
+					"token":          "foobar",
+					"infrastructure": "foo/bar",
+					"endpoint":       "https://foo.bar:1111",
+					"node_id":        "foo_node",
 				},
 			},
 		},
@@ -143,13 +159,13 @@ func TestLoadConfigFile_json2(t *testing.T) {
 		Listeners: []*Listener{
 			&Listener{
 				Type: "tcp",
-				Config: map[string]interface{}{
+				Config: map[string]string{
 					"address": "127.0.0.1:443",
 				},
 			},
 			&Listener{
 				Type: "tcp",
-				Config: map[string]interface{}{
+				Config: map[string]string{
 					"address": "127.0.0.1:444",
 				},
 			},
@@ -212,7 +228,7 @@ func TestLoadConfigDir(t *testing.T) {
 		Listeners: []*Listener{
 			&Listener{
 				Type: "tcp",
-				Config: map[string]interface{}{
+				Config: map[string]string{
 					"address": "127.0.0.1:443",
 				},
 			},

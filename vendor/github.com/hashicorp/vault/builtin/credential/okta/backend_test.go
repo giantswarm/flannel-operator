@@ -12,18 +12,12 @@ import (
 
 	"github.com/hashicorp/vault/logical"
 	logicaltest "github.com/hashicorp/vault/logical/testing"
-	"time"
 )
 
 func TestBackend_Config(t *testing.T) {
-	defaultLeaseTTLVal := time.Hour * 12
-	maxLeaseTTLVal := time.Hour * 24
 	b, err := Factory(&logical.BackendConfig{
 		Logger: logformat.NewVaultLogger(log.LevelTrace),
-		System: &logical.StaticSystemView{
-			DefaultLeaseTTLVal: defaultLeaseTTLVal,
-			MaxLeaseTTLVal:     maxLeaseTTLVal,
-		},
+		System: &logical.StaticSystemView{},
 	})
 	if err != nil {
 		t.Fatalf("Unable to create backend: %s", err)
@@ -31,17 +25,14 @@ func TestBackend_Config(t *testing.T) {
 
 	username := os.Getenv("OKTA_USERNAME")
 	password := os.Getenv("OKTA_PASSWORD")
-	token := os.Getenv("OKTA_API_TOKEN")
 
 	configData := map[string]interface{}{
 		"organization": os.Getenv("OKTA_ORG"),
 		"base_url":     "oktapreview.com",
 	}
 
-	updatedDuration := time.Hour * 1
 	configDataToken := map[string]interface{}{
-		"token": token,
-		"ttl":   "1h",
+		"token": os.Getenv("OKTA_API_TOKEN"),
 	}
 
 	logicaltest.Test(t, logicaltest.TestCase{
@@ -50,23 +41,23 @@ func TestBackend_Config(t *testing.T) {
 		Backend:        b,
 		Steps: []logicaltest.TestStep{
 			testConfigCreate(t, configData),
-			testLoginWrite(t, username, "wrong", "E0000004", 0, nil),
-			testLoginWrite(t, username, password, "user is not a member of any authorized policy", 0, nil),
+			testLoginWrite(t, username, "wrong", "E0000004", nil),
+			testLoginWrite(t, username, password, "user is not a member of any authorized policy", nil),
 			testAccUserGroups(t, username, "local_group,local_group2"),
 			testAccGroups(t, "local_group", "local_group_policy"),
-			testLoginWrite(t, username, password, "", defaultLeaseTTLVal, []string{"local_group_policy"}),
+			testLoginWrite(t, username, password, "", []string{"local_group_policy"}),
 			testAccGroups(t, "Everyone", "everyone_group_policy,every_group_policy2"),
-			testLoginWrite(t, username, password, "", defaultLeaseTTLVal, []string{"local_group_policy"}),
+			testLoginWrite(t, username, password, "", []string{"local_group_policy"}),
 			testConfigUpdate(t, configDataToken),
-			testConfigRead(t, token, configData),
-			testLoginWrite(t, username, password, "", updatedDuration, []string{"everyone_group_policy", "every_group_policy2", "local_group_policy"}),
+			testConfigRead(t, configData),
+			testLoginWrite(t, username, password, "", []string{"everyone_group_policy", "every_group_policy2", "local_group_policy"}),
 			testAccGroups(t, "local_group2", "testgroup_group_policy"),
-			testLoginWrite(t, username, password, "", updatedDuration, []string{"everyone_group_policy", "every_group_policy2", "local_group_policy", "testgroup_group_policy"}),
+			testLoginWrite(t, username, password, "", []string{"everyone_group_policy", "every_group_policy2", "local_group_policy", "testgroup_group_policy"}),
 		},
 	})
 }
 
-func testLoginWrite(t *testing.T, username, password, reason string, expectedTTL time.Duration, policies []string) logicaltest.TestStep {
+func testLoginWrite(t *testing.T, username, password, reason string, policies []string) logicaltest.TestStep {
 	return logicaltest.TestStep{
 		Operation: logical.UpdateOperation,
 		Path:      "login/" + username,
@@ -84,11 +75,6 @@ func testLoginWrite(t *testing.T, username, password, reason string, expectedTTL
 			if resp.Auth != nil {
 				if !policyutil.EquivalentPolicies(resp.Auth.Policies, policies) {
 					return fmt.Errorf("policy mismatch expected %v but got %v", policies, resp.Auth.Policies)
-				}
-
-				actualTTL := resp.Auth.LeaseOptions.TTL
-				if actualTTL != expectedTTL {
-					return fmt.Errorf("TTL mismatch expected %v but got %v", expectedTTL, actualTTL)
 				}
 			}
 
@@ -113,7 +99,7 @@ func testConfigUpdate(t *testing.T, d map[string]interface{}) logicaltest.TestSt
 	}
 }
 
-func testConfigRead(t *testing.T, token string, d map[string]interface{}) logicaltest.TestStep {
+func testConfigRead(t *testing.T, d map[string]interface{}) logicaltest.TestStep {
 	return logicaltest.TestStep{
 		Operation: logical.ReadOperation,
 		Path:      "config",
@@ -122,18 +108,16 @@ func testConfigRead(t *testing.T, token string, d map[string]interface{}) logica
 				return resp.Error()
 			}
 
-			if resp.Data["organization"] != d["organization"] {
+			if resp.Data["Org"] != d["organization"] {
 				return fmt.Errorf("Org mismatch expected %s but got %s", d["organization"], resp.Data["Org"])
 			}
 
-			if resp.Data["base_url"] != d["base_url"] {
+			if resp.Data["BaseURL"] != d["base_url"] {
 				return fmt.Errorf("BaseURL mismatch expected %s but got %s", d["base_url"], resp.Data["BaseURL"])
 			}
 
-			for _, value := range resp.Data {
-				if value == token {
-					return fmt.Errorf("token should not be returned on a read request")
-				}
+			if _, exists := resp.Data["Token"]; exists {
+				return fmt.Errorf("token should not be returned on a read request")
 			}
 
 			return nil

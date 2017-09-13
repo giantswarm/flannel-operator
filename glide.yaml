@@ -3,7 +3,7 @@ import:
 - package: github.com/giantswarm/flanneltpr
   version: master
 - package: github.com/giantswarm/microkit
-  version: master
+  version: b6bf741b5c34be4fff51d944f973318d8b078284
   subpackages:
   - command
   - error
@@ -11,4 +11,4 @@ import:
   - logger
   - server
 - package: github.com/giantswarm/operatorkit
-  version: master
+  version: 7af6dc5a75bf865bf1dec080d26dc009d88b5b0b

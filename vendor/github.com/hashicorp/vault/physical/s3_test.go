@@ -7,26 +7,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/vault/helper/awsutil"
 	"github.com/hashicorp/vault/helper/logformat"
 	log "github.com/mgutz/logxi/v1"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func TestS3Backend(t *testing.T) {
-	credsConfig := &awsutil.CredentialsConfig{}
-
-	credsChain, err := credsConfig.GenerateCredentialChain()
-	if err != nil {
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" || os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
 		t.SkipNow()
 	}
 
-	_, err = credsChain.Get()
+	creds, err := credentials.NewEnvCredentials().Get()
 	if err != nil {
-		t.SkipNow()
+		t.Fatalf("err: %v", err)
 	}
 
 	// If the variable is empty or doesn't exist, the default
@@ -39,7 +36,7 @@ func TestS3Backend(t *testing.T) {
 	}
 
 	s3conn := s3.New(session.New(&aws.Config{
-		Credentials: credsChain,
+		Credentials: credentials.NewEnvCredentials(),
 		Endpoint:    aws.String(endpoint),
 		Region:      aws.String(region),
 	}))
@@ -80,9 +77,11 @@ func TestS3Backend(t *testing.T) {
 
 	logger := logformat.NewVaultLogger(log.LevelTrace)
 
-	// This uses the same logic to find the AWS credentials as we did at the beginning of the test
 	b, err := NewBackend("s3", logger, map[string]string{
-		"bucket": bucket,
+		"access_key":    creds.AccessKeyID,
+		"secret_key":    creds.SecretAccessKey,
+		"session_token": creds.SessionToken,
+		"bucket":        bucket,
 	})
 	if err != nil {
 		t.Fatalf("err: %s", err)

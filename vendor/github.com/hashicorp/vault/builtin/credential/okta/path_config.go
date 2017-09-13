@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 	"github.com/sstarcher/go-okta"
-	"time"
 )
 
 func pathConfig(b *backend) *framework.Path {
@@ -26,14 +25,6 @@ func pathConfig(b *backend) *framework.Path {
 				Type: framework.TypeString,
 				Description: `The API endpoint to use. Useful if you
 are using Okta development accounts.`,
-			},
-			"ttl": &framework.FieldSchema{
-				Type:        framework.TypeDurationSecond,
-				Description: `Duration after which authentication will be expired`,
-			},
-			"max_ttl": &framework.FieldSchema{
-				Type:        framework.TypeDurationSecond,
-				Description: `Maximum duration after which authentication will be expired`,
 			},
 		},
 
@@ -82,10 +73,8 @@ func (b *backend) pathConfigRead(
 
 	resp := &logical.Response{
 		Data: map[string]interface{}{
-			"organization": cfg.Org,
-			"base_url":     cfg.BaseURL,
-			"ttl":          cfg.TTL,
-			"max_ttl":      cfg.MaxTTL,
+			"Org":     cfg.Org,
+			"BaseURL": cfg.BaseURL,
 		},
 	}
 
@@ -129,12 +118,6 @@ func (b *backend) pathConfigWrite(
 		cfg.BaseURL = d.Get("base_url").(string)
 	}
 
-	ttl := d.Get("ttl").(int)
-	cfg.TTL = time.Duration(ttl) * time.Second
-
-	maxTTL := d.Get("max_ttl").(int)
-	cfg.MaxTTL = time.Duration(maxTTL) * time.Second
-
 	jsonCfg, err := logical.StorageEntryJSON("config", cfg)
 	if err != nil {
 		return nil, err
@@ -172,11 +155,9 @@ func (c *ConfigEntry) OktaClient() *okta.Client {
 
 // ConfigEntry for Okta
 type ConfigEntry struct {
-	Org     string        `json:"organization"`
-	Token   string        `json:"token"`
-	BaseURL string        `json:"base_url"`
-	TTL     time.Duration `json:"ttl"`
-	MaxTTL  time.Duration `json:"max_ttl"`
+	Org     string `json:"organization"`
+	Token   string `json:"token"`
+	BaseURL string `json:"base_url"`
 }
 
 const pathConfigHelp = `

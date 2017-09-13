@@ -119,14 +119,6 @@ $ composer require jippi/vault-php-sdk
 $ composer require violuke/vault-php-sdk
 ```
 
-### PowerShell
-
-* [Zyborg.Vault](https://github.com/zyborg/Zyborg.Vault)
-
-```PowerShell
-Install-Module Zyborg.Vault
-```
-
 ### Python
 
 * [HVAC](https://github.com/ianunruh/hvac)
