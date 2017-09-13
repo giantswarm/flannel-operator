@@ -5,7 +5,9 @@ package service
 import (
 	"fmt"
 	"sync"
+	"time"
 
+	"github.com/cenk/backoff"
 	microerror "github.com/giantswarm/microkit/error"
 	micrologger "github.com/giantswarm/microkit/logger"
 	"github.com/giantswarm/operatorkit/client/k8s"
@@ -88,10 +90,17 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var operatorBackOff *backoff.ExponentialBackOff
+	{
+		operatorBackOff = backoff.NewExponentialBackOff()
+		operatorBackOff.MaxElapsedTime = 5 * time.Minute
+	}
+
 	var flannelService *flannel.Service
 	{
 		c := flannel.DefaultConfig()
 
+		c.BackOff = operatorBackOff
 		c.K8sClient = k8sClient
 		c.Logger = config.Logger
 

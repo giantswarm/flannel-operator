@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 // Config represents the configuration used to create a Crt service.
 type Config struct {
 	// Dependencies.
+	BackOff   backoff.BackOff
 	K8sClient kubernetes.Interface
 	Logger    micrologger.Logger
 
@@ -41,6 +43,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		// Dependencies.
+		BackOff:   nil,
 		K8sClient: nil,
 		Logger:    nil,
 
@@ -53,6 +56,9 @@ func DefaultConfig() Config {
 // New creates a new configured Crt service.
 func New(config Config) (*Service, error) {
 	// Dependencies.
+	if config.BackOff == nil {
+		return nil, microerror.MaskAnyf(invalidConfigError, "config.BackOff client must not be empty")
+	}
 	if config.K8sClient == nil {
 		return nil, microerror.MaskAnyf(invalidConfigError, "kubernetes client must not be empty")
 	}
@@ -139,27 +145,49 @@ type Service struct {
 // Boot starts the service and implements the watch for the flannel TPR.
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		err := s.tpr.CreateAndWait()
-		if tpr.IsAlreadyExists(err) {
-			s.Logger.Log("debug", "third party resource already exists")
-		} else if err != nil {
-			s.Logger.Log("error", fmt.Sprintf("%#v", err))
-			return
+		o := func() error {
+			err := s.bootWithError()
+			if err != nil {
+				return microerror.MaskAny(err)
+			}
+
+			return nil
 		}
 
-		s.Logger.Log("debug", "starting list/watch")
-
-		newResourceEventHandler := &cache.ResourceEventHandlerFuncs{
-			AddFunc:    s.addFunc,
-			DeleteFunc: s.deleteFunc,
-		}
-		newZeroObjectFactory := &tpr.ZeroObjectFactoryFuncs{
-			NewObjectFunc:     func() runtime.Object { return &flanneltpr.CustomObject{} },
-			NewObjectListFunc: func() runtime.Object { return &flanneltpr.List{} },
+		n := func(err error, d time.Duration) {
+			s.Logger.Log("warning", fmt.Sprintf("retrying operator boot due to error: %#v", microerror.MaskAny(err)))
 		}
 
-		s.tpr.NewInformer(newResourceEventHandler, newZeroObjectFactory).Run(nil)
+		err := backoff.RetryNotify(o, s.BackOff, n)
+		if err != nil {
+			s.Logger.Log("error", fmt.Sprintf("stop operator boot retries due to too many errors: %#v", microerror.MaskAny(err)))
+			os.Exit(1)
+		}
 	})
+}
+
+func (s *Service) bootWithError() error {
+	err := s.tpr.CreateAndWait()
+	if tpr.IsAlreadyExists(err) {
+		s.Logger.Log("debug", "third party resource already exists")
+	} else if err != nil {
+		return microerror.MaskAny(err)
+	}
+
+	s.Logger.Log("debug", "starting list/watch")
+
+	newResourceEventHandler := &cache.ResourceEventHandlerFuncs{
+		AddFunc:    s.addFunc,
+		DeleteFunc: s.deleteFunc,
+	}
+	newZeroObjectFactory := &tpr.ZeroObjectFactoryFuncs{
+		NewObjectFunc:     func() runtime.Object { return &flanneltpr.CustomObject{} },
+		NewObjectListFunc: func() runtime.Object { return &flanneltpr.List{} },
+	}
+
+	s.tpr.NewInformer(newResourceEventHandler, newZeroObjectFactory).Run(nil)
+
+	return nil
 }
 
 // addFunc creates flannel etcd configuration, schedules flanneld container in
