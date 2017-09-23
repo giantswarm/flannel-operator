@@ -324,7 +324,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 			s.Logger.Log("debug", "waiting for the namespace "+name+" to be removed, reason: "+reason.Error(), "cluster", spec.Cluster.ID)
 		}
 
-		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
+		err := backoff.RetryNotify(op, backoff.WithMaxTries(backoff.NewExponentialBackOff(), 3), notify)
 		if err != nil {
 			return microerror.MaskAnyf(err, "failed waiting for the namespace %s to be deleted", name)
 		}
@@ -426,7 +426,7 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 			s.Logger.Log("debug", "waiting for network bridge cleanup to complete, reason: "+reason.Error(), "cluster", spec.Cluster.ID)
 		}
 
-		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
+		err := backoff.RetryNotify(op, backoff.WithMaxTries(backoff.NewExponentialBackOff(), 3), notify)
 		if err != nil {
 			return microerror.MaskAnyf(err, "waiting for pods to finish network bridge cleanup")
 		}
