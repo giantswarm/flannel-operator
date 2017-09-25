@@ -136,6 +136,10 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 									Value: networkBridgeName(spec),
 								},
 								{
+									Name:  "NETWORK_DNS_BLOCK",
+									Value: networkDNSBlock(spec),
+								},
+								{
 									Name:  "NETWORK_ENV_FILE_PATH",
 									Value: networkEnvFilePath(spec),
 								},
@@ -146,6 +150,10 @@ func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
 								{
 									Name:  "NETWORK_INTERFACE_NAME",
 									Value: networkInterfaceName(spec),
+								},
+								{
+									Name:  "NETWORK_NTP_BLOCK",
+									Value: networkNTPBlock(spec),
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{
