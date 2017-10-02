@@ -91,7 +91,7 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 			VolumeMounts: []api.VolumeMount{
 				{
 					Name:      "etcd-certs",
-					MountPath: "/etc/ssl/etcd/certs",
+					MountPath: "/etc/kubernetes/ssl/etcd",
 				},
 				{
 					Name:      "flannel",
@@ -212,7 +212,7 @@ func newDaemonSetVolumes(spec flanneltpr.Spec) []api.Volume {
 			Name: "etcd-certs",
 			VolumeSource: api.VolumeSource{
 				HostPath: &api.HostPathVolumeSource{
-					Path: "/etc/kubernetes/ssl/etcd/",
+					Path: "/etc/giantswarm/g8s/ssl/etcd",
 				},
 			},
 		},
