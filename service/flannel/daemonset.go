@@ -8,7 +8,7 @@ import (
 	api "k8s.io/client-go/pkg/api/v1"
 )
 
-func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
+func newDaemonSet(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile string) *apisextensions.DaemonSet {
 	app := networkApp
 
 	labels := map[string]string{
@@ -17,7 +17,7 @@ func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
 		"app":      app,
 	}
 
-	containers := newDaemonSetContainers(spec)
+	containers := newDaemonSetContainers(spec, etcdCAFile, etcdCrtFile, etcdKeyFile)
 	volumes := newDaemonSetVolumes(spec)
 
 	return &apisextensions.DaemonSet{
@@ -48,7 +48,7 @@ func newDaemonSet(spec flanneltpr.Spec) *apisextensions.DaemonSet {
 	}
 }
 
-func newDaemonSetContainers(spec flanneltpr.Spec) []api.Container {
+func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile string) []api.Container {
 	privileged := true
 
 	return []api.Container{
@@ -59,9 +59,21 @@ func newDaemonSetContainers(spec flanneltpr.Spec) []api.Container {
 			Command: []string{
 				"/bin/sh",
 				"-c",
-				"/opt/bin/flanneld --etcd-endpoints https://127.0.0.1:2379 --public-ip=$NODE_IP --iface=$NODE_IP --networks=$NETWORK_BRIDGE_NAME -v=0",
+				"/opt/bin/flanneld --etcd-endpoints=https://127.0.0.1:2379 --etcd-cafile=$ETCD_CA --etcd-certfile=$ETCD_CRT --etcd-keyfile=$ETCD_KEY --public-ip=$NODE_IP --iface=$NODE_IP --networks=$NETWORK_BRIDGE_NAME -v=0",
 			},
 			Env: []api.EnvVar{
+				{
+					Name:  "ETCD_CA",
+					Value: etcdCAFile,
+				},
+				{
+					Name:  "ETCD_CRT",
+					Value: etcdCrtFile,
+				},
+				{
+					Name:  "ETCD_KEY",
+					Value: etcdKeyFile,
+				},
 				{
 					Name:  "NETWORK_BRIDGE_NAME",
 					Value: networkBridgeName(spec),
@@ -77,6 +89,10 @@ func newDaemonSetContainers(spec flanneltpr.Spec) []api.Container {
 				},
 			},
 			VolumeMounts: []api.VolumeMount{
+				{
+					Name:      "etcd-certs",
+					MountPath: "/etc/kubernetes/ssl/etcd",
+				},
 				{
 					Name:      "flannel",
 					MountPath: "/run/flannel",
@@ -196,7 +212,7 @@ func newDaemonSetVolumes(spec flanneltpr.Spec) []api.Volume {
 			Name: "etcd-certs",
 			VolumeSource: api.VolumeSource{
 				HostPath: &api.HostPathVolumeSource{
-					Path: "/etc/giantswarm/g8s/ssl/etcd/",
+					Path: "/etc/giantswarm/g8s/ssl/etcd",
 				},
 			},
 		},
