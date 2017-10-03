@@ -146,10 +146,12 @@ func New(config Config) (*Service, error) {
 	newService := &Service{
 		Config: config,
 
-		// Internals
-		bootOnce: sync.Once{},
-		tpr:      newTPR,
-		store:    store,
+		bootOnce:    sync.Once{},
+		etcdCAFile:  config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile),
+		etcdCrtFile: config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
+		etcdKeyFile: config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
+		store:       store,
+		tpr:         newTPR,
 	}
 
 	return newService, nil
@@ -159,10 +161,12 @@ func New(config Config) (*Service, error) {
 type Service struct {
 	Config
 
-	// Internals.
-	bootOnce sync.Once
-	tpr      *tpr.TPR
-	store    microstorage.Storage
+	bootOnce    sync.Once
+	etcdCAFile  string
+	etcdCrtFile string
+	etcdKeyFile string
+	store       microstorage.Storage
+	tpr         *tpr.TPR
 }
 
 // Boot starts the service and implements the watch for the flannel TPR.
@@ -294,7 +298,7 @@ func (s *Service) addFuncError(obj interface{}) error {
 
 	// Create a dameonset running flanneld and creating network bridge.
 	{
-		daemonSet := newDaemonSet(spec)
+		daemonSet := newDaemonSet(spec, s.etcdCAFile, s.etcdCrtFile, s.etcdKeyFile)
 		_, err := s.K8sClient.ExtensionsV1beta1().DaemonSets(networkNamespace(spec)).Create(daemonSet)
 		if apierrors.IsAlreadyExists(err) {
 			s.Logger.Log("debug", "daemonSet "+daemonSet.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
