@@ -2,13 +2,15 @@ package: github.com/giantswarm/flannel-operator
 import:
 - package: github.com/giantswarm/flanneltpr
   version: master
+- package: github.com/giantswarm/microerror
+  version: master
+- package: github.com/giantswarm/micrologger
+  version: master
 - package: github.com/giantswarm/microkit
-  version: b6bf741b5c34be4fff51d944f973318d8b078284
-  subpackages:
-  - command
-  - error
-  - flag
-  - logger
-  - server
+  version: master
+- package: github.com/giantswarm/microstorage
+  version: master
+- package: github.com/giantswarm/etcdstorage
+  version: master
 - package: github.com/giantswarm/operatorkit
-  version: 7af6dc5a75bf865bf1dec080d26dc009d88b5b0b
+  version: master

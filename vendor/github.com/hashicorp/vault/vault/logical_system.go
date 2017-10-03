@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fatih/structs"
 	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/hashicorp/vault/helper/wrapping"
@@ -21,7 +22,7 @@ var (
 	// protectedPaths cannot be accessed via the raw APIs.
 	// This is both for security and to prevent disrupting Vault.
 	protectedPaths = []string{
-		"core",
+		keyringPath,
 	}
 
 	replicationPaths = func(b *SystemBackend) []*framework.Path {
@@ -44,7 +45,7 @@ var (
 	}
 )
 
-func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backend, error) {
+func NewSystemBackend(core *Core) *SystemBackend {
 	b := &SystemBackend{
 		Core: core,
 	}
@@ -58,19 +59,23 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 				"remount",
 				"audit",
 				"audit/*",
+				"raw",
 				"raw/*",
 				"replication/primary/secondary-token",
 				"replication/reindex",
 				"rotate",
+				"config/cors",
 				"config/auditing/*",
 				"plugins/catalog/*",
 				"revoke-prefix/*",
+				"revoke-force/*",
 				"leases/revoke-prefix/*",
 				"leases/revoke-force/*",
 				"leases/lookup/*",
 			},
 
 			Unauthenticated: []string{
+				"wrapping/lookup",
 				"wrapping/pubkey",
 				"replication/status",
 			},
@@ -97,6 +102,34 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 
 				HelpSynopsis:    strings.TrimSpace(sysHelp["capabilities_accessor"][0]),
 				HelpDescription: strings.TrimSpace(sysHelp["capabilities_accessor"][1]),
+			},
+
+			&framework.Path{
+				Pattern: "config/cors$",
+
+				Fields: map[string]*framework.FieldSchema{
+					"enable": &framework.FieldSchema{
+						Type:        framework.TypeBool,
+						Description: "Enables or disables CORS headers on requests.",
+					},
+					"allowed_origins": &framework.FieldSchema{
+						Type:        framework.TypeCommaStringSlice,
+						Description: "A comma-separated string or array of strings indicating origins that may make cross-origin requests.",
+					},
+					"allowed_headers": &framework.FieldSchema{
+						Type:        framework.TypeCommaStringSlice,
+						Description: "A comma-separated string or array of strings indicating headers that are allowed on cross-origin requests.",
+					},
+				},
+
+				Callbacks: map[logical.Operation]framework.OperationFunc{
+					logical.ReadOperation:   b.handleCORSRead,
+					logical.UpdateOperation: b.handleCORSUpdate,
+					logical.DeleteOperation: b.handleCORSDelete,
+				},
+
+				HelpDescription: strings.TrimSpace(sysHelp["config/cors"][0]),
+				HelpSynopsis:    strings.TrimSpace(sysHelp["config/cors"][1]),
 			},
 
 			&framework.Path{
@@ -198,6 +231,10 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 						Type:        framework.TypeString,
 						Description: strings.TrimSpace(sysHelp["tune_max_lease_ttl"][0]),
 					},
+					"description": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["auth_desc"][0]),
+					},
 				},
 				Callbacks: map[logical.Operation]framework.OperationFunc{
 					logical.ReadOperation:   b.handleAuthTuneRead,
@@ -222,6 +259,10 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 					"max_lease_ttl": &framework.FieldSchema{
 						Type:        framework.TypeString,
 						Description: strings.TrimSpace(sysHelp["tune_max_lease_ttl"][0]),
+					},
+					"description": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["auth_desc"][0]),
 					},
 				},
 
@@ -258,6 +299,10 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 						Type:        framework.TypeBool,
 						Default:     false,
 						Description: strings.TrimSpace(sysHelp["mount_local"][0]),
+					},
+					"plugin_name": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["mount_plugin_name"][0]),
 					},
 				},
 
@@ -461,10 +506,18 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 						Type:        framework.TypeString,
 						Description: strings.TrimSpace(sysHelp["auth_desc"][0]),
 					},
+					"config": &framework.FieldSchema{
+						Type:        framework.TypeMap,
+						Description: strings.TrimSpace(sysHelp["auth_config"][0]),
+					},
 					"local": &framework.FieldSchema{
 						Type:        framework.TypeBool,
 						Default:     false,
 						Description: strings.TrimSpace(sysHelp["mount_local"][0]),
+					},
+					"plugin_name": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["auth_plugin"][0]),
 					},
 				},
 
@@ -601,25 +654,6 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 			},
 
 			&framework.Path{
-				Pattern: "raw/(?P<path>.+)",
-
-				Fields: map[string]*framework.FieldSchema{
-					"path": &framework.FieldSchema{
-						Type: framework.TypeString,
-					},
-					"value": &framework.FieldSchema{
-						Type: framework.TypeString,
-					},
-				},
-
-				Callbacks: map[logical.Operation]framework.OperationFunc{
-					logical.ReadOperation:   b.handleRawRead,
-					logical.UpdateOperation: b.handleRawWrite,
-					logical.DeleteOperation: b.handleRawDelete,
-				},
-			},
-
-			&framework.Path{
 				Pattern: "key-status$",
 
 				Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -694,6 +728,7 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 
 				Callbacks: map[logical.Operation]framework.OperationFunc{
 					logical.UpdateOperation: b.handleWrappingLookup,
+					logical.ReadOperation:   b.handleWrappingLookup,
 				},
 
 				HelpSynopsis:    strings.TrimSpace(sysHelp["wraplookup"][0]),
@@ -750,7 +785,7 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 				HelpDescription: strings.TrimSpace(sysHelp["audited-headers"][1]),
 			},
 			&framework.Path{
-				Pattern: "plugins/catalog/$",
+				Pattern: "plugins/catalog/?$",
 
 				Fields: map[string]*framework.FieldSchema{},
 
@@ -767,18 +802,19 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 				Fields: map[string]*framework.FieldSchema{
 					"name": &framework.FieldSchema{
 						Type:        framework.TypeString,
-						Description: "The name of the plugin",
+						Description: strings.TrimSpace(sysHelp["plugin-catalog_name"][0]),
+					},
+					"sha256": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["plugin-catalog_sha-256"][0]),
 					},
 					"sha_256": &framework.FieldSchema{
-						Type: framework.TypeString,
-						Description: `The SHA256 sum of the executable used in the
-						command field. This should be HEX encoded.`,
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["plugin-catalog_sha-256"][0]),
 					},
 					"command": &framework.FieldSchema{
-						Type: framework.TypeString,
-						Description: `The command used to start the plugin. The
-						executable defined in this command must exist in vault's
-						plugin directory.`,
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["plugin-catalog_command"][0]),
 					},
 				},
 
@@ -791,22 +827,102 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) (logical.Backen
 				HelpSynopsis:    strings.TrimSpace(sysHelp["plugin-catalog"][0]),
 				HelpDescription: strings.TrimSpace(sysHelp["plugin-catalog"][1]),
 			},
+			&framework.Path{
+				Pattern: "plugins/reload/backend$",
+
+				Fields: map[string]*framework.FieldSchema{
+					"plugin": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["plugin-backend-reload-plugin"][0]),
+					},
+					"mounts": &framework.FieldSchema{
+						Type:        framework.TypeCommaStringSlice,
+						Description: strings.TrimSpace(sysHelp["plugin-backend-reload-mounts"][0]),
+					},
+				},
+
+				Callbacks: map[logical.Operation]framework.OperationFunc{
+					logical.UpdateOperation: b.handlePluginReloadUpdate,
+				},
+
+				HelpSynopsis:    strings.TrimSpace(sysHelp["plugin-reload"][0]),
+				HelpDescription: strings.TrimSpace(sysHelp["plugin-reload"][1]),
+			},
 		},
 	}
 
 	b.Backend.Paths = append(b.Backend.Paths, replicationPaths(b)...)
 
+	if core.rawEnabled {
+		b.Backend.Paths = append(b.Backend.Paths, &framework.Path{
+			Pattern: "(raw/?$|raw/(?P<path>.+))",
+
+			Fields: map[string]*framework.FieldSchema{
+				"path": &framework.FieldSchema{
+					Type: framework.TypeString,
+				},
+				"value": &framework.FieldSchema{
+					Type: framework.TypeString,
+				},
+			},
+
+			Callbacks: map[logical.Operation]framework.OperationFunc{
+				logical.ReadOperation:   b.handleRawRead,
+				logical.UpdateOperation: b.handleRawWrite,
+				logical.DeleteOperation: b.handleRawDelete,
+				logical.ListOperation:   b.handleRawList,
+			},
+		})
+	}
+
 	b.Backend.Invalidate = b.invalidate
 
-	return b.Backend.Setup(config)
+	return b
 }
 
 // SystemBackend implements logical.Backend and is used to interact with
 // the core of the system. This backend is hardcoded to exist at the "sys"
 // prefix. Conceptually it is similar to procfs on Linux.
 type SystemBackend struct {
-	Core    *Core
-	Backend *framework.Backend
+	*framework.Backend
+	Core *Core
+}
+
+// handleCORSRead returns the current CORS configuration
+func (b *SystemBackend) handleCORSRead(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	corsConf := b.Core.corsConfig
+
+	enabled := corsConf.IsEnabled()
+
+	resp := &logical.Response{
+		Data: map[string]interface{}{
+			"enabled": enabled,
+		},
+	}
+
+	if enabled {
+		corsConf.RLock()
+		resp.Data["allowed_origins"] = corsConf.AllowedOrigins
+		resp.Data["allowed_headers"] = corsConf.AllowedHeaders
+		corsConf.RUnlock()
+	}
+
+	return resp, nil
+}
+
+// handleCORSUpdate sets the list of origins that are allowed to make
+// cross-origin requests and sets the CORS enabled flag to true
+func (b *SystemBackend) handleCORSUpdate(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	origins := d.Get("allowed_origins").([]string)
+	headers := d.Get("allowed_headers").([]string)
+
+	return nil, b.Core.corsConfig.Enable(origins, headers)
+}
+
+// handleCORSDelete sets the CORS enabled flag to false and clears the list of
+// allowed origins & headers.
+func (b *SystemBackend) handleCORSDelete(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	return nil, b.Core.corsConfig.Disable()
 }
 
 func (b *SystemBackend) handleTidyLeases(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -847,9 +963,12 @@ func (b *SystemBackend) handlePluginCatalogUpdate(req *logical.Request, d *frame
 		return logical.ErrorResponse("missing plugin name"), nil
 	}
 
-	sha256 := d.Get("sha_256").(string)
+	sha256 := d.Get("sha256").(string)
 	if sha256 == "" {
-		return logical.ErrorResponse("missing SHA-256 value"), nil
+		sha256 = d.Get("sha_256").(string)
+		if sha256 == "" {
+			return logical.ErrorResponse("missing SHA-256 value"), nil
+		}
 	}
 
 	command := d.Get("command").(string)
@@ -883,10 +1002,11 @@ func (b *SystemBackend) handlePluginCatalogRead(req *logical.Request, d *framewo
 		return nil, nil
 	}
 
+	// Create a map of data to be returned and remove sensitive information from it
+	data := structs.New(plugin).Map()
+
 	return &logical.Response{
-		Data: map[string]interface{}{
-			"plugin": plugin,
-		},
+		Data: data,
 	}, nil
 }
 
@@ -898,6 +1018,32 @@ func (b *SystemBackend) handlePluginCatalogDelete(req *logical.Request, d *frame
 	err := b.Core.pluginCatalog.Delete(pluginName)
 	if err != nil {
 		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (b *SystemBackend) handlePluginReloadUpdate(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	pluginName := d.Get("plugin").(string)
+	pluginMounts := d.Get("mounts").([]string)
+
+	if pluginName != "" && len(pluginMounts) > 0 {
+		return logical.ErrorResponse("plugin and mounts cannot be set at the same time"), nil
+	}
+	if pluginName == "" && len(pluginMounts) == 0 {
+		return logical.ErrorResponse("plugin or mounts must be provided"), nil
+	}
+
+	if pluginName != "" {
+		err := b.Core.reloadMatchingPlugin(pluginName)
+		if err != nil {
+			return nil, err
+		}
+	} else if len(pluginMounts) > 0 {
+		err := b.Core.reloadMatchingPluginMounts(pluginMounts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return nil, nil
@@ -967,7 +1113,7 @@ func (b *SystemBackend) handleAuditedHeadersRead(req *logical.Request, d *framew
 	}, nil
 }
 
-// handleCapabilitiesreturns the ACL capabilities of the token for a given path
+// handleCapabilities returns the ACL capabilities of the token for a given path
 func (b *SystemBackend) handleCapabilities(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	token := d.Get("token").(string)
 	if token == "" {
@@ -985,8 +1131,8 @@ func (b *SystemBackend) handleCapabilities(req *logical.Request, d *framework.Fi
 	}, nil
 }
 
-// handleCapabilitiesAccessor returns the ACL capabilities of the token associted
-// with the given accessor for a given path.
+// handleCapabilitiesAccessor returns the ACL capabilities of the
+// token associted with the given accessor for a given path.
 func (b *SystemBackend) handleCapabilitiesAccessor(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	accessor := d.Get("accessor").(string)
 	if accessor == "" {
@@ -1097,17 +1243,17 @@ func (b *SystemBackend) handleMountTable(
 	}
 
 	for _, entry := range b.Core.mounts.Entries {
+		// Populate mount info
+		structConfig := structs.New(entry.Config).Map()
+		structConfig["default_lease_ttl"] = int64(structConfig["default_lease_ttl"].(time.Duration).Seconds())
+		structConfig["max_lease_ttl"] = int64(structConfig["max_lease_ttl"].(time.Duration).Seconds())
 		info := map[string]interface{}{
 			"type":        entry.Type,
 			"description": entry.Description,
-			"config": map[string]interface{}{
-				"default_lease_ttl": int64(entry.Config.DefaultLeaseTTL.Seconds()),
-				"max_lease_ttl":     int64(entry.Config.MaxLeaseTTL.Seconds()),
-				"force_no_cache":    entry.Config.ForceNoCache,
-			},
-			"local": entry.Local,
+			"accessor":    entry.Accessor,
+			"config":      structConfig,
+			"local":       entry.Local,
 		}
-
 		resp.Data[entry.Path] = info
 	}
 
@@ -1117,12 +1263,10 @@ func (b *SystemBackend) handleMountTable(
 // handleMount is used to mount a new path
 func (b *SystemBackend) handleMount(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	b.Core.clusterParamsLock.RLock()
 	repState := b.Core.replicationState
-	b.Core.clusterParamsLock.RUnlock()
 
 	local := data.Get("local").(bool)
-	if !local && repState == consts.ReplicationSecondary {
+	if !local && repState.HasState(consts.ReplicationPerformanceSecondary) {
 		return logical.ErrorResponse("cannot add a non-local mount to a replication secondary"), nil
 	}
 
@@ -1130,16 +1274,13 @@ func (b *SystemBackend) handleMount(
 	path := data.Get("path").(string)
 	logicalType := data.Get("type").(string)
 	description := data.Get("description").(string)
+	pluginName := data.Get("plugin_name").(string)
 
 	path = sanitizeMountPath(path)
 
 	var config MountConfig
+	var apiConfig APIMountConfig
 
-	var apiConfig struct {
-		DefaultLeaseTTL string `json:"default_lease_ttl" structs:"default_lease_ttl" mapstructure:"default_lease_ttl"`
-		MaxLeaseTTL     string `json:"max_lease_ttl" structs:"max_lease_ttl" mapstructure:"max_lease_ttl"`
-		ForceNoCache    bool   `json:"force_no_cache" structs:"force_no_cache" mapstructure:"force_no_cache"`
-	}
 	configMap := data.Get("config").(map[string]interface{})
 	if configMap != nil && len(configMap) != 0 {
 		err := mapstructure.Decode(configMap, &apiConfig)
@@ -1188,6 +1329,21 @@ func (b *SystemBackend) handleMount(
 			logical.ErrInvalidRequest
 	}
 
+	// Only set plugin-name if mount is of type plugin, with apiConfig.PluginName
+	// option taking precedence.
+	if logicalType == "plugin" {
+		switch {
+		case apiConfig.PluginName != "":
+			config.PluginName = apiConfig.PluginName
+		case pluginName != "":
+			config.PluginName = pluginName
+		default:
+			return logical.ErrorResponse(
+					"plugin_name must be provided for plugin backend"),
+				logical.ErrInvalidRequest
+		}
+	}
+
 	// Copy over the force no cache if set
 	if apiConfig.ForceNoCache {
 		config.ForceNoCache = true
@@ -1232,25 +1388,25 @@ func handleError(
 // handleUnmount is used to unmount a path
 func (b *SystemBackend) handleUnmount(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	b.Core.clusterParamsLock.RLock()
+	path := data.Get("path").(string)
+	path = sanitizeMountPath(path)
+
 	repState := b.Core.replicationState
-	b.Core.clusterParamsLock.RUnlock()
-
-	suffix := strings.TrimPrefix(req.Path, "mounts/")
-	if len(suffix) == 0 {
-		return logical.ErrorResponse("path cannot be blank"), logical.ErrInvalidRequest
-	}
-
-	suffix = sanitizeMountPath(suffix)
-
-	entry := b.Core.router.MatchingMountEntry(suffix)
-	if entry != nil && !entry.Local && repState == consts.ReplicationSecondary {
+	entry := b.Core.router.MatchingMountEntry(path)
+	if entry != nil && !entry.Local && repState.HasState(consts.ReplicationPerformanceSecondary) {
 		return logical.ErrorResponse("cannot unmount a non-local mount on a replication secondary"), nil
 	}
 
+	// We return success when the mount does not exists to not expose if the
+	// mount existed or not
+	match := b.Core.router.MatchingMount(path)
+	if match == "" || path != match {
+		return nil, nil
+	}
+
 	// Attempt unmount
-	if existed, err := b.Core.unmount(suffix); existed && err != nil {
-		b.Backend.Logger().Error("sys: unmount failed", "path", suffix, "error", err)
+	if err := b.Core.unmount(path); err != nil {
+		b.Backend.Logger().Error("sys: unmount failed", "path", path, "error", err)
 		return handleError(err)
 	}
 
@@ -1260,9 +1416,7 @@ func (b *SystemBackend) handleUnmount(
 // handleRemount is used to remount a path
 func (b *SystemBackend) handleRemount(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	b.Core.clusterParamsLock.RLock()
 	repState := b.Core.replicationState
-	b.Core.clusterParamsLock.RUnlock()
 
 	// Get the paths
 	fromPath := data.Get("from").(string)
@@ -1277,7 +1431,7 @@ func (b *SystemBackend) handleRemount(
 	toPath = sanitizeMountPath(toPath)
 
 	entry := b.Core.router.MatchingMountEntry(fromPath)
-	if entry != nil && !entry.Local && repState == consts.ReplicationSecondary {
+	if entry != nil && !entry.Local && repState.HasState(consts.ReplicationPerformanceSecondary) {
 		return logical.ErrorResponse("cannot remount a non-local mount on a replication secondary"), nil
 	}
 
@@ -1373,9 +1527,7 @@ func (b *SystemBackend) handleMountTuneWrite(
 // handleTuneWriteCommon is used to set config settings on a path
 func (b *SystemBackend) handleTuneWriteCommon(
 	path string, data *framework.FieldData) (*logical.Response, error) {
-	b.Core.clusterParamsLock.RLock()
 	repState := b.Core.replicationState
-	b.Core.clusterParamsLock.RUnlock()
 
 	path = sanitizeMountPath(path)
 
@@ -1392,7 +1544,7 @@ func (b *SystemBackend) handleTuneWriteCommon(
 		b.Backend.Logger().Error("sys: tune failed: no mount entry found", "path", path)
 		return handleError(fmt.Errorf("sys: tune of path '%s' failed: no mount entry found", path))
 	}
-	if mountEntry != nil && !mountEntry.Local && repState == consts.ReplicationSecondary {
+	if mountEntry != nil && !mountEntry.Local && repState.HasState(consts.ReplicationPerformanceSecondary) {
 		return logical.ErrorResponse("cannot tune a non-local mount on a replication secondary"), nil
 	}
 
@@ -1404,45 +1556,79 @@ func (b *SystemBackend) handleTuneWriteCommon(
 		lock = &b.Core.mountsLock
 	}
 
+	lock.Lock()
+	defer lock.Unlock()
+
+	// Check again after grabbing the lock
+	mountEntry = b.Core.router.MatchingMountEntry(path)
+	if mountEntry == nil {
+		b.Backend.Logger().Error("sys: tune failed: no mount entry found", "path", path)
+		return handleError(fmt.Errorf("sys: tune of path '%s' failed: no mount entry found", path))
+	}
+	if mountEntry != nil && !mountEntry.Local && repState.HasState(consts.ReplicationPerformanceSecondary) {
+		return logical.ErrorResponse("cannot tune a non-local mount on a replication secondary"), nil
+	}
+
 	// Timing configuration parameters
 	{
-		var newDefault, newMax *time.Duration
+		var newDefault, newMax time.Duration
 		defTTL := data.Get("default_lease_ttl").(string)
 		switch defTTL {
 		case "":
+			newDefault = mountEntry.Config.DefaultLeaseTTL
 		case "system":
-			tmpDef := time.Duration(0)
-			newDefault = &tmpDef
+			newDefault = time.Duration(0)
 		default:
 			tmpDef, err := parseutil.ParseDurationSecond(defTTL)
 			if err != nil {
 				return handleError(err)
 			}
-			newDefault = &tmpDef
+			newDefault = tmpDef
 		}
 
 		maxTTL := data.Get("max_lease_ttl").(string)
 		switch maxTTL {
 		case "":
+			newMax = mountEntry.Config.MaxLeaseTTL
 		case "system":
-			tmpMax := time.Duration(0)
-			newMax = &tmpMax
+			newMax = time.Duration(0)
 		default:
 			tmpMax, err := parseutil.ParseDurationSecond(maxTTL)
 			if err != nil {
 				return handleError(err)
 			}
-			newMax = &tmpMax
+			newMax = tmpMax
 		}
 
-		if newDefault != nil || newMax != nil {
-			lock.Lock()
-			defer lock.Unlock()
+		if newDefault != mountEntry.Config.DefaultLeaseTTL ||
+			newMax != mountEntry.Config.MaxLeaseTTL {
 
 			if err := b.tuneMountTTLs(path, mountEntry, newDefault, newMax); err != nil {
 				b.Backend.Logger().Error("sys: tuning failed", "path", path, "error", err)
 				return handleError(err)
 			}
+		}
+	}
+
+	description := data.Get("description").(string)
+	if description != "" {
+		oldDesc := mountEntry.Description
+		mountEntry.Description = description
+
+		// Update the mount table
+		var err error
+		switch {
+		case strings.HasPrefix(path, "auth/"):
+			err = b.Core.persistAuth(b.Core.auth, mountEntry.Local)
+		default:
+			err = b.Core.persistMounts(b.Core.mounts, mountEntry.Local)
+		}
+		if err != nil {
+			mountEntry.Description = oldDesc
+			return handleError(err)
+		}
+		if b.Core.logger.IsInfo() {
+			b.Core.logger.Info("core: mount tuning of description successful", "path", path)
 		}
 	}
 
@@ -1596,6 +1782,7 @@ func (b *SystemBackend) handleAuthTable(
 		info := map[string]interface{}{
 			"type":        entry.Type,
 			"description": entry.Description,
+			"accessor":    entry.Accessor,
 			"config": map[string]interface{}{
 				"default_lease_ttl": int64(entry.Config.DefaultLeaseTTL.Seconds()),
 				"max_lease_ttl":     int64(entry.Config.MaxLeaseTTL.Seconds()),
@@ -1610,12 +1797,10 @@ func (b *SystemBackend) handleAuthTable(
 // handleEnableAuth is used to enable a new credential backend
 func (b *SystemBackend) handleEnableAuth(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	b.Core.clusterParamsLock.RLock()
 	repState := b.Core.replicationState
-	b.Core.clusterParamsLock.RUnlock()
 
 	local := data.Get("local").(bool)
-	if !local && repState == consts.ReplicationSecondary {
+	if !local && repState.HasState(consts.ReplicationPerformanceSecondary) {
 		return logical.ErrorResponse("cannot add a non-local mount to a replication secondary"), nil
 	}
 
@@ -1623,6 +1808,35 @@ func (b *SystemBackend) handleEnableAuth(
 	path := data.Get("path").(string)
 	logicalType := data.Get("type").(string)
 	description := data.Get("description").(string)
+	pluginName := data.Get("plugin_name").(string)
+
+	var config MountConfig
+	var apiConfig APIMountConfig
+
+	configMap := data.Get("config").(map[string]interface{})
+	if configMap != nil && len(configMap) != 0 {
+		err := mapstructure.Decode(configMap, &apiConfig)
+		if err != nil {
+			return logical.ErrorResponse(
+					"unable to convert given auth config information"),
+				logical.ErrInvalidRequest
+		}
+	}
+
+	// Only set plugin name if mount is of type plugin, with apiConfig.PluginName
+	// option taking precedence.
+	if logicalType == "plugin" {
+		switch {
+		case apiConfig.PluginName != "":
+			config.PluginName = apiConfig.PluginName
+		case pluginName != "":
+			config.PluginName = pluginName
+		default:
+			return logical.ErrorResponse(
+					"plugin_name must be provided for plugin backend"),
+				logical.ErrInvalidRequest
+		}
+	}
 
 	if logicalType == "" {
 		return logical.ErrorResponse(
@@ -1638,6 +1852,7 @@ func (b *SystemBackend) handleEnableAuth(
 		Path:        path,
 		Type:        logicalType,
 		Description: description,
+		Config:      config,
 		Local:       local,
 	}
 
@@ -1652,16 +1867,26 @@ func (b *SystemBackend) handleEnableAuth(
 // handleDisableAuth is used to disable a credential backend
 func (b *SystemBackend) handleDisableAuth(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	suffix := strings.TrimPrefix(req.Path, "auth/")
-	if len(suffix) == 0 {
-		return logical.ErrorResponse("path cannot be blank"), logical.ErrInvalidRequest
+	path := data.Get("path").(string)
+	path = sanitizeMountPath(path)
+	fullPath := credentialRoutePrefix + path
+
+	repState := b.Core.replicationState
+	entry := b.Core.router.MatchingMountEntry(fullPath)
+	if entry != nil && !entry.Local && repState.HasState(consts.ReplicationPerformanceSecondary) {
+		return logical.ErrorResponse("cannot unmount a non-local mount on a replication secondary"), nil
 	}
 
-	suffix = sanitizeMountPath(suffix)
+	// We return success when the mount does not exists to not expose if the
+	// mount existed or not
+	match := b.Core.router.MatchingMount(fullPath)
+	if match == "" || fullPath != match {
+		return nil, nil
+	}
 
 	// Attempt disable
-	if existed, err := b.Core.disableCredential(suffix); existed && err != nil {
-		b.Backend.Logger().Error("sys: disable auth mount failed", "path", suffix, "error", err)
+	if err := b.Core.disableCredential(path); err != nil {
+		b.Backend.Logger().Error("sys: disable auth mount failed", "path", path, "error", err)
 		return handleError(err)
 	}
 	return nil, nil
@@ -1699,7 +1924,7 @@ func (b *SystemBackend) handlePolicyRead(
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"name":  name,
+			"name":  policy.Name,
 			"rules": policy.Raw,
 		},
 	}, nil
@@ -1726,8 +1951,9 @@ func (b *SystemBackend) handlePolicySet(
 		return handleError(err)
 	}
 
-	// Override the name
-	parse.Name = strings.ToLower(name)
+	if name != "" {
+		parse.Name = name
+	}
 
 	// Update the policy
 	if err := b.Core.policyStore.SetPolicy(parse); err != nil {
@@ -1796,12 +2022,10 @@ func (b *SystemBackend) handleAuditHash(
 // handleEnableAudit is used to enable a new audit backend
 func (b *SystemBackend) handleEnableAudit(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	b.Core.clusterParamsLock.RLock()
 	repState := b.Core.replicationState
-	b.Core.clusterParamsLock.RUnlock()
 
 	local := data.Get("local").(bool)
-	if !local && repState == consts.ReplicationSecondary {
+	if !local && repState.HasState(consts.ReplicationPerformanceSecondary) {
 		return logical.ErrorResponse("cannot add a non-local mount to a replication secondary"), nil
 	}
 
@@ -1923,6 +2147,29 @@ func (b *SystemBackend) handleRawDelete(
 	return nil, nil
 }
 
+// handleRawList is used to list directly from the barrier
+func (b *SystemBackend) handleRawList(
+	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	path := data.Get("path").(string)
+	if path != "" && !strings.HasSuffix(path, "/") {
+		path = path + "/"
+	}
+
+	// Prevent access of protected paths
+	for _, p := range protectedPaths {
+		if strings.HasPrefix(path, p) {
+			err := fmt.Sprintf("cannot list '%s'", path)
+			return logical.ErrorResponse(err), logical.ErrInvalidRequest
+		}
+	}
+
+	keys, err := b.Core.barrier.List(path)
+	if err != nil {
+		return handleError(err)
+	}
+	return logical.ListResponse(keys), nil
+}
+
 // handleKeyStatus returns status information about the backend key
 func (b *SystemBackend) handleKeyStatus(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -1944,10 +2191,8 @@ func (b *SystemBackend) handleKeyStatus(
 // handleRotate is used to trigger a key rotation
 func (b *SystemBackend) handleRotate(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	b.Core.clusterParamsLock.RLock()
 	repState := b.Core.replicationState
-	b.Core.clusterParamsLock.RUnlock()
-	if repState == consts.ReplicationSecondary {
+	if repState.HasState(consts.ReplicationPerformanceSecondary) {
 		return logical.ErrorResponse("cannot rotate on a replication secondary"), nil
 	}
 
@@ -2086,10 +2331,14 @@ func (b *SystemBackend) handleWrappingUnwrap(
 
 func (b *SystemBackend) handleWrappingLookup(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	// This ordering of lookups has been validated already in the wrapping
+	// validation func, we're just doing this for a safety check
 	token := data.Get("token").(string)
-
 	if token == "" {
-		return logical.ErrorResponse("missing \"token\" value in input"), logical.ErrInvalidRequest
+		token = req.ClientToken
+		if token == "" {
+			return logical.ErrorResponse("missing \"token\" value in input"), logical.ErrInvalidRequest
+		}
 	}
 
 	cubbyReq := &logical.Request{
@@ -2113,6 +2362,7 @@ func (b *SystemBackend) handleWrappingLookup(
 
 	creationTTLRaw := cubbyResp.Data["creation_ttl"]
 	creationTime := cubbyResp.Data["creation_time"]
+	creationPath := cubbyResp.Data["creation_path"]
 
 	resp := &logical.Response{
 		Data: map[string]interface{}{},
@@ -2127,6 +2377,9 @@ func (b *SystemBackend) handleWrappingLookup(
 	if creationTime != nil {
 		// This was JSON marshaled so it's already a string in RFC3339 format
 		resp.Data["creation_time"] = cubbyResp.Data["creation_time"]
+	}
+	if creationPath != nil {
+		resp.Data["creation_path"] = cubbyResp.Data["creation_path"]
 	}
 
 	return resp, nil
@@ -2187,6 +2440,13 @@ func (b *SystemBackend) handleWrappingRewrap(
 		return nil, fmt.Errorf("error reading creation_ttl value from wrapping information: %v", err)
 	}
 
+	// Get creation_path to return as the response later
+	creationPathRaw := cubbyResp.Data["creation_path"]
+	if creationPathRaw == nil {
+		return nil, fmt.Errorf("creation_path value in wrapping information was nil")
+	}
+	creationPath := creationPathRaw.(string)
+
 	// Fetch the original response and return it as the data for the new response
 	cubbyReq = &logical.Request{
 		Operation:   logical.ReadOperation,
@@ -2219,7 +2479,8 @@ func (b *SystemBackend) handleWrappingRewrap(
 			"response": response,
 		},
 		WrapInfo: &wrapping.ResponseWrapInfo{
-			TTL: time.Duration(creationTTL),
+			TTL:          time.Duration(creationTTL),
+			CreationPath: creationPath,
 		},
 	}, nil
 }
@@ -2244,6 +2505,21 @@ as well as perform core operations.
 
 // sysHelp is all the help text for the sys backend.
 var sysHelp = map[string][2]string{
+	"config/cors": {
+		"Configures or returns the current configuration of CORS settings.",
+		`
+This path responds to the following HTTP methods.
+
+    GET /
+        Returns the configuration of the CORS setting.
+
+    POST /
+        Sets the comma-separated list of origins that can make cross-origin requests.
+
+    DELETE /
+        Clears the CORS configuration and disables acceptance of CORS requests.
+		`,
+	},
 	"init": {
 		"Initializes or returns the initialization status of the Vault.",
 		`
@@ -2360,6 +2636,11 @@ and max_lease_ttl.`,
 	"mount_local": {
 		`Mark the mount as a local mount, which is not replicated
 and is unaffected by replication.`,
+	},
+
+	"mount_plugin_name": {
+		`Name of the plugin to mount based from the name registered 
+in the plugin catalog.`,
 	},
 
 	"tune_default_lease_ttl": {
@@ -2495,6 +2776,15 @@ Example: you might have an OAuth backend for GitHub, and one for Google Apps.
 
 	"auth_desc": {
 		`User-friendly description for this crential backend.`,
+		"",
+	},
+
+	"auth_config": {
+		`Configuration for this mount, such as plugin_name.`,
+	},
+
+	"auth_plugin": {
+		`Name of the auth plugin to use based from the name in the plugin catalog.`,
 		"",
 	},
 
@@ -2677,22 +2967,37 @@ This path responds to the following HTTP methods.
 		"Lists the headers configured to be audited.",
 		`Returns a list of headers that have been configured to be audited.`,
 	},
-	"plugins/catalog": {
-		`Configures the plugins known to vault`,
+	"plugin-catalog": {
+		"Configures the plugins known to vault",
 		`
 This path responds to the following HTTP methods.
-    LIST /
-        Returns a list of names of configured plugins.
+		LIST /
+			Returns a list of names of configured plugins.
 
-    GET /<name>
-        Retrieve the metadata for the named plugin.
+		GET /<name>
+			Retrieve the metadata for the named plugin.
 
-    PUT /<name>
-        Add or update plugin.
+		PUT /<name>
+			Add or update plugin.
 
-    DELETE /<name>
-        Delete the plugin with the given name.
+		DELETE /<name>
+			Delete the plugin with the given name.
 		`,
+	},
+	"plugin-catalog_name": {
+		"The name of the plugin",
+		"",
+	},
+	"plugin-catalog_sha-256": {
+		`The SHA256 sum of the executable used in the 
+command field. This should be HEX encoded.`,
+		"",
+	},
+	"plugin-catalog_command": {
+		`The command used to start the plugin. The
+executable defined in this command must exist in vault's
+plugin directory.`,
+		"",
 	},
 	"leases": {
 		`View or list lease metadata.`,
@@ -2709,6 +3014,21 @@ This path responds to the following HTTP methods.
 
 	"leases-list-prefix": {
 		`The path to list leases under. Example: "aws/creds/deploy"`,
+		"",
+	},
+	"plugin-reload": {
+		"Reload mounts that use a particular backend plugin.",
+		`Reload mounts that use a particular backend plugin. Either the plugin name
+		or the desired plugin backend mounts must be provided, but not both. In the
+		case that the plugin name is provided, all mounted paths that use that plugin
+		backend will be reloaded.`,
+	},
+	"plugin-backend-reload-plugin": {
+		`The name of the plugin to reload, as registered in the plugin catalog.`,
+		"",
+	},
+	"plugin-backend-reload-mounts": {
+		`The mount paths of the plugin backends to reload.`,
 		"",
 	},
 }
