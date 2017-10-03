@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/cenk/backoff"
-	microerror "github.com/giantswarm/microkit/error"
-	micrologger "github.com/giantswarm/microkit/logger"
+	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8s"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/viper"
@@ -59,13 +59,13 @@ func DefaultConfig() Config {
 func New(config Config) (*Service, error) {
 	// Dependencies.
 	if config.Flag == nil {
-		return nil, microerror.MaskAnyf(invalidConfigError, "flag must be set")
+		return nil, microerror.Maskf(invalidConfigError, "flag must be set")
 	}
 	if config.Logger == nil {
-		return nil, microerror.MaskAnyf(invalidConfigError, "logger must not be empty")
+		return nil, microerror.Maskf(invalidConfigError, "logger must not be empty")
 	}
 	if config.Viper == nil {
-		return nil, microerror.MaskAnyf(invalidConfigError, "viper must be set")
+		return nil, microerror.Maskf(invalidConfigError, "viper must be set")
 	}
 
 	config.Logger.Log("debug", fmt.Sprintf("creating flannel-operator with config: %#v", config))
@@ -86,7 +86,7 @@ func New(config Config) (*Service, error) {
 		}
 		k8sClient, err = k8s.NewClient(c)
 		if err != nil {
-			return nil, microerror.MaskAny(err)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -109,7 +109,7 @@ func New(config Config) (*Service, error) {
 
 		flannelService, err = flannel.New(c)
 		if err != nil {
-			return nil, microerror.MaskAny(err)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -124,7 +124,7 @@ func New(config Config) (*Service, error) {
 
 		versionService, err = version.New(c)
 		if err != nil {
-			return nil, microerror.MaskAny(err)
+			return nil, microerror.Mask(err)
 		}
 	}
 
