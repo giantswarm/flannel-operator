@@ -3,22 +3,38 @@
 package service
 
 import (
-	"fmt"
+	"context"
+	"crypto/tls"
+	"net"
+	"net/http"
 	"sync"
 	"time"
 
 	"github.com/cenk/backoff"
+	"github.com/coreos/etcd/client"
+	"github.com/giantswarm/kvm-operator/service/operator"
 	"github.com/giantswarm/microendpoint/service/version"
 	"github.com/giantswarm/microerror"
+	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8s"
+	"github.com/giantswarm/operatorkit/framework"
+	"github.com/giantswarm/operatorkit/framework/logresource"
+	"github.com/giantswarm/operatorkit/framework/metricsresource"
+	"github.com/giantswarm/operatorkit/framework/retryresource"
+	"github.com/giantswarm/operatorkit/informer"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/flag"
-	"github.com/giantswarm/flannel-operator/service/flannel"
+	"github.com/giantswarm/flannel-operator/service/etcdv2"
 	"github.com/giantswarm/flannel-operator/service/healthz"
+	legacyresource "github.com/giantswarm/flannel-operator/service/resource/legacy"
+)
+
+const (
+	ResourceRetries uint64 = 3
 )
 
 // Config represents the configuration used to create a new service.
@@ -56,59 +72,176 @@ func DefaultConfig() Config {
 	}
 }
 
-// New creates a new configured service object.
-func New(config Config) (*Service, error) {
+type Service struct {
 	// Dependencies.
-	if config.Flag == nil {
-		return nil, microerror.Maskf(invalidConfigError, "flag must be set")
-	}
-	if config.Logger == nil {
-		return nil, microerror.Maskf(invalidConfigError, "logger must not be empty")
-	}
-	if config.Viper == nil {
-		return nil, microerror.Maskf(invalidConfigError, "viper must be set")
-	}
+	Healthz  *healthz.Service
+	Operator *operator.Operator
+	Version  *version.Service
 
-	config.Logger.Log("debug", fmt.Sprintf("creating flannel-operator with config: %#v", config))
+	// Internals.
+	bootOnce sync.Once
+}
 
+func New(config Config) (*Service, error) {
 	var err error
 
 	var k8sClient kubernetes.Interface
 	{
-		c := k8s.Config{
-			Logger: config.Logger,
-			TLS: k8s.TLSClientConfig{
-				CAFile:  config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.CAFile),
-				CrtFile: config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.CrtFile),
-				KeyFile: config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.KeyFile),
-			},
-			Address:   config.Viper.GetString(config.Flag.Service.Kubernetes.Address),
-			InCluster: config.Viper.GetBool(config.Flag.Service.Kubernetes.InCluster),
-		}
-		k8sClient, err = k8s.NewClient(c)
+		k8sConfig := k8s.DefaultConfig()
+
+		k8sConfig.Address = config.Viper.GetString(config.Flag.Service.Kubernetes.Address)
+		k8sConfig.Logger = config.Logger
+		k8sConfig.InCluster = config.Viper.GetBool(config.Flag.Service.Kubernetes.InCluster)
+		k8sConfig.TLS.CAFile = config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.CAFile)
+		k8sConfig.TLS.CrtFile = config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.CrtFile)
+		k8sConfig.TLS.KeyFile = config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.KeyFile)
+
+		k8sClient, err = k8s.NewClient(k8sConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 	}
 
-	var operatorBackOff *backoff.ExponentialBackOff
+	var tlsConfig *tls.Config
 	{
-		operatorBackOff = backoff.NewExponentialBackOff()
-		operatorBackOff.MaxElapsedTime = 5 * time.Minute
+		rootCAs := []string{}
+		{
+			v := config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile)
+			if v != "" {
+				rootCAs = []string{v}
+			}
+		}
+		certFiles := microtls.CertFiles{
+			RootCAs: rootCAs,
+			Cert:    config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
+			Key:     config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
+		}
+
+		tlsConfig, err = microtls.LoadTLSConfig(certFiles)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
 	}
 
-	var flannelService *flannel.Service
+	var storageService *etcdv2.Service
 	{
-		c := flannel.DefaultConfig()
+		transport := &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+			TLSClientConfig:     tlsConfig,
+		}
 
-		c.BackOff = operatorBackOff
-		c.K8sClient = k8sClient
-		c.Logger = config.Logger
+		etcdConfig := client.Config{
+			Endpoints: []string{config.Viper.GetString(config.Flag.Service.Etcd.Endpoint)},
+			Transport: transport,
+		}
+		etcdClient, err := client.New(etcdConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
 
-		c.Flag = config.Flag
-		c.Viper = config.Viper
+		storageConfig := etcdv2.DefaultConfig()
+		storageConfig.EtcdClient = etcdClient
+		storageService, err = etcdv2.New(storageConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
 
-		flannelService, err = flannel.New(c)
+	var legacyResourceBackOff *backoff.ExponentialBackOff
+	{
+		legacyResourceBackOff = backoff.NewExponentialBackOff()
+		legacyResourceBackOff.MaxElapsedTime = 5 * time.Minute
+	}
+
+	var legacyResource framework.Resource
+	{
+		legacyConfig := legacyresource.DefaultConfig()
+
+		legacyConfig.BackOff = legacyResourceBackOff
+		legacyConfig.K8sClient = k8sClient
+		legacyConfig.Logger = config.Logger
+		legacyConfig.Store = storageService
+
+		legacyConfig.EtcdCAFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile)
+		legacyConfig.EtcdCrtFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile)
+		legacyConfig.EtcdKeyFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile)
+
+		legacyResource, err = legacyresource.New(legacyConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	var resources []framework.Resource
+	{
+		resources = []framework.Resource{
+			legacyResource,
+		}
+
+		logWrapConfig := logresource.DefaultWrapConfig()
+		logWrapConfig.Logger = config.Logger
+		resources, err = logresource.Wrap(resources, logWrapConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		retryWrapConfig := retryresource.DefaultWrapConfig()
+		retryWrapConfig.BackOffFactory = func() backoff.BackOff { return backoff.WithMaxTries(backoff.NewExponentialBackOff(), ResourceRetries) }
+		retryWrapConfig.Logger = config.Logger
+		resources, err = retryresource.Wrap(resources, retryWrapConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		metricsWrapConfig := metricsresource.DefaultWrapConfig()
+		metricsWrapConfig.Namespace = config.Name
+		resources, err = metricsresource.Wrap(resources, metricsWrapConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	initCtxFunc := func(ctx context.Context, obj interface{}) (context.Context, error) {
+		return ctx, nil
+	}
+
+	var frameworkBackOff *backoff.ExponentialBackOff
+	{
+		frameworkBackOff = backoff.NewExponentialBackOff()
+		frameworkBackOff.MaxElapsedTime = 5 * time.Minute
+	}
+
+	var operatorFramework *framework.Framework
+	{
+		frameworkConfig := framework.DefaultConfig()
+
+		frameworkConfig.BackOff = frameworkBackOff
+		frameworkConfig.InitCtxFunc = initCtxFunc
+		frameworkConfig.Logger = config.Logger
+		frameworkConfig.Resources = resources
+
+		operatorFramework, err = framework.New(frameworkConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	var newInformer *informer.Informer
+	{
+		informerConfig := informer.DefaultConfig()
+
+		informerConfig.BackOff = backoff.NewExponentialBackOff()
+		informerConfig.RestClient = k8sClient.Discovery().RESTClient()
+
+		informerConfig.RateWait = time.Second * 10
+		informerConfig.ResyncPeriod = time.Minute * 5
+
+		newInformer, err = informer.New(informerConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -127,16 +260,38 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var operatorBackOff *backoff.ExponentialBackOff
+	{
+		operatorBackOff = backoff.NewExponentialBackOff()
+		operatorBackOff.MaxElapsedTime = 5 * time.Minute
+	}
+
+	var operatorService *operator.Operator
+	{
+		operatorConfig := operator.DefaultConfig()
+
+		operatorConfig.BackOff = operatorBackOff
+		operatorConfig.Informer = newInformer
+		operatorConfig.K8sClient = k8sClient
+		operatorConfig.Logger = config.Logger
+		operatorConfig.OperatorFramework = operatorFramework
+
+		operatorService, err = operator.New(operatorConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var versionService *version.Service
 	{
-		c := version.DefaultConfig()
+		versionConfig := version.DefaultConfig()
 
-		c.Description = config.Description
-		c.GitCommit = config.GitCommit
-		c.Name = config.Name
-		c.Source = config.Source
+		versionConfig.Description = config.Description
+		versionConfig.GitCommit = config.GitCommit
+		versionConfig.Name = config.Name
+		versionConfig.Source = config.Source
 
-		versionService, err = version.New(c)
+		versionService, err = version.New(versionConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -144,9 +299,9 @@ func New(config Config) (*Service, error) {
 
 	newService := &Service{
 		// Dependencies.
-		Flannel: flannelService,
-		Healthz: healthzService,
-		Version: versionService,
+		Healthz:  healthzService,
+		Operator: operatorService,
+		Version:  versionService,
 
 		// Internals
 		bootOnce: sync.Once{},
@@ -155,18 +310,8 @@ func New(config Config) (*Service, error) {
 	return newService, nil
 }
 
-type Service struct {
-	// Dependencies.
-	Flannel *flannel.Service
-	Healthz *healthz.Service
-	Version *version.Service
-
-	// Internals.
-	bootOnce sync.Once
-}
-
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		s.Flannel.Boot()
+		s.Operator.Boot()
 	})
 }

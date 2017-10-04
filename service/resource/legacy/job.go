@@ -1,4 +1,4 @@
-package flannel
+package legacy
 
 import (
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

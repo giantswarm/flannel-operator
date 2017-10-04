@@ -1,4 +1,4 @@
-package flannel
+package legacy
 
 import (
 	"fmt"
