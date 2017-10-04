@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cenk/backoff"
+	"github.com/giantswarm/microendpoint/service/version"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8s"
@@ -17,7 +18,7 @@ import (
 
 	"github.com/giantswarm/flannel-operator/flag"
 	"github.com/giantswarm/flannel-operator/service/flannel"
-	"github.com/giantswarm/flannel-operator/service/version"
+	"github.com/giantswarm/flannel-operator/service/healthz"
 )
 
 // Config represents the configuration used to create a new service.
@@ -113,6 +114,19 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var healthzService *healthz.Service
+	{
+		healthzConfig := healthz.DefaultConfig()
+
+		healthzConfig.K8sClient = k8sClient
+		healthzConfig.Logger = config.Logger
+
+		healthzService, err = healthz.New(healthzConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var versionService *version.Service
 	{
 		c := version.DefaultConfig()
@@ -131,6 +145,7 @@ func New(config Config) (*Service, error) {
 	newService := &Service{
 		// Dependencies.
 		Flannel: flannelService,
+		Healthz: healthzService,
 		Version: versionService,
 
 		// Internals
@@ -143,6 +158,7 @@ func New(config Config) (*Service, error) {
 type Service struct {
 	// Dependencies.
 	Flannel *flannel.Service
+	Healthz *healthz.Service
 	Version *version.Service
 
 	// Internals.
