@@ -1,5 +1,5 @@
-hash: b4d527193d14e61dd025306bd078eec46cb61151a606e4fefc3eba3cdb970eec
-updated: 2017-10-04T11:43:36.311469374+02:00
+hash: f92fd7af42f3de30fab18d38dabe70341e4cdd3a283ea77727d4f7ed309c69d5
+updated: 2017-10-04T14:07:10.525529579+02:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -41,9 +41,9 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+  version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/giantswarm/flanneltpr
-  version: 159f22138f6e096cb0b8cdcf63bdd9b7490dd082
+  version: b42ea3bfc81d2193eb7faba30b2b6506da625f95
   subpackages:
   - spec
   - spec/bridge
@@ -88,6 +88,12 @@ imports:
   version: da881f7bb58462fa8b96f06edf0e751efd17f5fb
   subpackages:
   - client/k8s
+  - framework
+  - framework/canceledcontext
+  - framework/logresource
+  - framework/metricsresource
+  - framework/retryresource
+  - informer
   - tpr
 - name: github.com/go-kit/kit
   version: a9ca6725cbbea455e61c6bc8a1ed28e81eb3493b
@@ -112,7 +118,7 @@ imports:
 - name: github.com/go-stack/stack
   version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
 - name: github.com/gogo/protobuf
-  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
+  version: 909568be09de550ed094403c2bf8a261b5bb730a
   subpackages:
   - proto
   - sortkeys
@@ -121,6 +127,7 @@ imports:
 - name: github.com/golang/protobuf
   version: 4bd1920723d7b7c925de087aa32e2187708897f7
   subpackages:
+  - jsonpb
   - proto
 - name: github.com/golang/snappy
   version: 553a641470496b2327abcac10b36396bd98e45c9
@@ -240,7 +247,7 @@ imports:
   - idna
   - lex/httplex
 - name: golang.org/x/sys
-  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
+  version: e48874b42435b4347fc52bdee0424a52abc974d7
   subpackages:
   - unix
 - name: golang.org/x/text
