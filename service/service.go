@@ -12,7 +12,6 @@ import (
 
 	"github.com/cenk/backoff"
 	"github.com/coreos/etcd/client"
-	"github.com/giantswarm/kvm-operator/service/operator"
 	"github.com/giantswarm/microendpoint/service/version"
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
@@ -30,6 +29,7 @@ import (
 	"github.com/giantswarm/flannel-operator/flag"
 	"github.com/giantswarm/flannel-operator/service/etcdv2"
 	"github.com/giantswarm/flannel-operator/service/healthz"
+	"github.com/giantswarm/flannel-operator/service/operator"
 	legacyresource "github.com/giantswarm/flannel-operator/service/resource/legacy"
 )
 
