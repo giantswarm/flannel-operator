@@ -6,17 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/coreos/etcd/clientv3"
-	"github.com/giantswarm/etcdstorage"
+	"github.com/coreos/etcd/client"
+	"github.com/giantswarm/flanneltpr"
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/microstorage"
 	"github.com/giantswarm/operatorkit/tpr"
 	"github.com/spf13/viper"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +27,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/giantswarm/flannel-operator/flag"
-	"github.com/giantswarm/flanneltpr"
+	"github.com/giantswarm/flannel-operator/service/etcdv2"
 )
 
 // Config represents the configuration used to create a Crt service.
@@ -117,27 +118,30 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
-	var etcdClient *clientv3.Client
+	var storageService *etcdv2.Service
 	{
-		etcdConfig := clientv3.Config{
-			Endpoints: []string{
-				config.Viper.GetString(config.Flag.Service.Etcd.Endpoint),
-			},
-			TLS: tlsConfig,
+		transport := &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+			TLSClientConfig:     tlsConfig,
 		}
-		etcdClient, err = clientv3.New(etcdConfig)
+
+		etcdConfig := client.Config{
+			Endpoints: []string{config.Viper.GetString(config.Flag.Service.Etcd.Endpoint)},
+			Transport: transport,
+		}
+		etcdClient, err := client.New(etcdConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
-	}
 
-	var store microstorage.Storage
-	{
-		config := etcdstorage.DefaultConfig()
-
-		config.EtcdClient = etcdClient
-
-		store, err = etcdstorage.New(config)
+		storageConfig := etcdv2.DefaultConfig()
+		storageConfig.EtcdClient = etcdClient
+		storageService, err = etcdv2.New(storageConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -150,7 +154,7 @@ func New(config Config) (*Service, error) {
 		etcdCAFile:  config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile),
 		etcdCrtFile: config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
 		etcdKeyFile: config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
-		store:       store,
+		store:       storageService,
 		tpr:         newTPR,
 	}
 
@@ -165,7 +169,7 @@ type Service struct {
 	etcdCAFile  string
 	etcdCrtFile string
 	etcdKeyFile string
-	store       microstorage.Storage
+	store       *etcdv2.Service
 	tpr         *tpr.TPR
 }
 
@@ -243,7 +247,7 @@ func (s *Service) addFuncError(obj interface{}) error {
 
 	// Create flannel etcd config.
 	{
-		k := etcdKey(spec)
+		path := etcdNetworkConfigPath(spec)
 
 		type flannelBackend struct {
 			Type string
@@ -270,17 +274,16 @@ func (s *Service) addFuncError(obj interface{}) error {
 			return microerror.Maskf(err, "marshaling %#v", config)
 		}
 
-		exists, err := s.store.Exists(context.TODO(), k)
+		exists, err := s.store.Exists(context.TODO(), path)
 		if err != nil {
-			return microerror.Maskf(err, "checking %s etcd key existence", k.Key())
+			return microerror.Maskf(err, "checking %s etcd key existence", path)
 		}
 		if exists {
-			s.Logger.Log("debug", "etcd key "+k.Key()+" already exists", "event", "add", "cluster", spec.Cluster.ID)
+			s.Logger.Log("debug", "etcd key "+path+" already exists", "event", "add", "cluster", spec.Cluster.ID)
 		} else {
-			kv := etcdKeyValue(spec, string(bytes))
-			err := s.store.Put(context.TODO(), kv)
+			err := s.store.Create(context.TODO(), path, string(bytes))
 			if err != nil {
-				return microerror.Maskf(err, "createing %s etcd key", k.Key())
+				return microerror.Maskf(err, "createing %s etcd key", path)
 			}
 		}
 	}
@@ -464,13 +467,13 @@ func (s *Service) deleteFuncError(obj interface{}) error {
 	{
 		s.Logger.Log("debug", "removing flannel etcd config", "cluster", spec.Cluster.ID)
 
-		k := etcdKey(spec)
+		path := etcdNetworkPath(spec)
 
-		err := s.store.Delete(context.TODO(), k)
-		if microstorage.IsNotFound(err) {
-			s.Logger.Log("debug", fmt.Sprintf("etcd key '%s' not found", k.Key()), "cluster", spec.Cluster.ID)
+		err := s.store.Delete(context.TODO(), path)
+		if etcdv2.IsNotFound(err) {
+			s.Logger.Log("debug", fmt.Sprintf("etcd key '%s' not found", path), "cluster", spec.Cluster.ID)
 		} else if err != nil {
-			return microerror.Maskf(err, "deleting etcd key %s", k.Key())
+			return microerror.Maskf(err, "deleting etcd key %s", path)
 		}
 	}
 

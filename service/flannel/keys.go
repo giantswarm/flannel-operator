@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/giantswarm/flanneltpr"
-	"github.com/giantswarm/microstorage"
 )
 
 const (
@@ -45,12 +44,12 @@ func clusterNamespace(spec flanneltpr.Spec) string {
 	return spec.Cluster.Namespace
 }
 
-func etcdKey(spec flanneltpr.Spec) microstorage.K {
-	return microstorage.MustK(microstorage.NewK("coreos.com/network/" + networkBridgeName(spec) + "/config"))
+func etcdNetworkConfigPath(spec flanneltpr.Spec) string {
+	return etcdNetworkPath(spec) + "/config"
 }
 
-func etcdKeyValue(spec flanneltpr.Spec, value string) microstorage.KV {
-	return microstorage.MustKV(microstorage.NewKV(etcdKey(spec).Key(), value))
+func etcdNetworkPath(spec flanneltpr.Spec) string {
+	return "coreos.com/network/" + networkBridgeName(spec)
 }
 
 func flannelDockerImage(spec flanneltpr.Spec) string {
