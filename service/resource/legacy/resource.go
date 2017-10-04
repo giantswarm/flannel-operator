@@ -103,27 +103,11 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 }
 
 func (r *Resource) GetCreateState(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	return nil, nil
-}
-
-func (r *Resource) GetDeleteState(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	return nil, nil
-}
-
-func (r *Resource) GetUpdateState(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, interface{}, interface{}, error) {
-	return nil, nil, nil, nil
-}
-
-func (r *Resource) Name() string {
-	return Name
-}
-
-func (r *Resource) ProcessCreateState(ctx context.Context, obj, createState interface{}) error {
 	var spec flanneltpr.Spec
 	{
 		o, ok := obj.(*flanneltpr.CustomObject)
 		if !ok {
-			return microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
+			return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
 		}
 		spec = o.Spec
 	}
@@ -154,19 +138,19 @@ func (r *Resource) ProcessCreateState(ctx context.Context, obj, createState inte
 
 		bytes, err := json.Marshal(config)
 		if err != nil {
-			return microerror.Maskf(err, "marshaling %#v", config)
+			return nil, microerror.Maskf(err, "marshaling %#v", config)
 		}
 
 		exists, err := r.store.Exists(context.TODO(), path)
 		if err != nil {
-			return microerror.Maskf(err, "checking %s etcd key existence", path)
+			return nil, microerror.Maskf(err, "checking %s etcd key existence", path)
 		}
 		if exists {
 			r.logger.Log("debug", "etcd key "+path+" already exists", "event", "add", "cluster", spec.Cluster.ID)
 		} else {
 			err := r.store.Create(context.TODO(), path, string(bytes))
 			if err != nil {
-				return microerror.Maskf(err, "createing %s etcd key", path)
+				return nil, microerror.Maskf(err, "createing %s etcd key", path)
 			}
 		}
 	}
@@ -178,7 +162,7 @@ func (r *Resource) ProcessCreateState(ctx context.Context, obj, createState inte
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "namespace "+ns.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
 		} else if err != nil {
-			return microerror.Maskf(err, "creating namespace %s", ns.Name)
+			return nil, microerror.Maskf(err, "creating namespace %s", ns.Name)
 		}
 	}
 
@@ -189,21 +173,21 @@ func (r *Resource) ProcessCreateState(ctx context.Context, obj, createState inte
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "daemonSet "+daemonSet.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
 		} else if err != nil {
-			return microerror.Maskf(err, "creating daemonSet %s", daemonSet.Name)
+			return nil, microerror.Maskf(err, "creating daemonSet %s", daemonSet.Name)
 		}
 	}
 
 	r.logger.Log("info", "started flanneld", "event", "add", "cluster", spec.Cluster.ID)
 
-	return nil
+	return nil, nil
 }
 
-func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState interface{}) error {
+func (r *Resource) GetDeleteState(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
 	var spec flanneltpr.Spec
 	{
 		o, ok := obj.(*flanneltpr.CustomObject)
 		if !ok {
-			return microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
+			return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
 		}
 		spec = o.Spec
 	}
@@ -239,7 +223,7 @@ func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState inte
 
 		err := waitForNamespaceDeleted(spec.Cluster.Namespace)
 		if err != nil {
-			return microerror.Mask(err)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -251,12 +235,12 @@ func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState inte
 
 		err := r.k8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
 		if err != nil {
-			return microerror.Maskf(err, "deleting namespace %s failed", ns)
+			return nil, microerror.Maskf(err, "deleting namespace %s failed", ns)
 		}
 
 		err = waitForNamespaceDeleted(ns)
 		if err != nil {
-			return microerror.Mask(err)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -265,7 +249,7 @@ func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState inte
 		ns := newNamespace(spec, destroyerNamespace(spec))
 		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
 		if err != nil {
-			return microerror.Maskf(err, "creating namespace %s", ns.Name)
+			return nil, microerror.Maskf(err, "creating namespace %s", ns.Name)
 		}
 	}
 
@@ -278,7 +262,7 @@ func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState inte
 		// All nodes are listed assuming that master nodes run kubelets.
 		nodes, err := r.k8sClient.CoreV1().Nodes().List(apismetav1.ListOptions{})
 		if err != nil {
-			return microerror.Maskf(err, "requesting cluster node list")
+			return nil, microerror.Maskf(err, "requesting cluster node list")
 		}
 
 		// Run only on scheduleable nodes.
@@ -299,7 +283,7 @@ func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState inte
 
 		_, err := r.k8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Create(job)
 		if err != nil {
-			return microerror.Maskf(err, "creating job %s", jobName)
+			return nil, microerror.Maskf(err, "creating job %s", jobName)
 		}
 		r.logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Cluster.ID)
 
@@ -329,7 +313,7 @@ func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState inte
 
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
 		if err != nil {
-			return microerror.Maskf(err, "waiting for pods to finish network bridge cleanup")
+			return nil, microerror.Maskf(err, "waiting for pods to finish network bridge cleanup")
 		}
 	}
 
@@ -343,7 +327,7 @@ func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState inte
 		if etcdv2.IsNotFound(err) {
 			r.logger.Log("debug", fmt.Sprintf("etcd key '%s' not found", path), "cluster", spec.Cluster.ID)
 		} else if err != nil {
-			return microerror.Maskf(err, "deleting etcd key %s", path)
+			return nil, microerror.Maskf(err, "deleting etcd key %s", path)
 		}
 	}
 
@@ -354,12 +338,28 @@ func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState inte
 		ns := destroyerNamespace(spec)
 		err := r.k8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
 		if err != nil {
-			return microerror.Maskf(err, "deleting namespace %s", ns)
+			return nil, microerror.Maskf(err, "deleting namespace %s", ns)
 		}
 	}
 
 	r.logger.Log("info", "finished flannel cleanup for cluster", "cluster", spec.Cluster.ID)
 
+	return nil, nil
+}
+
+func (r *Resource) GetUpdateState(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, interface{}, interface{}, error) {
+	return nil, nil, nil, nil
+}
+
+func (r *Resource) Name() string {
+	return Name
+}
+
+func (r *Resource) ProcessCreateState(ctx context.Context, obj, createState interface{}) error {
+	return nil
+}
+
+func (r *Resource) ProcessDeleteState(ctx context.Context, obj, deleteState interface{}) error {
 	return nil
 }
 
