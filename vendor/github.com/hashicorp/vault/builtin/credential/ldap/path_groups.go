@@ -1,6 +1,8 @@
 package ldap
 
 import (
+	"strings"
+
 	"github.com/hashicorp/vault/helper/policyutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
@@ -29,7 +31,7 @@ func pathGroups(b *backend) *framework.Path {
 			},
 
 			"policies": &framework.FieldSchema{
-				Type:        framework.TypeCommaStringSlice,
+				Type:        framework.TypeString,
 				Description: "Comma-separated list of policies associated to the group.",
 			},
 		},
@@ -84,7 +86,7 @@ func (b *backend) pathGroupRead(
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"policies": group.Policies,
+			"policies": strings.Join(group.Policies, ","),
 		},
 	}, nil
 }
@@ -93,7 +95,7 @@ func (b *backend) pathGroupWrite(
 	req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// Store it
 	entry, err := logical.StorageEntryJSON("group/"+d.Get("name").(string), &GroupEntry{
-		Policies: policyutil.ParsePolicies(d.Get("policies")),
+		Policies: policyutil.ParsePolicies(d.Get("policies").(string)),
 	})
 	if err != nil {
 		return nil, err

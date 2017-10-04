@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/vault/helper/logformat"
 	"github.com/hashicorp/vault/physical"
-	"github.com/hashicorp/vault/physical/inmem"
 	log "github.com/mgutz/logxi/v1"
 )
 
@@ -17,10 +16,8 @@ var (
 
 // mockBarrier returns a physical backend, security barrier, and master key
 func mockBarrier(t testing.TB) (physical.Backend, SecurityBarrier, []byte) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -34,10 +31,8 @@ func mockBarrier(t testing.TB) (physical.Backend, SecurityBarrier, []byte) {
 }
 
 func TestAESGCMBarrier_Basic(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -46,10 +41,8 @@ func TestAESGCMBarrier_Basic(t *testing.T) {
 }
 
 func TestAESGCMBarrier_Rotate(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -58,10 +51,8 @@ func TestAESGCMBarrier_Rotate(t *testing.T) {
 }
 
 func TestAESGCMBarrier_Upgrade(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b1, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -74,10 +65,8 @@ func TestAESGCMBarrier_Upgrade(t *testing.T) {
 }
 
 func TestAESGCMBarrier_Upgrade_Rekey(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b1, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -90,10 +79,8 @@ func TestAESGCMBarrier_Upgrade_Rekey(t *testing.T) {
 }
 
 func TestAESGCMBarrier_Rekey(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -104,10 +91,8 @@ func TestAESGCMBarrier_Rekey(t *testing.T) {
 // Test an upgrade from the old (0.1) barrier/init to the new
 // core/keyring style
 func TestAESGCMBarrier_BackwardsCompatible(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -186,10 +171,8 @@ func TestAESGCMBarrier_BackwardsCompatible(t *testing.T) {
 
 // Verify data sent through is encrypted
 func TestAESGCMBarrier_Confidential(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -226,10 +209,8 @@ func TestAESGCMBarrier_Confidential(t *testing.T) {
 
 // Verify data sent through cannot be tampered with
 func TestAESGCMBarrier_Integrity(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -264,10 +245,8 @@ func TestAESGCMBarrier_Integrity(t *testing.T) {
 
 // Verify data sent through cannot be moved
 func TestAESGCMBarrier_MoveIntegrityV1(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -296,9 +275,6 @@ func TestAESGCMBarrier_MoveIntegrityV1(t *testing.T) {
 	pe, _ := inm.Get("test")
 	pe.Key = "moved"
 	err = inm.Put(pe)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
 	// Read from the barrier
 	_, err = b.Get("moved")
@@ -308,10 +284,8 @@ func TestAESGCMBarrier_MoveIntegrityV1(t *testing.T) {
 }
 
 func TestAESGCMBarrier_MoveIntegrityV2(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -340,9 +314,6 @@ func TestAESGCMBarrier_MoveIntegrityV2(t *testing.T) {
 	pe, _ := inm.Get("test")
 	pe.Key = "moved"
 	err = inm.Put(pe)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
 	// Read from the barrier
 	_, err = b.Get("moved")
@@ -352,10 +323,8 @@ func TestAESGCMBarrier_MoveIntegrityV2(t *testing.T) {
 }
 
 func TestAESGCMBarrier_UpgradeV1toV2(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -407,10 +376,8 @@ func TestAESGCMBarrier_UpgradeV1toV2(t *testing.T) {
 }
 
 func TestEncrypt_Unique(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -437,10 +404,8 @@ func TestEncrypt_Unique(t *testing.T) {
 }
 
 func TestInitialize_KeyLength(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -470,13 +435,7 @@ func TestInitialize_KeyLength(t *testing.T) {
 }
 
 func TestEncrypt_BarrierEncryptor(t *testing.T) {
-	inm, err := inmem.NewInmem(nil, logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	inm := physical.NewInmem(logger)
 	b, err := NewAESGCMBarrier(inm)
 	if err != nil {
 		t.Fatalf("err: %v", err)

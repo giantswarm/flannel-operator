@@ -174,13 +174,12 @@ type Operation string
 
 const (
 	// The operations below are called per path
-	CreateOperation           Operation = "create"
-	ReadOperation                       = "read"
-	UpdateOperation                     = "update"
-	DeleteOperation                     = "delete"
-	ListOperation                       = "list"
-	HelpOperation                       = "help"
-	PersonaLookaheadOperation           = "persona-lookahead"
+	CreateOperation Operation = "create"
+	ReadOperation             = "read"
+	UpdateOperation           = "update"
+	DeleteOperation           = "delete"
+	ListOperation             = "list"
+	HelpOperation             = "help"
 
 	// The operations below are called globally, the path is less relevant.
 	RevokeOperation   Operation = "revoke"

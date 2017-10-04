@@ -129,7 +129,7 @@ to 0, in which case the value will fallback to the system/mount defaults.`,
 				Description: "The maximum allowed lifetime of tokens issued using this role.",
 			},
 			"policies": {
-				Type:        framework.TypeCommaStringSlice,
+				Type:        framework.TypeString,
 				Default:     "default",
 				Description: "Policies to be set on tokens issued using this role.",
 			},
@@ -318,8 +318,7 @@ func (b *backend) upgradeRoleEntry(s logical.Storage, roleEntry *awsRoleEntry) (
 	if roleEntry.AuthType == iamAuthType &&
 		roleEntry.ResolveAWSUniqueIDs &&
 		roleEntry.BoundIamPrincipalARN != "" &&
-		roleEntry.BoundIamPrincipalID == "" &&
-		!strings.HasSuffix(roleEntry.BoundIamPrincipalARN, "*") {
+		roleEntry.BoundIamPrincipalID == "" {
 		principalId, err := b.resolveArnToUniqueIDFunc(s, roleEntry.BoundIamPrincipalARN)
 		if err != nil {
 			return false, err
@@ -494,17 +493,14 @@ func (b *backend) pathRoleCreateUpdate(
 		// This allows the user to sumbit an update with the same ARN to force Vault
 		// to re-resolve the ARN to the unique ID, in case an entity was deleted and
 		// recreated
-		if roleEntry.ResolveAWSUniqueIDs && !strings.HasSuffix(roleEntry.BoundIamPrincipalARN, "*") {
+		if roleEntry.ResolveAWSUniqueIDs {
 			principalID, err := b.resolveArnToUniqueIDFunc(req.Storage, principalARN)
 			if err != nil {
 				return logical.ErrorResponse(fmt.Sprintf("failed updating the unique ID of ARN %#v: %#v", principalARN, err)), nil
 			}
 			roleEntry.BoundIamPrincipalID = principalID
-		} else {
-			// Need to handle the case where we're switching from a non-wildcard principal to a wildcard principal
-			roleEntry.BoundIamPrincipalID = ""
 		}
-	} else if roleEntry.ResolveAWSUniqueIDs && roleEntry.BoundIamPrincipalARN != "" && !strings.HasSuffix(roleEntry.BoundIamPrincipalARN, "*") {
+	} else if roleEntry.ResolveAWSUniqueIDs && roleEntry.BoundIamPrincipalARN != "" {
 		// we're turning on resolution on this role, so ensure we update it
 		principalID, err := b.resolveArnToUniqueIDFunc(req.Storage, roleEntry.BoundIamPrincipalARN)
 		if err != nil {
@@ -626,11 +622,11 @@ func (b *backend) pathRoleCreateUpdate(
 		return logical.ErrorResponse("at least be one bound parameter should be specified on the role"), nil
 	}
 
-	policiesRaw, ok := data.GetOk("policies")
+	policiesStr, ok := data.GetOk("policies")
 	if ok {
-		roleEntry.Policies = policyutil.ParsePolicies(policiesRaw)
+		roleEntry.Policies = policyutil.ParsePolicies(policiesStr.(string))
 	} else if req.Operation == logical.CreateOperation {
-		roleEntry.Policies = []string{}
+		roleEntry.Policies = []string{"default"}
 	}
 
 	disallowReauthenticationBool, ok := data.GetOk("disallow_reauthentication")

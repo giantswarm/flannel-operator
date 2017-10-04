@@ -84,10 +84,7 @@ func (c *StatusCommand) Run(args []string) int {
 			if leaderStatus.LeaderAddress == "" {
 				leaderStatus.LeaderAddress = "<none>"
 			}
-			if leaderStatus.LeaderClusterAddress == "" {
-				leaderStatus.LeaderClusterAddress = "<none>"
-			}
-			c.Ui.Output(fmt.Sprintf("\tLeader Cluster Address: %s", leaderStatus.LeaderClusterAddress))
+			c.Ui.Output(fmt.Sprintf("\tLeader: %s", leaderStatus.LeaderAddress))
 		}
 	}
 

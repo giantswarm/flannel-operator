@@ -42,8 +42,7 @@ derivation is enabled; currently only available with ed25519 keys.`,
 * sha2-384
 * sha2-512
 
-Defaults to "sha2-256". Not valid for all key types,
-including ed25519.`,
+Defaults to "sha2-256". Not valid for all key types.`,
 			},
 
 			"urlalgorithm": &framework.FieldSchema{

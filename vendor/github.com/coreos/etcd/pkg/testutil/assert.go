@@ -54,9 +54,5 @@ func AssertFalse(t *testing.T, v bool, msg ...string) {
 }
 
 func isNil(v interface{}) bool {
-	if v == nil {
-		return true
-	}
-	rv := reflect.ValueOf(v)
-	return rv.Kind() != reflect.Struct && rv.IsNil()
+	return v == nil || reflect.ValueOf(v).IsNil()
 }

@@ -14,25 +14,21 @@ import (
 
 // Router is used to do prefix based routing of a request to a logical backend
 type Router struct {
-	l                  sync.RWMutex
-	root               *radix.Tree
-	mountUUIDCache     *radix.Tree
-	mountAccessorCache *radix.Tree
-	tokenStoreSaltFunc func() (*salt.Salt, error)
+	l              sync.RWMutex
+	root           *radix.Tree
+	tokenStoreSalt *salt.Salt
 
 	// storagePrefix maps the prefix used for storage (ala the BarrierView)
 	// to the backend. This is used to map a key back into the backend that owns it.
-	// For example, logical/uuid1/foobar -> secrets/ (kv backend) + foobar
+	// For example, logical/uuid1/foobar -> secrets/ (generic backend) + foobar
 	storagePrefix *radix.Tree
 }
 
 // NewRouter returns a new router
 func NewRouter() *Router {
 	r := &Router{
-		root:               radix.New(),
-		storagePrefix:      radix.New(),
-		mountUUIDCache:     radix.New(),
-		mountAccessorCache: radix.New(),
+		root:          radix.New(),
+		storagePrefix: radix.New(),
 	}
 	return r
 }
@@ -64,12 +60,9 @@ func (r *Router) Mount(backend logical.Backend, prefix string, mountEntry *Mount
 	}
 
 	// Build the paths
-	paths := new(logical.Paths)
-	if backend != nil {
-		specialPaths := backend.SpecialPaths()
-		if specialPaths != nil {
-			paths = specialPaths
-		}
+	paths := backend.SpecialPaths()
+	if paths == nil {
+		paths = new(logical.Paths)
 	}
 
 	// Create a mount entry
@@ -81,22 +74,8 @@ func (r *Router) Mount(backend logical.Backend, prefix string, mountEntry *Mount
 		rootPaths:   pathsToRadix(paths.Root),
 		loginPaths:  pathsToRadix(paths.Unauthenticated),
 	}
-
-	switch {
-	case prefix == "":
-		return fmt.Errorf("missing prefix to be used for router entry; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
-	case storageView.prefix == "":
-		return fmt.Errorf("missing storage view prefix; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
-	case re.mountEntry.UUID == "":
-		return fmt.Errorf("missing mount identifier; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
-	case re.mountEntry.Accessor == "":
-		return fmt.Errorf("missing mount accessor; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
-	}
-
 	r.root.Insert(prefix, re)
 	r.storagePrefix.Insert(storageView.prefix, re)
-	r.mountUUIDCache.Insert(re.mountEntry.UUID, re.mountEntry)
-	r.mountAccessorCache.Insert(re.mountEntry.Accessor, re.mountEntry)
 
 	return nil
 }
@@ -119,9 +98,6 @@ func (r *Router) Unmount(prefix string) error {
 	// Purge from the radix trees
 	r.root.Delete(prefix)
 	r.storagePrefix.Delete(re.storageView.prefix)
-	r.mountUUIDCache.Delete(re.mountEntry.UUID)
-	r.mountAccessorCache.Delete(re.mountEntry.Accessor)
-
 	return nil
 }
 
@@ -165,39 +141,6 @@ func (r *Router) Untaint(path string) error {
 	return nil
 }
 
-func (r *Router) MatchingMountByUUID(mountID string) *MountEntry {
-	if mountID == "" {
-		return nil
-	}
-
-	r.l.RLock()
-	defer r.l.RUnlock()
-
-	_, raw, ok := r.mountUUIDCache.LongestPrefix(mountID)
-	if !ok {
-		return nil
-	}
-
-	return raw.(*MountEntry)
-}
-
-// MatchingMountByAccessor returns the MountEntry by accessor lookup
-func (r *Router) MatchingMountByAccessor(mountAccessor string) *MountEntry {
-	if mountAccessor == "" {
-		return nil
-	}
-
-	r.l.RLock()
-	defer r.l.RUnlock()
-
-	_, raw, ok := r.mountAccessorCache.LongestPrefix(mountAccessor)
-	if !ok {
-		return nil
-	}
-
-	return raw.(*MountEntry)
-}
-
 // MatchingMount returns the mount prefix that would be used for a path
 func (r *Router) MatchingMount(path string) string {
 	r.l.RLock()
@@ -209,7 +152,7 @@ func (r *Router) MatchingMount(path string) string {
 	return mount
 }
 
-// MatchingStorageView returns the storageView used for a path
+// MatchingView returns the view used for a path
 func (r *Router) MatchingStorageView(path string) *BarrierView {
 	r.l.RLock()
 	_, raw, ok := r.root.LongestPrefix(path)
@@ -231,7 +174,7 @@ func (r *Router) MatchingMountEntry(path string) *MountEntry {
 	return raw.(*routeEntry).mountEntry
 }
 
-// MatchingBackend returns the backend used for a path
+// MatchingMountEntry returns the MountEntry used for a path
 func (r *Router) MatchingBackend(path string) logical.Backend {
 	r.l.RLock()
 	_, raw, ok := r.root.LongestPrefix(path)
@@ -267,12 +210,6 @@ func (r *Router) MatchingStoragePrefix(path string) (string, string, bool) {
 	re := raw.(*routeEntry)
 	mountPath := re.mountEntry.Path
 	prefix := re.storageView.prefix
-
-	// Add back the prefix for credential backends
-	if strings.HasPrefix(path, credentialBarrierPrefix) {
-		mountPath = credentialRoutePrefix + mountPath
-	}
-
 	return mountPath, prefix, true
 }
 
@@ -291,19 +228,17 @@ func (r *Router) RouteExistenceCheck(req *logical.Request) (bool, bool, error) {
 func (r *Router) routeCommon(req *logical.Request, existenceCheck bool) (*logical.Response, bool, bool, error) {
 	// Find the mount point
 	r.l.RLock()
-	adjustedPath := req.Path
-	mount, raw, ok := r.root.LongestPrefix(adjustedPath)
-	if !ok && !strings.HasSuffix(adjustedPath, "/") {
+	mount, raw, ok := r.root.LongestPrefix(req.Path)
+	if !ok {
 		// Re-check for a backend by appending a slash. This lets "foo" mean
 		// "foo/" at the root level which is almost always what we want.
-		adjustedPath += "/"
-		mount, raw, ok = r.root.LongestPrefix(adjustedPath)
+		req.Path += "/"
+		mount, raw, ok = r.root.LongestPrefix(req.Path)
 	}
 	r.l.RUnlock()
 	if !ok {
 		return logical.ErrorResponse(fmt.Sprintf("no handler for route '%s'", req.Path)), false, false, logical.ErrUnsupportedPath
 	}
-	req.Path = adjustedPath
 	defer metrics.MeasureSince([]string{"route", string(req.Operation),
 		strings.Replace(mount, "/", "-", -1)}, time.Now())
 	re := raw.(*routeEntry)
@@ -338,11 +273,7 @@ func (r *Router) routeCommon(req *logical.Request, existenceCheck bool) (*logica
 	case strings.HasPrefix(originalPath, "cubbyhole/"):
 		// In order for the token store to revoke later, we need to have the same
 		// salted ID, so we double-salt what's going to the cubbyhole backend
-		salt, err := r.tokenStoreSaltFunc()
-		if err != nil {
-			return nil, false, false, err
-		}
-		req.ClientToken = re.SaltID(salt.SaltID(req.ClientToken))
+		req.ClientToken = re.SaltID(r.tokenStoreSalt.SaltID(req.ClientToken))
 	default:
 		req.ClientToken = re.SaltID(req.ClientToken)
 	}

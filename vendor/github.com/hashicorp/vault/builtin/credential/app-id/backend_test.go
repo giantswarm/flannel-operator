@@ -9,7 +9,7 @@ import (
 )
 
 func TestBackend_basic(t *testing.T) {
-	var b *backend
+	var b backend
 	var err error
 	var storage logical.Storage
 	factory := func(conf *logical.BackendConfig) (logical.Backend, error) {
@@ -18,10 +18,7 @@ func TestBackend_basic(t *testing.T) {
 			t.Fatal(err)
 		}
 		storage = conf.StorageView
-		if err := b.Setup(conf); err != nil {
-			return nil, err
-		}
-		return b, nil
+		return b.Setup(conf)
 	}
 	logicaltest.Test(t, logicaltest.TestCase{
 		Factory: factory,

@@ -44,7 +44,6 @@ import (
 
 type serveCtx struct {
 	l        net.Listener
-	addr     string
 	secure   bool
 	insecure bool
 
@@ -161,38 +160,28 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 	})
 }
 
-type registerHandlerFunc func(context.Context, *gw.ServeMux, *grpc.ClientConn) error
+type registerHandlerFunc func(context.Context, *gw.ServeMux, string, []grpc.DialOption) error
 
 func (sctx *serveCtx) registerGateway(opts []grpc.DialOption) (*gw.ServeMux, error) {
 	ctx := sctx.ctx
-	conn, err := grpc.DialContext(ctx, sctx.addr, opts...)
-	if err != nil {
-		return nil, err
-	}
+	addr := sctx.l.Addr().String()
 	gwmux := gw.NewServeMux()
 
 	handlers := []registerHandlerFunc{
-		etcdservergw.RegisterKVHandler,
-		etcdservergw.RegisterWatchHandler,
-		etcdservergw.RegisterLeaseHandler,
-		etcdservergw.RegisterClusterHandler,
-		etcdservergw.RegisterMaintenanceHandler,
-		etcdservergw.RegisterAuthHandler,
-		v3lockgw.RegisterLockHandler,
-		v3electiongw.RegisterElectionHandler,
+		etcdservergw.RegisterKVHandlerFromEndpoint,
+		etcdservergw.RegisterWatchHandlerFromEndpoint,
+		etcdservergw.RegisterLeaseHandlerFromEndpoint,
+		etcdservergw.RegisterClusterHandlerFromEndpoint,
+		etcdservergw.RegisterMaintenanceHandlerFromEndpoint,
+		etcdservergw.RegisterAuthHandlerFromEndpoint,
+		v3lockgw.RegisterLockHandlerFromEndpoint,
+		v3electiongw.RegisterElectionHandlerFromEndpoint,
 	}
 	for _, h := range handlers {
-		if err := h(ctx, gwmux, conn); err != nil {
+		if err := h(ctx, gwmux, addr, opts); err != nil {
 			return nil, err
 		}
 	}
-	go func() {
-		<-ctx.Done()
-		if cerr := conn.Close(); cerr != nil {
-			plog.Warningf("failed to close conn to %s: %v", sctx.l.Addr().String(), cerr)
-		}
-	}()
-
 	return gwmux, nil
 }
 

@@ -144,23 +144,19 @@ if [ -z "$NO_REDIRECTS" ] || [ ! test -f "./redirects.txt" ]; then
     jq_args+=(--arg "value$((i/2))" "${redirect}")
     jq_query+="| .items |= (. + [{op: \"upsert\", item_key: \$key$((i/2)), item_value: \$value$((i/2))}])"
   done
+  json="$(jq "${jq_args[@]}" "${jq_query}" <<<'{"items": []}')"
 
-  # Do not post empty items (the API gets sad)
-  if [ "${#jq_args[@]}" -ne 0 ]; then
-    json="$(jq "${jq_args[@]}" "${jq_query}" <<<'{"items": []}')"
-
-    # Post the JSON body
-    curl \
-      --fail \
-      --silent \
-      --output /dev/null \
-      --request "PATCH" \
-      --header "Fastly-Key: $FASTLY_API_KEY" \
-      --header "Content-type: application/json" \
-      --header "Accept: application/json" \
-      --data "$json"\
-      "https://api.fastly.com/service/$FASTLY_SERVICE_ID/dictionary/$FASTLY_DICTIONARY_ID/items"
-  fi
+  # Post the JSON body
+  curl \
+    --fail \
+    --silent \
+    --output /dev/null \
+    --request "PATCH" \
+    --header "Fastly-Key: $FASTLY_API_KEY" \
+    --header "Content-type: application/json" \
+    --header "Accept: application/json" \
+    --data "$json"\
+    "https://api.fastly.com/service/$FASTLY_SERVICE_ID/dictionary/$FASTLY_DICTIONARY_ID/items"
 fi
 
 # Perform a purge of the surrogate key.
@@ -188,13 +184,8 @@ if [ -z "$NO_WARM" ]; then
   echo "wget --recursive --delete-after https://$PROJECT_URL/"
   echo ""
   wget \
-    --delete-after \
-    --level inf \
-    --no-directories \
-    --no-host-directories \
-    --no-verbose \
-    --page-requisites \
     --recursive \
-    --spider \
+    --delete-after \
+    --quiet \
     "https://$PROJECT_URL/"
 fi

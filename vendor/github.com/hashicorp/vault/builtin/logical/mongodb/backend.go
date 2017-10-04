@@ -12,11 +12,7 @@ import (
 )
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
-	b := Backend()
-	if err := b.Setup(conf); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return Backend().Setup(conf)
 }
 
 func Backend() *framework.Backend {
@@ -38,8 +34,7 @@ func Backend() *framework.Backend {
 
 		Clean: b.ResetSession,
 
-		Invalidate:  b.invalidate,
-		BackendType: logical.TypeLogical,
+		Invalidate: b.invalidate,
 	}
 
 	return b.Backend

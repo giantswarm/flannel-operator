@@ -10,10 +10,12 @@ import (
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
 	b := Backend(conf)
-	if err := b.Setup(conf); err != nil {
+	be, err := b.Backend.Setup(conf)
+	if err != nil {
 		return nil, err
 	}
-	return b, nil
+
+	return be, nil
 }
 
 func Backend(conf *logical.BackendConfig) *backend {
@@ -38,9 +40,9 @@ func Backend(conf *logical.BackendConfig) *backend {
 			b.pathVerify(),
 		},
 
-		Secrets:     []*framework.Secret{},
-		Invalidate:  b.invalidate,
-		BackendType: logical.TypeLogical,
+		Secrets: []*framework.Secret{},
+
+		Invalidate: b.invalidate,
 	}
 
 	b.lm = keysutil.NewLockManager(conf.System.CachingDisabled())

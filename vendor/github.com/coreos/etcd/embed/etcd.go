@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/etcdserver"
-	"github.com/coreos/etcd/etcdserver/api/etcdhttp"
 	"github.com/coreos/etcd/etcdserver/api/v2http"
 	"github.com/coreos/etcd/pkg/cors"
 	"github.com/coreos/etcd/pkg/debugutil"
@@ -150,17 +149,17 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 	}
 
 	// configure peer handlers after rafthttp.Transport started
-	ph := etcdhttp.NewPeerHandler(e.Server)
-	for _, p := range e.Peers {
+	ph := v2http.NewPeerHandler(e.Server)
+	for i := range e.Peers {
 		srv := &http.Server{
 			Handler:     ph,
 			ReadTimeout: 5 * time.Minute,
 			ErrorLog:    defaultLog.New(ioutil.Discard, "", 0), // do not log user error
 		}
-
-		l := p.Listener
-		p.serve = func() error { return srv.Serve(l) }
-		p.close = func(ctx context.Context) error {
+		e.Peers[i].serve = func() error {
+			return srv.Serve(e.Peers[i].Listener)
+		}
+		e.Peers[i].close = func(ctx context.Context) error {
 			// gracefully shutdown http.Server
 			// close open listeners, idle connections
 			// until context cancel or time-out
@@ -187,29 +186,11 @@ func (e *Etcd) Config() Config {
 func (e *Etcd) Close() {
 	e.closeOnce.Do(func() { close(e.stopc) })
 
-	timeout := 2 * time.Second
-	if e.Server != nil {
-		timeout = e.Server.Cfg.ReqTimeout()
-	}
+	// (gRPC server) stops accepting new connections,
+	// RPCs, and blocks until all pending RPCs are finished
 	for _, sctx := range e.sctxs {
 		for gs := range sctx.grpcServerC {
-			ch := make(chan struct{})
-			go func() {
-				defer close(ch)
-				// close listeners to stop accepting new connections,
-				// will block on any existing transports
-				gs.GracefulStop()
-			}()
-			// wait until all pending RPCs are finished
-			select {
-			case <-ch:
-			case <-time.After(timeout):
-				// took too long, manually close open transports
-				// e.g. watch streams
-				gs.Stop()
-				// concurrent GracefulStop should be interrupted
-				<-ch
-			}
+			gs.GracefulStop()
 		}
 	}
 
@@ -345,9 +326,6 @@ func startClientListeners(cfg *Config) (sctxs map[string]*serveCtx, err error) {
 		if sctx.l, err = net.Listen(proto, addr); err != nil {
 			return nil, err
 		}
-		// net.Listener will rewrite ipv4 0.0.0.0 to ipv6 [::], breaking
-		// hosts that disable ipv6. So, use the address given by the user.
-		sctx.addr = addr
 
 		if fdLimit, fderr := runtimeutil.FDLimit(); fderr == nil {
 			if fdLimit <= reservedInternalFDNum {
@@ -405,19 +383,16 @@ func (e *Etcd) serve() (err error) {
 	}
 
 	// Start a client server goroutine for each listen address
-	var h http.Handler
+	var v2h http.Handler
 	if e.Config().EnableV2 {
-		h = v2http.NewClientHandler(e.Server, e.Server.Cfg.ReqTimeout())
-	} else {
-		mux := http.NewServeMux()
-		etcdhttp.HandleBasic(mux, e.Server)
-		h = mux
+		v2h = http.Handler(&cors.CORSHandler{
+			Handler: v2http.NewClientHandler(e.Server, e.Server.Cfg.ReqTimeout()),
+			Info:    e.cfg.CorsInfo,
+		})
 	}
-	h = http.Handler(&cors.CORSHandler{Handler: h, Info: e.cfg.CorsInfo})
-
 	for _, sctx := range e.sctxs {
 		go func(s *serveCtx) {
-			e.errHandler(s.serve(e.Server, ctlscfg, h, e.errHandler))
+			e.errHandler(s.serve(e.Server, ctlscfg, v2h, e.errHandler))
 		}(sctx)
 	}
 	return nil

@@ -91,7 +91,6 @@ type HTTPWrapInfo struct {
 	Token           string `json:"token"`
 	TTL             int    `json:"ttl"`
 	CreationTime    string `json:"creation_time"`
-	CreationPath    string `json:"creation_path"`
 	WrappedAccessor string `json:"wrapped_accessor,omitempty"`
 }
 

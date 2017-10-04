@@ -13,11 +13,7 @@ import (
 )
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
-	b := Backend(conf)
-	if err := b.Setup(conf); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return Backend(conf).Setup(conf)
 }
 
 func Backend(conf *logical.BackendConfig) *backend {
@@ -37,9 +33,9 @@ func Backend(conf *logical.BackendConfig) *backend {
 			secretCreds(&b),
 		},
 
-		Clean:       b.ResetDB,
-		Invalidate:  b.invalidate,
-		BackendType: logical.TypeLogical,
+		Clean: b.ResetDB,
+
+		Invalidate: b.invalidate,
 	}
 
 	b.logger = conf.Logger

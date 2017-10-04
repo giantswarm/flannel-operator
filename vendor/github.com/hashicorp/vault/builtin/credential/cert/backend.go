@@ -10,8 +10,9 @@ import (
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
 	b := Backend()
-	if err := b.Setup(conf); err != nil {
-		return nil, err
+	_, err := b.Setup(conf)
+	if err != nil {
+		return b, err
 	}
 	return b, nil
 }
@@ -20,11 +21,13 @@ func Backend() *backend {
 	var b backend
 	b.Backend = &framework.Backend{
 		Help: backendHelp,
+
 		PathsSpecial: &logical.Paths{
 			Unauthenticated: []string{
 				"login",
 			},
 		},
+
 		Paths: append([]*framework.Path{
 			pathConfig(&b),
 			pathLogin(&b),
@@ -32,9 +35,10 @@ func Backend() *backend {
 			pathCerts(&b),
 			pathCRLs(&b),
 		}),
-		AuthRenew:   b.pathLoginRenew,
-		Invalidate:  b.invalidate,
-		BackendType: logical.TypeCredential,
+
+		AuthRenew: b.pathLoginRenew,
+
+		Invalidate: b.invalidate,
 	}
 
 	b.crlUpdateMutex = &sync.RWMutex{}
