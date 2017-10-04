@@ -1,8 +1,8 @@
-hash: 84451dcb834693b6cdc763dd7aa40999f7f05fe1714c6bbe51f1c4ad86f1b9fa
-updated: 2017-10-04T09:16:24.257424928+02:00
+hash: b4d527193d14e61dd025306bd078eec46cb61151a606e4fefc3eba3cdb970eec
+updated: 2017-10-04T11:43:36.311469374+02:00
 imports:
 - name: github.com/beorn7/perks
-  version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
 - name: github.com/cenk/backoff
@@ -42,8 +42,6 @@ imports:
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
-- name: github.com/giantswarm/etcdstorage
-  version: 27fb28f8e1a5946b3867422b5e6d9ecff7cf208d
 - name: github.com/giantswarm/flanneltpr
   version: 159f22138f6e096cb0b8cdcf63bdd9b7490dd082
   subpackages:
@@ -51,6 +49,15 @@ imports:
   - spec/bridge
   - spec/bridge/spec
   - spec/flannel
+- name: github.com/giantswarm/k8shealthz
+  version: 5eaeffb4476a420af88b7f95b478fc9fe2da38ac
+- name: github.com/giantswarm/microendpoint
+  version: 1ea4d8cd5f0167625f134c855ae42fc747191890
+  subpackages:
+  - endpoint/healthz
+  - endpoint/version
+  - service/healthz
+  - service/version
 - name: github.com/giantswarm/microerror
   version: 5ade94eb4ee35ef72eb9382228470caeddb29989
 - name: github.com/giantswarm/microkit
@@ -78,7 +85,7 @@ imports:
   subpackages:
   - memory
 - name: github.com/giantswarm/operatorkit
-  version: 098ab83dfc2da931425bb096283be24ab8572f7d
+  version: da881f7bb58462fa8b96f06edf0e751efd17f5fb
   subpackages:
   - client/k8s
   - tpr
@@ -115,6 +122,8 @@ imports:
   version: 4bd1920723d7b7c925de087aa32e2187708897f7
   subpackages:
   - proto
+- name: github.com/golang/snappy
+  version: 553a641470496b2327abcac10b36396bd98e45c9
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/gorilla/context
@@ -145,11 +154,12 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/vault
-  version: 0b20ae0b9b7a748d607082b1add3663a28e31b68
+  version: 5c4fb67fb8a97d2d10ff7dd6254f10fb100ec838
   subpackages:
   - api
   - helper/compressutil
   - helper/jsonutil
+  - helper/parseutil
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/juju/errgo
@@ -167,7 +177,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/matttproud/golang_protobuf_extensions
-  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
 - name: github.com/mitchellh/go-homedir
@@ -182,7 +192,7 @@ imports:
   - prometheus
   - prometheus/promhttp
 - name: github.com/prometheus/client_model
-  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
+  version: 6f3806018612930941127f2a7c6c453ba2c527d2
   subpackages:
   - go
 - name: github.com/prometheus/common
@@ -249,7 +259,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
-  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
+  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 - name: k8s.io/apimachinery
   version: 8ab5f3d8a330c2e9baaf84e39042db8d49034ae2
   subpackages:
