@@ -199,7 +199,7 @@ func New(config Config) (*Service, error) {
 		}
 
 		metricsWrapConfig := metricsresource.DefaultWrapConfig()
-		metricsWrapConfig.Namespace = config.Name
+		metricsWrapConfig.Name = config.Name
 		resources, err = metricsresource.Wrap(resources, metricsWrapConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
