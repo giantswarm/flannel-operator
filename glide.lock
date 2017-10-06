@@ -1,8 +1,8 @@
 hash: f92fd7af42f3de30fab18d38dabe70341e4cdd3a283ea77727d4f7ed309c69d5
-updated: 2017-10-04T14:07:10.525529579+02:00
+updated: 2017-10-06T15:06:58.785867716+02:00
 imports:
 - name: github.com/beorn7/perks
-  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
+  version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
   - quantile
 - name: github.com/cenk/backoff
@@ -81,11 +81,11 @@ imports:
 - name: github.com/giantswarm/micrologger
   version: 8a69b2ab80ba2d0bd40d609206518fefacfc8fdf
 - name: github.com/giantswarm/microstorage
-  version: 15d1f4ae1c9149071d75eca931c541c8edabd24a
+  version: 99418478ec8f5c68f9b5fc5e6be7e0474948f80d
   subpackages:
   - memory
 - name: github.com/giantswarm/operatorkit
-  version: da881f7bb58462fa8b96f06edf0e751efd17f5fb
+  version: 1317e4c15f237b13a5101a1f3167146d05b2e7a1
   subpackages:
   - client/k8s
   - framework
@@ -161,7 +161,7 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/vault
-  version: 5c4fb67fb8a97d2d10ff7dd6254f10fb100ec838
+  version: c99b741bed5f191e135e49ba3fea78d5dd2f0c81
   subpackages:
   - api
   - helper/compressutil
@@ -184,7 +184,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/matttproud/golang_protobuf_extensions
-  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
   subpackages:
   - pbutil
 - name: github.com/mitchellh/go-homedir
@@ -225,7 +225,7 @@ imports:
 - name: github.com/spf13/cast
   version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
-  version: 0dacccfbaabc71b872087c1719c5380d3e185173
+  version: e8e7fe03552f0645ccf4c507f38bcf88b1c2b2d6
 - name: github.com/spf13/jwalterweatherman
   version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
 - name: github.com/spf13/pflag
@@ -266,7 +266,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
-  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/apimachinery
   version: 8ab5f3d8a330c2e9baaf84e39042db8d49034ae2
   subpackages:
