@@ -28,11 +28,8 @@ func (r *Resource) GetUpdateState(ctx context.Context, obj, currentState, desire
 	var networkConfigToDelete NetworkConfig
 
 	var networkConfigToUpdate NetworkConfig
-	{
-		var emptyNetworkConfig NetworkConfig
-		if currentNetworkConfig != emptyNetworkConfig {
-			networkConfigToUpdate = desiredNetworkConfig
-		}
+	if currentNetworkConfig != desiredNetworkConfig {
+		networkConfigToUpdate = desiredNetworkConfig
 	}
 
 	return networkConfigToCreate, networkConfigToDelete, networkConfigToUpdate, nil
