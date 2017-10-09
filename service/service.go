@@ -31,6 +31,7 @@ import (
 	"github.com/giantswarm/flannel-operator/service/healthz"
 	"github.com/giantswarm/flannel-operator/service/operator"
 	legacyresource "github.com/giantswarm/flannel-operator/service/resource/legacy"
+	networkconfigresource "github.com/giantswarm/flannel-operator/service/resource/networkconfig"
 )
 
 const (
@@ -165,7 +166,6 @@ func New(config Config) (*Service, error) {
 		legacyConfig.BackOff = legacyResourceBackOff
 		legacyConfig.K8sClient = k8sClient
 		legacyConfig.Logger = config.Logger
-		legacyConfig.Store = storageService
 
 		legacyConfig.EtcdCAFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile)
 		legacyConfig.EtcdCrtFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile)
@@ -177,9 +177,23 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var networkConfigResource framework.Resource
+	{
+		c := networkconfigresource.DefaultConfig()
+
+		c.Logger = config.Logger
+		c.Store = storageService
+
+		networkConfigResource, err = networkconfigresource.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var resources []framework.Resource
 	{
 		resources = []framework.Resource{
+			networkConfigResource,
 			legacyResource,
 		}
 
