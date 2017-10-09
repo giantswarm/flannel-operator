@@ -2,7 +2,6 @@ package legacy
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -15,8 +14,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	"github.com/giantswarm/flannel-operator/service/etcdv2"
 )
 
 const (
@@ -29,7 +26,6 @@ type Config struct {
 	BackOff   backoff.BackOff
 	K8sClient kubernetes.Interface
 	Logger    micrologger.Logger
-	Store     *etcdv2.Service
 
 	EtcdCAFile  string
 	EtcdCrtFile string
@@ -43,7 +39,6 @@ func DefaultConfig() Config {
 		BackOff:   nil,
 		K8sClient: nil,
 		Logger:    nil,
-		Store:     nil,
 
 		EtcdCAFile:  "",
 		EtcdCrtFile: "",
@@ -56,7 +51,6 @@ type Resource struct {
 	backOff   backoff.BackOff
 	k8sClient kubernetes.Interface
 	logger    micrologger.Logger
-	store     *etcdv2.Service
 
 	etcdCAFile  string
 	etcdCrtFile string
@@ -74,9 +68,6 @@ func New(config Config) (*Resource, error) {
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "config.Logger must not be empty")
 	}
-	if config.Store == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.Store must not be empty")
-	}
 
 	newResource := &Resource{
 		backOff:   config.BackOff,
@@ -84,7 +75,6 @@ func New(config Config) (*Resource, error) {
 		logger: config.Logger.With(
 			"resource", Name,
 		),
-		store: config.Store,
 
 		etcdCAFile:  config.EtcdCAFile,
 		etcdCrtFile: config.EtcdCrtFile,
@@ -112,50 +102,6 @@ func (r *Resource) GetCreateState(ctx context.Context, obj, currentState, desire
 		spec = o.Spec
 	}
 
-	// Create flannel etcd config.
-	{
-		path := etcdNetworkConfigPath(spec)
-
-		type flannelBackend struct {
-			Type string
-			VNI  int
-		}
-
-		type flannelConfig struct {
-			Network   string
-			SubnetLen int
-			Backend   flannelBackend
-		}
-
-		config := flannelConfig{
-			Network:   spec.Flannel.Spec.Network,
-			SubnetLen: spec.Flannel.Spec.SubnetLen,
-			Backend: flannelBackend{
-				Type: "vxlan",
-				VNI:  spec.Flannel.Spec.VNI,
-			},
-		}
-
-		bytes, err := json.Marshal(config)
-		if err != nil {
-			return nil, microerror.Maskf(err, "marshaling %#v", config)
-		}
-
-		exists, err := r.store.Exists(context.TODO(), path)
-		if err != nil {
-			return nil, microerror.Maskf(err, "checking %s etcd key existence", path)
-		}
-		if exists {
-			r.logger.Log("debug", "etcd key "+path+" already exists", "event", "add", "cluster", spec.Cluster.ID)
-		} else {
-			err := r.store.Create(context.TODO(), path, string(bytes))
-			if err != nil {
-				return nil, microerror.Maskf(err, "createing %s etcd key", path)
-			}
-		}
-	}
-
-	// Create namespace for the cleanup job.
 	{
 		ns := newNamespace(spec, networkNamespace(spec))
 		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
@@ -314,20 +260,6 @@ func (r *Resource) GetDeleteState(ctx context.Context, obj, currentState, desire
 		err := backoff.RetryNotify(op, backoff.NewExponentialBackOff(), notify)
 		if err != nil {
 			return nil, microerror.Maskf(err, "waiting for pods to finish network bridge cleanup")
-		}
-	}
-
-	// Cleanup etcd.
-	{
-		r.logger.Log("debug", "removing flannel etcd config", "cluster", spec.Cluster.ID)
-
-		path := etcdNetworkPath(spec)
-
-		err := r.store.Delete(context.TODO(), path)
-		if etcdv2.IsNotFound(err) {
-			r.logger.Log("debug", fmt.Sprintf("etcd key '%s' not found", path), "cluster", spec.Cluster.ID)
-		} else if err != nil {
-			return nil, microerror.Maskf(err, "deleting etcd key %s", path)
 		}
 	}
 
