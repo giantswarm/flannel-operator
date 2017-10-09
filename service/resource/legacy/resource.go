@@ -102,6 +102,16 @@ func (r *Resource) GetCreateState(ctx context.Context, obj, currentState, desire
 		spec = o.Spec
 	}
 
+	{
+		ns := newNamespace(spec, networkNamespace(spec))
+		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
+		if apierrors.IsAlreadyExists(err) {
+			r.logger.Log("debug", "namespace "+ns.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
+		} else if err != nil {
+			return nil, microerror.Maskf(err, "creating namespace %s", ns.Name)
+		}
+	}
+
 	// Create a dameonset running flanneld and creating network bridge.
 	{
 		daemonSet := newDaemonSet(spec, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
