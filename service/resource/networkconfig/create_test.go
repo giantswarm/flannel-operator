@@ -116,7 +116,7 @@ func Test_Resource_NetworkConfig_GetCurrentState(t *testing.T) {
 			t.Fatalf("expected %#v got %#v", nil, err)
 		}
 
-		t.Run("CompareExpectedWithActualState", func(t *testing.T) {
+		t.Run("ValidateCreateState", func(t *testing.T) {
 			networkConfigToCreate, ok := createState.(NetworkConfig)
 			if !ok {
 				t.Fatalf("expected %T got %T", NetworkConfig{}, createState)
