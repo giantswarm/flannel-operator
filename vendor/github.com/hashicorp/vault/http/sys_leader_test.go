@@ -20,10 +20,9 @@ func TestSysLeader_get(t *testing.T) {
 
 	var actual map[string]interface{}
 	expected := map[string]interface{}{
-		"ha_enabled":             false,
-		"is_self":                false,
-		"leader_address":         "",
-		"leader_cluster_address": "",
+		"ha_enabled":     false,
+		"is_self":        false,
+		"leader_address": "",
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)

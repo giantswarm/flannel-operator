@@ -128,7 +128,6 @@ actual keys themselves).
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
 | `LIST`   | `/transit/keys`              | `200 application/json` |
-| `GET`    | `/transit/keys?list=true`    | `200 application/json` |
 
 ### Sample Request
 
@@ -727,6 +726,9 @@ be used.
 
 - `input` `(string: <required>)` – Specifies the **base64 encoded** input data.
 
+- `format` `(string: "hex")` – Specifies the output encoding. This can be either
+  `hex` or `base64`.
+
 ### Sample Payload
 
 ```json
@@ -768,16 +770,14 @@ supports signing.
 ### Parameters
 
 - `name` `(string: <required>)` – Specifies the name of the encryption key to
-  use for signing. This is specified as part of the URL.
+  generate hmac against. This is specified as part of the URL.
 
 - `key_version` `(int: 0)` – Specifies the version of the key to use for
   signing. If not set, uses the latest version. Must be greater than or equal
   to the key's `min_encryption_version`, if set.
 
-- `algorithm` `(string: "sha2-256")` – Specifies the hash algorithm to use for
-  supporting key types (notably, not including `ed25519` which specifies its
-  own hash algorithm). This can also be specified as part of the URL.
-  Currently-supported algorithms are:
+- `algorithm` `(string: "sha2-256")` – Specifies the hash algorithm to use. This
+  can also be specified as part of the URL. Currently-supported algorithms are:
 
     - `sha2-224`
     - `sha2-256`
@@ -785,6 +785,9 @@ supports signing.
     - `sha2-512`
 
 - `input` `(string: <required>)` – Specifies the **base64 encoded** input data.
+
+- `format` `(string: "hex")` – Specifies the output encoding. This can be either
+  `hex` or `base64`.
 
 ### Sample Payload
 
@@ -837,6 +840,9 @@ data.
     - `sha2-512`
 
 - `input` `(string: <required>)` – Specifies the **base64 encoded** input data.
+
+- `format` `(string: "hex")` – Specifies the output encoding. This can be either
+  `hex` or `base64`.
 
 - `signature` `(string: "")` – Specifies the signature output from the
   `/transit/sign` function. Either this must be supplied or `hmac` must be

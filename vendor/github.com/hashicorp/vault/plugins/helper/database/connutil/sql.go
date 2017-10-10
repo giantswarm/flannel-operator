@@ -7,7 +7,11 @@ import (
 	"sync"
 	"time"
 
+	// Import sql drivers
+	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/hashicorp/vault/helper/parseutil"
+	_ "github.com/lib/pq"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -29,7 +33,7 @@ func (c *SQLConnectionProducer) Initialize(conf map[string]interface{}, verifyCo
 	c.Lock()
 	defer c.Unlock()
 
-	err := mapstructure.WeakDecode(conf, c)
+	err := mapstructure.Decode(conf, c)
 	if err != nil {
 		return err
 	}

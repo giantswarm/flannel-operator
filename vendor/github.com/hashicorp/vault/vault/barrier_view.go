@@ -1,7 +1,7 @@
 package vault
 
 import (
-	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/vault/logical"
@@ -20,10 +20,6 @@ type BarrierView struct {
 	readonly bool
 }
 
-var (
-	ErrRelativePath = errors.New("relative paths not supported")
-)
-
 // NewBarrierView takes an underlying security barrier and returns
 // a view of it that can only operate with the given prefix.
 func NewBarrierView(barrier BarrierStorage, prefix string) *BarrierView {
@@ -36,7 +32,7 @@ func NewBarrierView(barrier BarrierStorage, prefix string) *BarrierView {
 // sanityCheck is used to perform a sanity check on a key
 func (v *BarrierView) sanityCheck(key string) error {
 	if strings.Contains(key, "..") {
-		return ErrRelativePath
+		return fmt.Errorf("key cannot be relative path")
 	}
 	return nil
 }

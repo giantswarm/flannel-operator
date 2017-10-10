@@ -47,7 +47,7 @@ func TestCore_Mount(t *testing.T) {
 	me := &MountEntry{
 		Table: mountTableType,
 		Path:  "foo",
-		Type:  "kv",
+		Type:  "generic",
 	}
 	err := c.mount(me)
 	if err != nil {
@@ -93,18 +93,16 @@ func TestCore_Mount_Local(t *testing.T) {
 		Type: mountTableType,
 		Entries: []*MountEntry{
 			&MountEntry{
-				Table:    mountTableType,
-				Path:     "noop/",
-				Type:     "kv",
-				UUID:     "abcd",
-				Accessor: "kv-abcd",
+				Table: mountTableType,
+				Path:  "noop/",
+				Type:  "generic",
+				UUID:  "abcd",
 			},
 			&MountEntry{
-				Table:    mountTableType,
-				Path:     "noop2/",
-				Type:     "kv",
-				UUID:     "bcde",
-				Accessor: "kv-bcde",
+				Table: mountTableType,
+				Path:  "noop2/",
+				Type:  "generic",
+				UUID:  "bcde",
 			},
 		},
 	}
@@ -164,7 +162,7 @@ func TestCore_Mount_Local(t *testing.T) {
 	compEntries := c.mounts.Entries[:0]
 	// Filter out required mounts
 	for _, v := range c.mounts.Entries {
-		if v.Type == "kv" {
+		if v.Type == "generic" {
 			compEntries = append(compEntries, v)
 		}
 	}
@@ -181,9 +179,9 @@ func TestCore_Mount_Local(t *testing.T) {
 
 func TestCore_Unmount(t *testing.T) {
 	c, keys, _ := TestCoreUnsealed(t)
-	err := c.unmount("secret")
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	existed, err := c.unmount("secret")
+	if !existed || err != nil {
+		t.Fatalf("existed: %v; err: %v", existed, err)
 	}
 
 	match := c.router.MatchingMount("secret/foo")
@@ -272,8 +270,8 @@ func TestCore_Unmount_Cleanup(t *testing.T) {
 	}
 
 	// Unmount, this should cleanup
-	if err := c.unmount("test/"); err != nil {
-		t.Fatalf("err: %v", err)
+	if existed, err := c.unmount("test/"); !existed || err != nil {
+		t.Fatalf("existed: %v; err: %v", existed, err)
 	}
 
 	// Rollback should be invoked
@@ -428,8 +426,7 @@ func TestCore_Remount_Protected(t *testing.T) {
 }
 
 func TestDefaultMountTable(t *testing.T) {
-	c, _, _ := TestCoreUnsealed(t)
-	table := c.defaultMountTable()
+	table := defaultMountTable()
 	verifyDefaultTable(t, table)
 }
 
@@ -609,7 +606,7 @@ func verifyDefaultTable(t *testing.T, table *MountTable) {
 			if entry.Path != "secret/" {
 				t.Fatalf("bad: %v", entry)
 			}
-			if entry.Type != "kv" {
+			if entry.Type != "generic" {
 				t.Fatalf("bad: %v", entry)
 			}
 		case 2:

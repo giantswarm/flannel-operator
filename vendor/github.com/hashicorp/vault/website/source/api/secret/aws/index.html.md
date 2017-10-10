@@ -23,17 +23,13 @@ are multiple ways to pass root IAM credentials to the Vault server, specified
 below with the highest precedence first. If credentials already exist, this will
 overwrite them.
 
-The official AWS SDK is used for sourcing credentials from env vars, shared
-files, or IAM/ECS instances.
-
 - Static credentials provided to the API as a payload
 
 - Credentials in the `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, and `AWS_REGION`
   environment variables **on the server**
 
-- Shared credentials files
-
-- Assigned IAM role or ECS task role credentials
+- Querying the EC2 metadata service if the **Vault server** is on EC2 and has
+  querying capabilities
 
 At present, this endpoint does not confirm that the provided AWS credentials are
 valid AWS credentials with proper permissions.
@@ -48,9 +44,7 @@ valid AWS credentials with proper permissions.
 
 - `secret_key` `(string: <required>)` – Specifies the AWS secret access key.
 
-- `region` `(string: <optional>)` – Specifies the AWS region. If not set it
-  will use the `AWS_REGION` env var, `AWS_DEFAULT_REGION` env var, or
-  `us-east-1` in that order.
+- `region` `(string: <required>)` – Specifies the AWS region.
 
 ### Sample Payload
 
@@ -236,7 +230,6 @@ This endpoint lists all existing roles in the backend.
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
 | `LIST`   | `/aws/roles`                 | `200 application/json` |
-| `GET`    | `/aws/roles?list=true`       | `200 application/json` |
 
 ### Sample Request
 
@@ -294,7 +287,7 @@ role must be created before queried.
 ### Parameters
 
 - `name` `(string: <required>)` – Specifies the name of the role to generate
-  credentials against. This is part of the request URL.
+  credentials againts. This is part of the request URL.
 
 ### Sample Request
 

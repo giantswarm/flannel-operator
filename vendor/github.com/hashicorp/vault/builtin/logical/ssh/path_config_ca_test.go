@@ -17,7 +17,7 @@ func TestSSH_ConfigCAStorageUpgrade(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = b.Setup(config)
+	_, err = b.Setup(config)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -25,14 +25,6 @@ var (
 	// PluginUnwrapTokenEnv is the ENV name used to pass unwrap tokens to the
 	// plugin.
 	PluginUnwrapTokenEnv = "VAULT_UNWRAP_TOKEN"
-
-	// PluginCACertPEMEnv is an ENV name used for holding a CA PEM-encoded
-	// string. Used for testing.
-	PluginCACertPEMEnv = "VAULT_TESTING_PLUGIN_CA_PEM"
-
-	// PluginMetadaModeEnv is an ENV name used to disable TLS communication
-	// to bootstrap mounting plugins.
-	PluginMetadaModeEnv = "VAULT_PLUGIN_METADATA_MODE"
 )
 
 // generateCert is used internally to create certificates for the plugin
@@ -128,17 +120,13 @@ func wrapServerConfig(sys RunnerUtil, certBytes []byte, key *ecdsa.PrivateKey) (
 // VaultPluginTLSProvider is run inside a plugin and retrives the response
 // wrapped TLS certificate from vault. It returns a configured TLS Config.
 func VaultPluginTLSProvider(apiTLSConfig *api.TLSConfig) func() (*tls.Config, error) {
-	if os.Getenv(PluginMetadaModeEnv) == "true" {
-		return nil
-	}
-
 	return func() (*tls.Config, error) {
 		unwrapToken := os.Getenv(PluginUnwrapTokenEnv)
 
 		// Parse the JWT and retrieve the vault address
 		wt, err := jws.ParseJWT([]byte(unwrapToken))
 		if err != nil {
-			return nil, fmt.Errorf("error decoding token: %s", err)
+			return nil, errors.New(fmt.Sprintf("error decoding token: %s", err))
 		}
 		if wt == nil {
 			return nil, errors.New("nil decoded token")
@@ -158,17 +146,14 @@ func VaultPluginTLSProvider(apiTLSConfig *api.TLSConfig) func() (*tls.Config, er
 
 		// Sanity check the value
 		if _, err := url.Parse(vaultAddr); err != nil {
-			return nil, fmt.Errorf("error parsing the vault address: %s", err)
+			return nil, errors.New(fmt.Sprintf("error parsing the vault address: %s", err))
 		}
 
 		// Unwrap the token
 		clientConf := api.DefaultConfig()
 		clientConf.Address = vaultAddr
 		if apiTLSConfig != nil {
-			err := clientConf.ConfigureTLS(apiTLSConfig)
-			if err != nil {
-				return nil, errwrap.Wrapf("error configuring api client {{err}}", err)
-			}
+			clientConf.ConfigureTLS(apiTLSConfig)
 		}
 		client, err := api.NewClient(clientConf)
 		if err != nil {
@@ -180,7 +165,7 @@ func VaultPluginTLSProvider(apiTLSConfig *api.TLSConfig) func() (*tls.Config, er
 			return nil, errwrap.Wrapf("error during token unwrap request: {{err}}", err)
 		}
 		if secret == nil {
-			return nil, errors.New("error during token unwrap request: secret is nil")
+			return nil, errors.New("error during token unwrap request secret is nil")
 		}
 
 		// Retrieve and parse the server's certificate

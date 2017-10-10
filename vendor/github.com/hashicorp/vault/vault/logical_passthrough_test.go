@@ -197,10 +197,10 @@ func TestPassthroughBackend_List(t *testing.T) {
 
 func TestPassthroughBackend_Revoke(t *testing.T) {
 	test := func(b logical.Backend) {
-		req := logical.TestRequest(t, logical.RevokeOperation, "kv")
+		req := logical.TestRequest(t, logical.RevokeOperation, "generic")
 		req.Secret = &logical.Secret{
 			InternalData: map[string]interface{}{
-				"secret_type": "kv",
+				"secret_type": "generic",
 			},
 		}
 

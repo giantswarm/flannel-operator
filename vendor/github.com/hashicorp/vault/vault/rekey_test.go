@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/vault/helper/logformat"
 	"github.com/hashicorp/vault/physical"
-	"github.com/hashicorp/vault/physical/inmem"
 )
 
 func TestCore_Rekey_Lifecycle(t *testing.T) {
@@ -373,19 +372,12 @@ func TestCore_Standby_Rekey(t *testing.T) {
 	// Create the first core and initialize it
 	logger := logformat.NewVaultLogger(log.LevelTrace)
 
-	inm, err := inmem.NewInmemHA(nil, logger)
-	if err != nil {
-		t.Fatal(err)
-	}
-	inmha, err := inmem.NewInmemHA(nil, logger)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	inm := physical.NewInmem(logger)
+	inmha := physical.NewInmemHA(logger)
 	redirectOriginal := "http://127.0.0.1:8200"
 	core, err := NewCore(&CoreConfig{
 		Physical:     inm,
-		HAPhysical:   inmha.(physical.HABackend),
+		HAPhysical:   inmha,
 		RedirectAddr: redirectOriginal,
 		DisableMlock: true,
 		DisableCache: true,
@@ -407,7 +399,7 @@ func TestCore_Standby_Rekey(t *testing.T) {
 	redirectOriginal2 := "http://127.0.0.1:8500"
 	core2, err := NewCore(&CoreConfig{
 		Physical:     inm,
-		HAPhysical:   inmha.(physical.HABackend),
+		HAPhysical:   inmha,
 		RedirectAddr: redirectOriginal2,
 		DisableMlock: true,
 		DisableCache: true,

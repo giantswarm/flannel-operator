@@ -3,7 +3,6 @@ package vault
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
 	"sync/atomic"
 
 	"regexp"
@@ -85,6 +84,7 @@ type TokenStore struct {
 	*framework.Backend
 
 	view *BarrierView
+	salt *salt.Salt
 
 	expiration *ExpirationManager
 
@@ -97,10 +97,6 @@ type TokenStore struct {
 	cubbyholeDestroyer func(*TokenStore, string) error
 
 	logger log.Logger
-
-	saltLock   sync.RWMutex
-	salt       *salt.Salt
-	saltConfig *salt.Config
 
 	tidyLock int64
 }
@@ -117,7 +113,6 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 		cubbyholeDestroyer: destroyCubbyhole,
 		logger:             c.logger,
 		tokenLocks:         locksutil.CreateLocks(),
-		saltLock:           sync.RWMutex{},
 	}
 
 	if c.policyStore != nil {
@@ -483,48 +478,17 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 }
 
 func (ts *TokenStore) Initialize() error {
-	ts.saltLock.Lock()
-
-	// Setup the salt config
-	ts.saltConfig = &salt.Config{
+	// Setup the salt
+	salt, err := salt.NewSalt(ts.view, &salt.Config{
 		HashFunc: salt.SHA1Hash,
 		Location: salt.DefaultLocation,
-	}
-	ts.salt = nil
-	ts.saltLock.Unlock()
-
-	return nil
-}
-
-func (ts *TokenStore) Invalidate(key string) {
-	ts.logger.Trace("token: invalidating key", "key", key)
-
-	switch key {
-	case tokenSubPath + salt.DefaultLocation:
-		ts.saltLock.Lock()
-		ts.salt = nil
-		ts.saltLock.Unlock()
-	}
-}
-
-func (ts *TokenStore) Salt() (*salt.Salt, error) {
-	ts.saltLock.RLock()
-	if ts.salt != nil {
-		defer ts.saltLock.RUnlock()
-		return ts.salt, nil
-	}
-	ts.saltLock.RUnlock()
-	ts.saltLock.Lock()
-	defer ts.saltLock.Unlock()
-	if ts.salt != nil {
-		return ts.salt, nil
-	}
-	salt, err := salt.NewSalt(ts.view, ts.saltConfig)
+	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	ts.salt = salt
-	return salt, nil
+
+	return nil
 }
 
 // TokenEntry is used to represent a given token
@@ -627,13 +591,8 @@ func (ts *TokenStore) SetExpirationManager(exp *ExpirationManager) {
 }
 
 // SaltID is used to apply a salt and hash to an ID to make sure its not reversible
-func (ts *TokenStore) SaltID(id string) (string, error) {
-	s, err := ts.Salt()
-	if err != nil {
-		return "", err
-	}
-
-	return s.SaltID(id), nil
+func (ts *TokenStore) SaltID(id string) string {
+	return ts.salt.SaltID(id)
 }
 
 // RootToken is used to generate a new token with root privileges and no parent
@@ -692,11 +651,7 @@ func (ts *TokenStore) createAccessor(entry *TokenEntry) error {
 	entry.Accessor = accessorUUID
 
 	// Create index entry, mapping the accessor to the token ID
-	saltID, err := ts.SaltID(entry.Accessor)
-	if err != nil {
-		return err
-	}
-	path := accessorPrefix + saltID
+	path := accessorPrefix + ts.SaltID(entry.Accessor)
 
 	aEntry := &accessorEntry{
 		TokenID:    entry.ID,
@@ -727,18 +682,9 @@ func (ts *TokenStore) create(entry *TokenEntry) error {
 		entry.ID = entryUUID
 	}
 
-	saltedId, err := ts.SaltID(entry.ID)
-	if err != nil {
-		return err
-	}
-	exist, _ := ts.lookupSalted(saltedId, true)
-	if exist != nil {
-		return fmt.Errorf("cannot create a token with a duplicate ID")
-	}
-
 	entry.Policies = policyutil.SanitizePolicies(entry.Policies, policyutil.DoNotAddDefaultPolicy)
 
-	err = ts.createAccessor(entry)
+	err := ts.createAccessor(entry)
 	if err != nil {
 		return err
 	}
@@ -756,10 +702,7 @@ func (ts *TokenStore) store(entry *TokenEntry) error {
 // storeCommon handles the actual storage of an entry, possibly generating
 // secondary indexes
 func (ts *TokenStore) storeCommon(entry *TokenEntry, writeSecondary bool) error {
-	saltedId, err := ts.SaltID(entry.ID)
-	if err != nil {
-		return err
-	}
+	saltedId := ts.SaltID(entry.ID)
 
 	// Marshal the entry
 	enc, err := json.Marshal(entry)
@@ -783,11 +726,7 @@ func (ts *TokenStore) storeCommon(entry *TokenEntry, writeSecondary bool) error 
 			}
 
 			// Create the index entry
-			parentSaltedID, err := ts.SaltID(entry.Parent)
-			if err != nil {
-				return err
-			}
-			path := parentPrefix + parentSaltedID + "/" + saltedId
+			path := parentPrefix + ts.SaltID(entry.Parent) + "/" + saltedId
 			le := &logical.StorageEntry{Key: path}
 			if err := ts.view.Put(le); err != nil {
 				return fmt.Errorf("failed to persist entry: %v", err)
@@ -827,12 +766,7 @@ func (ts *TokenStore) UseToken(te *TokenEntry) (*TokenEntry, error) {
 	defer lock.Unlock()
 
 	// Call lookupSalted instead of Lookup to avoid deadlocking since Lookup grabs a read lock
-	saltedID, err := ts.SaltID(te.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	te, err = ts.lookupSalted(saltedID, false)
+	te, err := ts.lookupSalted(ts.SaltID(te.ID), false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to refresh entry: %v", err)
 	}
@@ -884,19 +818,15 @@ func (ts *TokenStore) Lookup(id string) (*TokenEntry, error) {
 	lock.RLock()
 	defer lock.RUnlock()
 
-	saltedID, err := ts.SaltID(id)
-	if err != nil {
-		return nil, err
-	}
-	return ts.lookupSalted(saltedID, false)
+	return ts.lookupSalted(ts.SaltID(id), false)
 }
 
 // lookupSalted is used to find a token given its salted ID. If tainted is
 // true, entries that are in some revocation state (currently, indicated by num
 // uses < 0), the entry will be returned anyways
-func (ts *TokenStore) lookupSalted(saltedID string, tainted bool) (*TokenEntry, error) {
+func (ts *TokenStore) lookupSalted(saltedId string, tainted bool) (*TokenEntry, error) {
 	// Lookup token
-	path := lookupPrefix + saltedID
+	path := lookupPrefix + saltedId
 	raw, err := ts.view.Get(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read entry: %v", err)
@@ -915,19 +845,6 @@ func (ts *TokenStore) lookupSalted(saltedID string, tainted bool) (*TokenEntry, 
 
 	// This is a token that is awaiting deferred revocation or tainted
 	if entry.NumUses < 0 && !tainted {
-		return nil, nil
-	}
-
-	// If we are still restoring the expiration manager, we want to ensure the
-	// token is not expired
-	if ts.expiration == nil {
-		return nil, nil
-	}
-	check, err := ts.expiration.RestoreSaltedTokenCheck(entry.Path, saltedID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check token in restore mode: %v", err)
-	}
-	if !check {
 		return nil, nil
 	}
 
@@ -984,11 +901,7 @@ func (ts *TokenStore) Revoke(id string) error {
 		return fmt.Errorf("cannot revoke blank token")
 	}
 
-	saltedID, err := ts.SaltID(id)
-	if err != nil {
-		return err
-	}
-	return ts.revokeSalted(saltedID)
+	return ts.revokeSalted(ts.SaltID(id))
 }
 
 // revokeSalted is used to invalidate a given salted token,
@@ -1078,12 +991,7 @@ func (ts *TokenStore) revokeSalted(saltedId string) (ret error) {
 
 	// Clear the secondary index if any
 	if entry.Parent != "" {
-		parentSaltedID, err := ts.SaltID(entry.Parent)
-		if err != nil {
-			return err
-		}
-
-		path := parentPrefix + parentSaltedID + "/" + saltedId
+		path := parentPrefix + ts.SaltID(entry.Parent) + "/" + saltedId
 		if err = ts.view.Delete(path); err != nil {
 			return fmt.Errorf("failed to delete entry: %v", err)
 		}
@@ -1091,12 +999,7 @@ func (ts *TokenStore) revokeSalted(saltedId string) (ret error) {
 
 	// Clear the accessor index if any
 	if entry.Accessor != "" {
-		accessorSaltedID, err := ts.SaltID(entry.Accessor)
-		if err != nil {
-			return err
-		}
-
-		path := accessorPrefix + accessorSaltedID
+		path := accessorPrefix + ts.SaltID(entry.Accessor)
 		if err = ts.view.Delete(path); err != nil {
 			return fmt.Errorf("failed to delete entry: %v", err)
 		}
@@ -1121,10 +1024,7 @@ func (ts *TokenStore) RevokeTree(id string) error {
 	}
 
 	// Get the salted ID
-	saltedId, err := ts.SaltID(id)
-	if err != nil {
-		return err
-	}
+	saltedId := ts.SaltID(id)
 
 	// Nuke the entire tree recursively
 	if err := ts.revokeTreeSalted(saltedId); err != nil {
@@ -1175,11 +1075,7 @@ func (ts *TokenStore) handleCreateAgainstRole(
 }
 
 func (ts *TokenStore) lookupByAccessor(accessor string, tainted bool) (accessorEntry, error) {
-	saltedID, err := ts.SaltID(accessor)
-	if err != nil {
-		return accessorEntry{}, err
-	}
-	return ts.lookupBySaltedAccessor(saltedID, tainted)
+	return ts.lookupBySaltedAccessor(ts.SaltID(accessor), tainted)
 }
 
 func (ts *TokenStore) lookupBySaltedAccessor(saltedAccessor string, tainted bool) (accessorEntry, error) {
@@ -1196,12 +1092,7 @@ func (ts *TokenStore) lookupBySaltedAccessor(saltedAccessor string, tainted bool
 	err = jsonutil.DecodeJSON(entry.Value, &aEntry)
 	// If we hit an error, assume it's a pre-struct straight token ID
 	if err != nil {
-		saltedID, err := ts.SaltID(string(entry.Value))
-		if err != nil {
-			return accessorEntry{}, err
-		}
-
-		te, err := ts.lookupSalted(saltedID, tainted)
+		te, err := ts.lookupSalted(ts.SaltID(string(entry.Value)), tainted)
 		if err != nil {
 			return accessorEntry{}, fmt.Errorf("failed to look up token using accessor index: %s", err)
 		}
@@ -1319,19 +1210,8 @@ func (ts *TokenStore) handleTidy(req *logical.Request, data *framework.FieldData
 
 		// Look up tainted variants so we only find entries that truly don't
 		// exist
-		saltedId, err := ts.SaltID(accessorEntry.TokenID)
-		if err != nil {
-			tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to read salt id: %v", err))
-			lock.RUnlock()
-			continue
-		}
+		saltedId := ts.SaltID(accessorEntry.TokenID)
 		te, err := ts.lookupSalted(saltedId, true)
-		if err != nil {
-			tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to lookup tainted ID: %v", err))
-			lock.RUnlock()
-			continue
-		}
-
 		lock.RUnlock()
 
 		// If token entry is not found assume that the token is not valid any
@@ -2006,10 +1886,7 @@ func (ts *TokenStore) handleLookup(
 	defer lock.RUnlock()
 
 	// Lookup the token
-	saltedId, err := ts.SaltID(id)
-	if err != nil {
-		return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
-	}
+	saltedId := ts.SaltID(id)
 	out, err := ts.lookupSalted(saltedId, true)
 
 	if err != nil {

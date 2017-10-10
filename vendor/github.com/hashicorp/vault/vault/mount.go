@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/jsonutil"
@@ -65,27 +64,7 @@ var (
 		"system",
 		"token",
 	}
-
-	// mountAliases maps old backend names to new backend names, allowing us
-	// to move/rename backends but maintain backwards compatibility
-	mountAliases = map[string]string{"generic": "kv"}
 )
-
-func (c *Core) generateMountAccessor(entryType string) (string, error) {
-	var accessor string
-	for {
-		randBytes, err := uuid.GenerateRandomBytes(4)
-		if err != nil {
-			return "", err
-		}
-		accessor = fmt.Sprintf("%s_%s", entryType, fmt.Sprintf("%08x", randBytes[0:4]))
-		if entry := c.router.MatchingMountByAccessor(accessor); entry == nil {
-			break
-		}
-	}
-
-	return accessor, nil
-}
 
 // MountTable is used to represent the internal mount table
 type MountTable struct {
@@ -160,7 +139,6 @@ type MountEntry struct {
 	Type        string            `json:"type"`              // Logical backend Type
 	Description string            `json:"description"`       // User-provided description
 	UUID        string            `json:"uuid"`              // Barrier view UUID
-	Accessor    string            `json:"accessor"`          // Unique but more human-friendly ID. Does not change, not used for any sensitive things (like as a salt, which the UUID sometimes is).
 	Config      MountConfig       `json:"config"`            // Configuration related to this mount (but not backend-derived)
 	Options     map[string]string `json:"options"`           // Backend options
 	Local       bool              `json:"local"`             // Local mounts are not replicated or affected by replication
@@ -172,15 +150,25 @@ type MountConfig struct {
 	DefaultLeaseTTL time.Duration `json:"default_lease_ttl" structs:"default_lease_ttl" mapstructure:"default_lease_ttl"` // Override for global default
 	MaxLeaseTTL     time.Duration `json:"max_lease_ttl" structs:"max_lease_ttl" mapstructure:"max_lease_ttl"`             // Override for global default
 	ForceNoCache    bool          `json:"force_no_cache" structs:"force_no_cache" mapstructure:"force_no_cache"`          // Override for global default
-	PluginName      string        `json:"plugin_name,omitempty" structs:"plugin_name,omitempty" mapstructure:"plugin_name"`
 }
 
-// APIMountConfig is an embedded struct of api.MountConfigInput
-type APIMountConfig struct {
-	DefaultLeaseTTL string `json:"default_lease_ttl" structs:"default_lease_ttl" mapstructure:"default_lease_ttl"`
-	MaxLeaseTTL     string `json:"max_lease_ttl" structs:"max_lease_ttl" mapstructure:"max_lease_ttl"`
-	ForceNoCache    bool   `json:"force_no_cache" structs:"force_no_cache" mapstructure:"force_no_cache"`
-	PluginName      string `json:"plugin_name,omitempty" structs:"plugin_name,omitempty" mapstructure:"plugin_name"`
+// Returns a deep copy of the mount entry
+func (e *MountEntry) Clone() *MountEntry {
+	optClone := make(map[string]string)
+	for k, v := range e.Options {
+		optClone[k] = v
+	}
+	return &MountEntry{
+		Table:       e.Table,
+		Path:        e.Path,
+		Type:        e.Type,
+		Description: e.Description,
+		UUID:        e.UUID,
+		Config:      e.Config,
+		Options:     optClone,
+		Local:       e.Local,
+		Tainted:     e.Tainted,
+	}
 }
 
 // Mount is used to mount a new backend to the mount table.
@@ -220,22 +208,11 @@ func (c *Core) mount(entry *MountEntry) error {
 		}
 		entry.UUID = entryUUID
 	}
-	if entry.Accessor == "" {
-		accessor, err := c.generateMountAccessor(entry.Type)
-		if err != nil {
-			return err
-		}
-		entry.Accessor = accessor
-	}
 	viewPath := backendBarrierPrefix + entry.UUID + "/"
 	view := NewBarrierView(c.barrier, viewPath)
 	sysView := c.mountEntrySysView(entry)
-	conf := make(map[string]string)
-	if entry.Config.PluginName != "" {
-		conf["plugin_name"] = entry.Config.PluginName
-	}
 
-	backend, err := c.newLogicalBackend(entry.Type, sysView, view, conf)
+	backend, err := c.newLogicalBackend(entry.Type, sysView, view, nil)
 	if err != nil {
 		return err
 	}
@@ -243,14 +220,8 @@ func (c *Core) mount(entry *MountEntry) error {
 		return fmt.Errorf("nil backend of type %q returned from creation function", entry.Type)
 	}
 
-	// Check for the correct backend type
-	backendType := backend.Type()
-	if entry.Type == "plugin" && backendType != logical.TypeLogical {
-		return fmt.Errorf("cannot mount '%s' of type '%s' as a logical backend", entry.Config.PluginName, backendType)
-	}
-
 	// Call initialize; this takes care of init tasks that must be run after
-	// the ignore paths are collected.
+	// the ignore paths are collected
 	if err := backend.Initialize(); err != nil {
 		return err
 	}
@@ -275,7 +246,7 @@ func (c *Core) mount(entry *MountEntry) error {
 
 // Unmount is used to unmount a path. The boolean indicates whether the mount
 // was found.
-func (c *Core) unmount(path string) error {
+func (c *Core) unmount(path string) (bool, error) {
 	// Ensure we end the path in a slash
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
@@ -284,14 +255,14 @@ func (c *Core) unmount(path string) error {
 	// Prevent protected paths from being unmounted
 	for _, p := range protectedMounts {
 		if strings.HasPrefix(path, p) {
-			return fmt.Errorf("cannot unmount '%s'", path)
+			return true, fmt.Errorf("cannot unmount '%s'", path)
 		}
 	}
 
 	// Verify exact match of the route
 	match := c.router.MatchingMount(path)
 	if match == "" || path != match {
-		return fmt.Errorf("no matching mount")
+		return false, fmt.Errorf("no matching mount")
 	}
 
 	// Get the view for this backend
@@ -299,23 +270,23 @@ func (c *Core) unmount(path string) error {
 
 	// Mark the entry as tainted
 	if err := c.taintMountEntry(path); err != nil {
-		return err
+		return true, err
 	}
 
 	// Taint the router path to prevent routing. Note that in-flight requests
 	// are uncertain, right now.
 	if err := c.router.Taint(path); err != nil {
-		return err
+		return true, err
 	}
 
 	// Invoke the rollback manager a final time
 	if err := c.rollback.Rollback(path); err != nil {
-		return err
+		return true, err
 	}
 
 	// Revoke all the dynamic keys
 	if err := c.expiration.RevokePrefix(path); err != nil {
-		return err
+		return true, err
 	}
 
 	// Call cleanup function if it exists
@@ -326,22 +297,22 @@ func (c *Core) unmount(path string) error {
 
 	// Unmount the backend entirely
 	if err := c.router.Unmount(path); err != nil {
-		return err
+		return true, err
 	}
 
 	// Clear the data in the view
 	if err := logical.ClearView(view); err != nil {
-		return err
+		return true, err
 	}
 
 	// Remove the mount table entry
 	if err := c.removeMountEntry(path); err != nil {
-		return err
+		return true, err
 	}
 	if c.logger.IsInfo() {
 		c.logger.Info("core: successfully unmounted", "path", path)
 	}
-	return nil
+	return true, nil
 }
 
 // removeMountEntry is used to remove an entry from the mount table
@@ -533,7 +504,7 @@ func (c *Core) loadMounts() error {
 			needPersist = true
 		}
 
-		for _, requiredMount := range c.requiredMountTable().Entries {
+		for _, requiredMount := range requiredMountTable().Entries {
 			foundRequired := false
 			for _, coreMount := range c.mounts.Entries {
 				if coreMount.Type == requiredMount.Type {
@@ -548,7 +519,7 @@ func (c *Core) loadMounts() error {
 			// ensure this comes over. If we upgrade first, we simply don't
 			// create the mount, so we won't conflict when we sync. If this is
 			// local (e.g. cubbyhole) we do still add it.
-			if !foundRequired && (c.replicationState.HasState(consts.ReplicationPerformanceSecondary) || requiredMount.Local) {
+			if !foundRequired && (c.replicationState != consts.ReplicationSecondary || requiredMount.Local) {
 				c.mounts.Entries = append(c.mounts.Entries, requiredMount)
 				needPersist = true
 			}
@@ -564,14 +535,6 @@ func (c *Core) loadMounts() error {
 				entry.Table = c.mounts.Type
 				needPersist = true
 			}
-			if entry.Accessor == "" {
-				accessor, err := c.generateMountAccessor(entry.Type)
-				if err != nil {
-					return err
-				}
-				entry.Accessor = accessor
-				needPersist = true
-			}
 		}
 
 		// Done if we have restored the mount table and we don't need
@@ -581,7 +544,7 @@ func (c *Core) loadMounts() error {
 		}
 	} else {
 		// Create and persist the default mount table
-		c.mounts = c.defaultMountTable()
+		c.mounts = defaultMountTable()
 	}
 
 	if err := c.persistMounts(c.mounts, false); err != nil {
@@ -668,12 +631,11 @@ func (c *Core) setupMounts() error {
 	c.mountsLock.Lock()
 	defer c.mountsLock.Unlock()
 
+	var backend logical.Backend
 	var view *BarrierView
 	var err error
 
 	for _, entry := range c.mounts.Entries {
-		var backend logical.Backend
-
 		// Initialize the backend, special casing for system
 		barrierPath := backendBarrierPrefix + entry.UUID + "/"
 		if entry.Type == "system" {
@@ -683,30 +645,15 @@ func (c *Core) setupMounts() error {
 		// Create a barrier view using the UUID
 		view = NewBarrierView(c.barrier, barrierPath)
 		sysView := c.mountEntrySysView(entry)
-		// Set up conf to pass in plugin_name
-		conf := make(map[string]string)
-		if entry.Config.PluginName != "" {
-			conf["plugin_name"] = entry.Config.PluginName
-		}
+		// Initialize the backend
 		// Create the new backend
-		backend, err = c.newLogicalBackend(entry.Type, sysView, view, conf)
+		backend, err = c.newLogicalBackend(entry.Type, sysView, view, nil)
 		if err != nil {
 			c.logger.Error("core: failed to create mount entry", "path", entry.Path, "error", err)
-			if errwrap.Contains(err, ErrPluginNotFound.Error()) && entry.Type == "plugin" {
-				// If we encounter an error instantiating the backend due to it being missing from the catalog,
-				// skip backend initialization but register the entry to the mount table to preserve storage
-				// and path.
-				goto ROUTER_MOUNT
-			}
 			return errLoadMountsFailed
 		}
 		if backend == nil {
 			return fmt.Errorf("created mount entry of type %q is nil", entry.Type)
-		}
-
-		// Check for the correct backend type
-		if entry.Type == "plugin" && backend.Type() != logical.TypeLogical {
-			return fmt.Errorf("cannot mount '%s' of type '%s' as a logical backend", entry.Config.PluginName, backend.Type())
 		}
 
 		if err := backend.Initialize(); err != nil {
@@ -721,15 +668,16 @@ func (c *Core) setupMounts() error {
 			ch.saltUUID = entry.UUID
 			ch.storageView = view
 		}
-	ROUTER_MOUNT:
+
 		// Mount the backend
 		err = c.router.Mount(backend, entry.Path, entry, view)
 		if err != nil {
 			c.logger.Error("core: failed to mount entry", "path", entry.Path, "error", err)
 			return errLoadMountsFailed
-		}
-		if c.logger.IsInfo() {
-			c.logger.Info("core: successfully mounted backend", "type", entry.Type, "path", entry.Path)
+		} else {
+			if c.logger.IsInfo() {
+				c.logger.Info("core: successfully mounted backend", "type", entry.Type, "path", entry.Path)
+			}
 		}
 
 		// Ensure the path is tainted if set in the mount table
@@ -764,9 +712,6 @@ func (c *Core) unloadMounts() error {
 
 // newLogicalBackend is used to create and configure a new logical backend by name
 func (c *Core) newLogicalBackend(t string, sysView logical.SystemView, view logical.Storage, conf map[string]string) (logical.Backend, error) {
-	if alias, ok := mountAliases[t]; ok {
-		t = alias
-	}
 	f, ok := c.logicalBackends[t]
 	if !ok {
 		return nil, fmt.Errorf("unknown backend type: %s", t)
@@ -800,34 +745,29 @@ func (c *Core) mountEntrySysView(entry *MountEntry) logical.SystemView {
 }
 
 // defaultMountTable creates a default mount table
-func (c *Core) defaultMountTable() *MountTable {
+func defaultMountTable() *MountTable {
 	table := &MountTable{
 		Type: mountTableType,
 	}
 	mountUUID, err := uuid.GenerateUUID()
 	if err != nil {
-		panic(fmt.Sprintf("could not create default secret mount UUID: %v", err))
+		panic(fmt.Sprintf("could not create default mount table UUID: %v", err))
 	}
-	mountAccessor, err := c.generateMountAccessor("kv")
-	if err != nil {
-		panic(fmt.Sprintf("could not generate default secret mount accessor: %v", err))
-	}
-	kvMount := &MountEntry{
+	genericMount := &MountEntry{
 		Table:       mountTableType,
 		Path:        "secret/",
-		Type:        "kv",
-		Description: "key/value secret storage",
+		Type:        "generic",
+		Description: "generic secret storage",
 		UUID:        mountUUID,
-		Accessor:    mountAccessor,
 	}
-	table.Entries = append(table.Entries, kvMount)
-	table.Entries = append(table.Entries, c.requiredMountTable().Entries...)
+	table.Entries = append(table.Entries, genericMount)
+	table.Entries = append(table.Entries, requiredMountTable().Entries...)
 	return table
 }
 
 // requiredMountTable() creates a mount table with entries required
 // to be available
-func (c *Core) requiredMountTable() *MountTable {
+func requiredMountTable() *MountTable {
 	table := &MountTable{
 		Type: mountTableType,
 	}
@@ -835,17 +775,12 @@ func (c *Core) requiredMountTable() *MountTable {
 	if err != nil {
 		panic(fmt.Sprintf("could not create cubbyhole UUID: %v", err))
 	}
-	cubbyholeAccessor, err := c.generateMountAccessor("cubbyhole")
-	if err != nil {
-		panic(fmt.Sprintf("could not generate cubbyhole accessor: %v", err))
-	}
 	cubbyholeMount := &MountEntry{
 		Table:       mountTableType,
 		Path:        "cubbyhole/",
 		Type:        "cubbyhole",
 		Description: "per-token private secret storage",
 		UUID:        cubbyholeUUID,
-		Accessor:    cubbyholeAccessor,
 		Local:       true,
 	}
 
@@ -853,17 +788,12 @@ func (c *Core) requiredMountTable() *MountTable {
 	if err != nil {
 		panic(fmt.Sprintf("could not create sys UUID: %v", err))
 	}
-	sysAccessor, err := c.generateMountAccessor("system")
-	if err != nil {
-		panic(fmt.Sprintf("could not generate sys accessor: %v", err))
-	}
 	sysMount := &MountEntry{
 		Table:       mountTableType,
 		Path:        "sys/",
 		Type:        "system",
 		Description: "system endpoints used for control, policy and debugging",
 		UUID:        sysUUID,
-		Accessor:    sysAccessor,
 	}
 	table.Entries = append(table.Entries, cubbyholeMount)
 	table.Entries = append(table.Entries, sysMount)

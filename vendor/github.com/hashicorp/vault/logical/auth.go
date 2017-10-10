@@ -51,10 +51,6 @@ type Auth struct {
 
 	// Number of allowed uses of the issued token
 	NumUses int `json:"num_uses" mapstructure:"num_uses" structs:"num_uses"`
-
-	// Alias is the information about the authenticated client returned by
-	// the auth backend
-	Alias *Alias `json:"alias" structs:"alias" mapstructure:"alias"`
 }
 
 func (a *Auth) GoString() string {
