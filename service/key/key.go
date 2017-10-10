@@ -5,8 +5,22 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
+const (
+	// NetworkID is the ID used to label apps for resources running flannel
+	// components.
+	NetworkID = "flannel-network"
+)
+
+func ClusterCustomer(customObject flanneltpr.CustomObject) string {
+	return customObject.Spec.Cluster.Customer
+}
+
 func ClusterID(customObject flanneltpr.CustomObject) string {
 	return customObject.Spec.Cluster.ID
+}
+
+func ClusterNamespace(customObject flanneltpr.CustomObject) string {
+	return customObject.Spec.Cluster.Namespace
 }
 
 func EtcdNetworkConfigPath(customObject flanneltpr.CustomObject) string {
@@ -19,6 +33,10 @@ func EtcdNetworkPath(customObject flanneltpr.CustomObject) string {
 
 func NetworkBridgeName(customObject flanneltpr.CustomObject) string {
 	return "br-" + ClusterID(customObject)
+}
+
+func NetworkNamespace(customObject flanneltpr.CustomObject) string {
+	return NetworkID + "-" + ClusterID(customObject)
 }
 
 func ToCustomObject(v interface{}) (flanneltpr.CustomObject, error) {
