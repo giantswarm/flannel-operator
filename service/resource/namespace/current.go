@@ -22,7 +22,7 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 
 	var namespace *apiv1.Namespace
 	{
-		manifest, err := r.k8sClient.CoreV1().Namespaces().Get(key.ClusterNamespace(customObject), apismetav1.GetOptions{})
+		manifest, err := r.k8sClient.CoreV1().Namespaces().Get(key.NetworkNamespace(customObject), apismetav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			r.logger.Log("cluster", key.ClusterID(customObject), "debug", "did not find the namespace in the Kubernetes API")
 			// fall through
