@@ -31,6 +31,7 @@ import (
 	"github.com/giantswarm/flannel-operator/service/healthz"
 	"github.com/giantswarm/flannel-operator/service/operator"
 	legacyresource "github.com/giantswarm/flannel-operator/service/resource/legacy"
+	namespaceresource "github.com/giantswarm/flannel-operator/service/resource/namespace"
 	networkconfigresource "github.com/giantswarm/flannel-operator/service/resource/networkconfig"
 )
 
@@ -190,10 +191,24 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var namespaceResource framework.Resource
+	{
+		namespaceConfig := namespaceresource.DefaultConfig()
+
+		namespaceConfig.K8sClient = k8sClient
+		namespaceConfig.Logger = config.Logger
+
+		namespaceResource, err = namespaceresource.New(namespaceConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var resources []framework.Resource
 	{
 		resources = []framework.Resource{
 			networkConfigResource,
+			namespaceResource,
 			legacyResource,
 		}
 

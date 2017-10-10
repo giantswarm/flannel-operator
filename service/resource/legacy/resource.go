@@ -102,16 +102,6 @@ func (r *Resource) GetCreateState(ctx context.Context, obj, currentState, desire
 		spec = o.Spec
 	}
 
-	{
-		ns := newNamespace(spec, networkNamespace(spec))
-		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
-		if apierrors.IsAlreadyExists(err) {
-			r.logger.Log("debug", "namespace "+ns.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
-		} else if err != nil {
-			return nil, microerror.Maskf(err, "creating namespace %s", ns.Name)
-		}
-	}
-
 	// Create a dameonset running flanneld and creating network bridge.
 	{
 		daemonSet := newDaemonSet(spec, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
@@ -163,7 +153,6 @@ func (r *Resource) GetDeleteState(ctx context.Context, obj, currentState, desire
 		return nil
 	}
 
-	// Wait for the cluster's namespace to be deleted.
 	{
 		r.logger.Log("debug", "waiting for the cluster namespace to be deleted", "cluster", spec.Cluster.ID)
 
@@ -173,18 +162,10 @@ func (r *Resource) GetDeleteState(ctx context.Context, obj, currentState, desire
 		}
 	}
 
-	// Delete flannel network namespace.
 	{
-		r.logger.Log("debug", "deleting flannel network namespace", "cluster", spec.Cluster.ID)
+		r.logger.Log("debug", "waiting for the flannel namespace to be deleted", "cluster", spec.Cluster.ID)
 
-		ns := networkNamespace(spec)
-
-		err := r.k8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
-		if err != nil {
-			return nil, microerror.Maskf(err, "deleting namespace %s failed", ns)
-		}
-
-		err = waitForNamespaceDeleted(ns)
+		err := waitForNamespaceDeleted(networkNamespace(spec))
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
