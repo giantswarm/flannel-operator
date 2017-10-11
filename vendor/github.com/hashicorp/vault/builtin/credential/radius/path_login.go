@@ -1,7 +1,6 @@
 package radius
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -52,12 +51,12 @@ func (b *backend) pathLogin(
 	if username == "" {
 		username = d.Get("urlusername").(string)
 		if username == "" {
-			return logical.ErrorResponse("username cannot be empty"), nil
+			return logical.ErrorResponse("username cannot be emtpy"), nil
 		}
 	}
 
 	if password == "" {
-		return logical.ErrorResponse("password cannot be empty"), nil
+		return logical.ErrorResponse("password cannot be emtpy"), nil
 	}
 
 	policies, resp, err := b.RadiusLogin(req, username, password)
@@ -124,24 +123,15 @@ func (b *backend) RadiusLogin(req *logical.Request, username string, password st
 	hostport := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
 
 	packet := radius.New(radius.CodeAccessRequest, []byte(cfg.Secret))
-	usernameAttr, err := radius.NewString(username)
-	if err != nil {
-		return nil, nil, err
-	}
-	passwordAttr, err := radius.NewString(password)
-	if err != nil {
-		return nil, nil, err
-	}
-	packet.Add(1, usernameAttr)
-	packet.Add(2, passwordAttr)
-	packet.Add(5, radius.NewInteger(uint32(cfg.NasPort)))
+	packet.Add("User-Name", username)
+	packet.Add("User-Password", password)
+	packet.Add("NAS-Port", uint32(cfg.NasPort))
 
 	client := radius.Client{
-		Dialer: net.Dialer{
-			Timeout: time.Duration(cfg.DialTimeout) * time.Second,
-		},
+		DialTimeout: time.Duration(cfg.DialTimeout) * time.Second,
+		ReadTimeout: time.Duration(cfg.ReadTimeout) * time.Second,
 	}
-	received, err := client.Exchange(context.Background(), packet, hostport)
+	received, err := client.Exchange(packet, hostport)
 	if err != nil {
 		return nil, logical.ErrorResponse(err.Error()), nil
 	}
@@ -152,9 +142,6 @@ func (b *backend) RadiusLogin(req *logical.Request, username string, password st
 	var policies []string
 	// Retrieve user entry from storage
 	user, err := b.user(req.Storage, username)
-	if err != nil {
-		return policies, logical.ErrorResponse("could not retrieve user entry from storage"), err
-	}
 	if user == nil {
 		// No user found, check if unregistered users are allowed (unregistered_user_policies not empty)
 		if len(policyutil.SanitizePolicies(cfg.UnregisteredUserPolicies, false)) == 0 {

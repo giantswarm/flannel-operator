@@ -9,10 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/vault/meta"
-	"github.com/hashicorp/vault/physical"
 	"github.com/mitchellh/cli"
-
-	physConsul "github.com/hashicorp/vault/physical/consul"
 )
 
 // The following tests have a go-metrics/exp manager race condition
@@ -21,9 +18,6 @@ func TestServer_CommonHA(t *testing.T) {
 	c := &ServerCommand{
 		Meta: meta.Meta{
 			Ui: ui,
-		},
-		PhysicalBackends: map[string]physical.Factory{
-			"consul": physConsul.NewConsulBackend,
 		},
 	}
 
@@ -53,9 +47,6 @@ func TestServer_GoodSeparateHA(t *testing.T) {
 		Meta: meta.Meta{
 			Ui: ui,
 		},
-		PhysicalBackends: map[string]physical.Factory{
-			"consul": physConsul.NewConsulBackend,
-		},
 	}
 
 	tmpfile, err := ioutil.TempFile("", "")
@@ -83,9 +74,6 @@ func TestServer_BadSeparateHA(t *testing.T) {
 	c := &ServerCommand{
 		Meta: meta.Meta{
 			Ui: ui,
-		},
-		PhysicalBackends: map[string]physical.Factory{
-			"consul": physConsul.NewConsulBackend,
 		},
 	}
 

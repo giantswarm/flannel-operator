@@ -7,31 +7,61 @@ import (
 )
 
 // tuneMount is used to set config on a mount point
-func (b *SystemBackend) tuneMountTTLs(path string, me *MountEntry, newDefault, newMax time.Duration) error {
-	zero := time.Duration(0)
+func (b *SystemBackend) tuneMountTTLs(path string, me *MountEntry, newDefault, newMax *time.Duration) error {
+	meConfig := &me.Config
 
-	switch {
-	case newDefault == zero && newMax == zero:
-		// No checks needed
+	if newDefault == nil && newMax == nil {
+		return nil
+	}
+	if newDefault == nil && newMax != nil &&
+		*newMax == meConfig.MaxLeaseTTL {
+		return nil
+	}
+	if newMax == nil && newDefault != nil &&
+		*newDefault == meConfig.DefaultLeaseTTL {
+		return nil
+	}
+	if newMax != nil && newDefault != nil &&
+		*newDefault == meConfig.DefaultLeaseTTL &&
+		*newMax == meConfig.MaxLeaseTTL {
+		return nil
+	}
 
-	case newDefault == zero && newMax != zero:
-		// No default/max conflict, no checks needed
+	if newMax != nil && newDefault != nil && *newMax < *newDefault {
+		return fmt.Errorf("new backend max lease TTL of %d less than new backend default lease TTL of %d",
+			int(newMax.Seconds()), int(newDefault.Seconds()))
+	}
 
-	case newDefault != zero && newMax == zero:
-		// No default/max conflict, no checks needed
-
-	case newDefault != zero && newMax != zero:
-		if newMax < newDefault {
-			return fmt.Errorf("backend max lease TTL of %d would be less than backend default lease TTL of %d",
-				int(newMax.Seconds()), int(newDefault.Seconds()))
+	if newMax != nil && newDefault == nil {
+		if meConfig.DefaultLeaseTTL != 0 && *newMax < meConfig.DefaultLeaseTTL {
+			return fmt.Errorf("new backend max lease TTL of %d less than backend default lease TTL of %d",
+				int(newMax.Seconds()), int(meConfig.DefaultLeaseTTL.Seconds()))
 		}
 	}
 
-	origMax := me.Config.MaxLeaseTTL
-	origDefault := me.Config.DefaultLeaseTTL
+	if newDefault != nil {
+		if meConfig.MaxLeaseTTL == 0 {
+			if newMax == nil && *newDefault > b.Core.maxLeaseTTL {
+				return fmt.Errorf("new backend default lease TTL of %d greater than system max lease TTL of %d",
+					int(newDefault.Seconds()), int(b.Core.maxLeaseTTL.Seconds()))
+			}
+		} else {
+			if newMax == nil && *newDefault > meConfig.MaxLeaseTTL {
+				return fmt.Errorf("new backend default lease TTL of %d greater than backend max lease TTL of %d",
+					int(newDefault.Seconds()), int(meConfig.MaxLeaseTTL.Seconds()))
+			}
+		}
+	}
 
-	me.Config.MaxLeaseTTL = newMax
-	me.Config.DefaultLeaseTTL = newDefault
+	origMax := meConfig.MaxLeaseTTL
+	origDefault := meConfig.DefaultLeaseTTL
+
+	if newMax != nil {
+		meConfig.MaxLeaseTTL = *newMax
+	}
+	if newDefault != nil {
+		meConfig.DefaultLeaseTTL = *newDefault
+	}
 
 	// Update the mount table
 	var err error
@@ -42,12 +72,13 @@ func (b *SystemBackend) tuneMountTTLs(path string, me *MountEntry, newDefault, n
 		err = b.Core.persistMounts(b.Core.mounts, me.Local)
 	}
 	if err != nil {
-		me.Config.MaxLeaseTTL = origMax
-		me.Config.DefaultLeaseTTL = origDefault
+		meConfig.MaxLeaseTTL = origMax
+		meConfig.DefaultLeaseTTL = origDefault
 		return fmt.Errorf("failed to update mount table, rolling back TTL changes")
 	}
+
 	if b.Core.logger.IsInfo() {
-		b.Core.logger.Info("core: mount tuning of leases successful", "path", path)
+		b.Core.logger.Info("core: mount tuning successful", "path", path)
 	}
 
 	return nil

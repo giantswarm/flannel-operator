@@ -31,7 +31,7 @@ on every path, use `vault path-help` after mounting the backend.
 ## Quick Start
 
 The first step to using the RabbitMQ backend is to mount it. Unlike the
-`kv` backend, the `rabbitmq` backend is not mounted by default.
+`generic` backend, the `rabbitmq` backend is not mounted by default.
 
 ```text
 $ vault mount rabbitmq

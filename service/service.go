@@ -12,6 +12,7 @@ import (
 
 	"github.com/cenk/backoff"
 	"github.com/coreos/etcd/client"
+	"github.com/giantswarm/flanneltpr"
 	"github.com/giantswarm/microendpoint/service/version"
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
@@ -22,8 +23,10 @@ import (
 	"github.com/giantswarm/operatorkit/framework/metricsresource"
 	"github.com/giantswarm/operatorkit/framework/retryresource"
 	"github.com/giantswarm/operatorkit/informer"
+	"github.com/giantswarm/operatorkit/tpr"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/viper"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/flag"
@@ -268,12 +271,38 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var newTPR *tpr.TPR
+	{
+		c := tpr.DefaultConfig()
+
+		c.K8sClient = k8sClient
+		c.Logger = config.Logger
+
+		c.Description = flanneltpr.Description
+		c.Name = flanneltpr.Name
+		c.Version = flanneltpr.VersionV1
+
+		newTPR, err = tpr.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	var newWatcherFactory informer.WatcherFactory
+	{
+		zeroObjectFactory := &informer.ZeroObjectFactoryFuncs{
+			NewObjectFunc:     func() runtime.Object { return &flanneltpr.CustomObject{} },
+			NewObjectListFunc: func() runtime.Object { return &flanneltpr.List{} },
+		}
+		newWatcherFactory = informer.NewWatcherFactory(k8sClient.Discovery().RESTClient(), newTPR.WatchEndpoint(""), zeroObjectFactory)
+	}
+
 	var newInformer *informer.Informer
 	{
 		informerConfig := informer.DefaultConfig()
 
 		informerConfig.BackOff = backoff.NewExponentialBackOff()
-		informerConfig.RestClient = k8sClient.Discovery().RESTClient()
+		informerConfig.WatcherFactory = newWatcherFactory
 
 		informerConfig.RateWait = time.Second * 10
 		informerConfig.ResyncPeriod = time.Minute * 5
@@ -308,10 +337,10 @@ func New(config Config) (*Service, error) {
 		operatorConfig := operator.DefaultConfig()
 
 		operatorConfig.BackOff = operatorBackOff
+		operatorConfig.Framework = operatorFramework
 		operatorConfig.Informer = newInformer
-		operatorConfig.K8sClient = k8sClient
 		operatorConfig.Logger = config.Logger
-		operatorConfig.OperatorFramework = operatorFramework
+		operatorConfig.TPR = newTPR
 
 		operatorService, err = operator.New(operatorConfig)
 		if err != nil {
