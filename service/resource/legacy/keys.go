@@ -74,7 +74,8 @@ func livenessPort(spec flanneltpr.Spec) int32 {
 	return int32(portBase + spec.Flannel.Spec.VNI)
 }
 func networkBridgeDockerImage(spec flanneltpr.Spec) string {
-	return spec.Bridge.Docker.Image
+	//return spec.Bridge.Docker.Image
+	return "quay.io/giantswarm/k8s-network-bridge:41b3f692c2690ddacb003887943887b1b6865abc"
 }
 func networkHealthDockerImage(spec flanneltpr.Spec) string {
 	//return spec.Health.Docker.Image
