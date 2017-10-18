@@ -78,7 +78,7 @@ func networkBridgeDockerImage(spec flanneltpr.Spec) string {
 }
 func networkHealthDockerImage(spec flanneltpr.Spec) string {
 	//return spec.Health.Docker.Image
-	return "quay.io/giantswarm/flannel-network-health:05bb0e5af320f4904b7c15adfc846e130782b804"
+	return "quay.io/giantswarm/flannel-network-health:b58ddc0d95002b9d46378d65a8c210d89e50d4e7"
 }
 
 func networkBridgeName(spec flanneltpr.Spec) string {
