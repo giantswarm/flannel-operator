@@ -3,7 +3,6 @@ package ldap
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/hashicorp/vault/helper/policyutil"
 	"github.com/hashicorp/vault/logical"
@@ -59,7 +58,6 @@ func (b *backend) pathLogin(
 		Policies: policies,
 		Metadata: map[string]string{
 			"username": username,
-			"policies": strings.Join(policies, ","),
 		},
 		InternalData: map[string]interface{}{
 			"password": password,
@@ -67,6 +65,9 @@ func (b *backend) pathLogin(
 		DisplayName: username,
 		LeaseOptions: logical.LeaseOptions{
 			Renewable: true,
+		},
+		Alias: &logical.Alias{
+			Name: username,
 		},
 	}
 	return resp, nil

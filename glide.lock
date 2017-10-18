@@ -1,8 +1,8 @@
 hash: f92fd7af42f3de30fab18d38dabe70341e4cdd3a283ea77727d4f7ed309c69d5
-updated: 2017-10-10T17:58:08.499295873+02:00
+updated: 2017-10-18T16:40:03.662755144+02:00
 imports:
 - name: github.com/beorn7/perks
-  version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
 - name: github.com/cenk/backoff
@@ -43,12 +43,13 @@ imports:
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/giantswarm/flanneltpr
-  version: b42ea3bfc81d2193eb7faba30b2b6506da625f95
+  version: d155d5400741795ff6f90eba23ff5c1e2abfb7bf
   subpackages:
   - spec
   - spec/bridge
   - spec/bridge/spec
   - spec/flannel
+  - spec/health
 - name: github.com/giantswarm/k8shealthz
   version: 5eaeffb4476a420af88b7f95b478fc9fe2da38ac
 - name: github.com/giantswarm/microendpoint
@@ -61,7 +62,7 @@ imports:
 - name: github.com/giantswarm/microerror
   version: 5ade94eb4ee35ef72eb9382228470caeddb29989
 - name: github.com/giantswarm/microkit
-  version: 4871f763488a16c5b7ea3c411bbd82cd5139e29a
+  version: e6c3aafd2c6b8298599dc465dc1294fbd025d2f1
   subpackages:
   - command
   - command/daemon
@@ -87,14 +88,14 @@ imports:
   subpackages:
   - memory
 - name: github.com/giantswarm/operatorkit
-  version: 6ed6f05e679d8c9d07e6176e138f89bdea3e24bc
+  version: 57dd6cec0cc811e2bc2e2c8a56ea40f163673514
   subpackages:
-  - client/k8s
+  - client/k8sclient
   - framework
-  - framework/canceledcontext
-  - framework/logresource
-  - framework/metricsresource
-  - framework/retryresource
+  - framework/context/canceledcontext
+  - framework/resource/logresource
+  - framework/resource/metricsresource
+  - framework/resource/retryresource
   - informer
   - tpr
 - name: github.com/go-kit/kit
@@ -131,6 +132,8 @@ imports:
   subpackages:
   - jsonpb
   - proto
+- name: github.com/golang/snappy
+  version: 553a641470496b2327abcac10b36396bd98e45c9
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/gorilla/context
@@ -150,7 +153,7 @@ imports:
   subpackages:
   - simplelru
 - name: github.com/hashicorp/hcl
-  version: 42e33e2d55a0ff1d6263f738896ea8c13571a8d0
+  version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -161,11 +164,12 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/vault
-  version: 0b20ae0b9b7a748d607082b1add3663a28e31b68
+  version: eabc1842cd91a75eb8fe159782cd7c948ad6d983
   subpackages:
   - api
   - helper/compressutil
   - helper/jsonutil
+  - helper/parseutil
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/juju/errgo
@@ -183,13 +187,13 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/matttproud/golang_protobuf_extensions
-  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
-  version: d0303fe809921458f417bcf828397a65db30a7e4
+  version: 06020f85339e21b2478f756a78e295255ffa4d6a
 - name: github.com/pelletier/go-toml
   version: 2009e44b6f182e34d8ce081ac2767622937ea3d4
 - name: github.com/prometheus/client_golang
@@ -224,11 +228,11 @@ imports:
 - name: github.com/spf13/cast
   version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
-  version: 4d6af280c76ff7d266434f2dba207c4b75dfc076
+  version: 7b2c5ac9fc04fc5efafb60700713d4fa609b777b
 - name: github.com/spf13/jwalterweatherman
   version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
 - name: github.com/spf13/pflag
-  version: a9789e855c7696159b7db0db7f440b449edf2b31
+  version: 1f33b80956cde38911d1f23d764deb8d77a649ce
 - name: github.com/spf13/viper
   version: d9cca5ef33035202efb1586825bdbb15ff9ec3ba
 - name: github.com/tylerb/graceful
@@ -265,7 +269,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
-  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
+  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 - name: k8s.io/apimachinery
   version: 8ab5f3d8a330c2e9baaf84e39042db8d49034ae2
   subpackages:

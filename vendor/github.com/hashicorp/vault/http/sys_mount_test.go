@@ -27,8 +27,8 @@ func TestSysMounts(t *testing.T) {
 		"auth":           nil,
 		"data": map[string]interface{}{
 			"secret/": map[string]interface{}{
-				"description": "generic secret storage",
-				"type":        "generic",
+				"description": "key/value secret storage",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -56,10 +56,20 @@ func TestSysMounts(t *testing.T) {
 				},
 				"local": true,
 			},
+			"identity/": map[string]interface{}{
+				"description": "identity store",
+				"type":        "identity",
+				"config": map[string]interface{}{
+					"default_lease_ttl": json.Number("0"),
+					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
+				},
+				"local": false,
+			},
 		},
 		"secret/": map[string]interface{}{
-			"description": "generic secret storage",
-			"type":        "generic",
+			"description": "key/value secret storage",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -87,10 +97,28 @@ func TestSysMounts(t *testing.T) {
 			},
 			"local": true,
 		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"config": map[string]interface{}{
+				"default_lease_ttl": json.Number("0"),
+				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
+			},
+			"local": false,
+		},
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 	expected["request_id"] = actual["request_id"]
+	for k, v := range actual["data"].(map[string]interface{}) {
+		if v.(map[string]interface{})["accessor"] == "" {
+			t.Fatalf("no accessor from %s", k)
+		}
+		expected[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+		expected["data"].(map[string]interface{})[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
@@ -103,7 +131,7 @@ func TestSysMount(t *testing.T) {
 	TestServerAuth(t, addr, token)
 
 	resp := testHttpPost(t, token, addr+"/v1/sys/mounts/foo", map[string]interface{}{
-		"type":        "generic",
+		"type":        "kv",
 		"description": "foo",
 	})
 	testResponseStatus(t, resp, 204)
@@ -121,7 +149,7 @@ func TestSysMount(t *testing.T) {
 		"data": map[string]interface{}{
 			"foo/": map[string]interface{}{
 				"description": "foo",
-				"type":        "generic",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -130,8 +158,8 @@ func TestSysMount(t *testing.T) {
 				"local": false,
 			},
 			"secret/": map[string]interface{}{
-				"description": "generic secret storage",
-				"type":        "generic",
+				"description": "key/value secret storage",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -159,10 +187,20 @@ func TestSysMount(t *testing.T) {
 				},
 				"local": true,
 			},
+			"identity/": map[string]interface{}{
+				"description": "identity store",
+				"type":        "identity",
+				"config": map[string]interface{}{
+					"default_lease_ttl": json.Number("0"),
+					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
+				},
+				"local": false,
+			},
 		},
 		"foo/": map[string]interface{}{
 			"description": "foo",
-			"type":        "generic",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -171,8 +209,8 @@ func TestSysMount(t *testing.T) {
 			"local": false,
 		},
 		"secret/": map[string]interface{}{
-			"description": "generic secret storage",
-			"type":        "generic",
+			"description": "key/value secret storage",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -200,10 +238,28 @@ func TestSysMount(t *testing.T) {
 			},
 			"local": true,
 		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"config": map[string]interface{}{
+				"default_lease_ttl": json.Number("0"),
+				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
+			},
+			"local": false,
+		},
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 	expected["request_id"] = actual["request_id"]
+	for k, v := range actual["data"].(map[string]interface{}) {
+		if v.(map[string]interface{})["accessor"] == "" {
+			t.Fatalf("no accessor from %s", k)
+		}
+		expected[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+		expected["data"].(map[string]interface{})[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
@@ -216,7 +272,7 @@ func TestSysMount_put(t *testing.T) {
 	TestServerAuth(t, addr, token)
 
 	resp := testHttpPut(t, token, addr+"/v1/sys/mounts/foo", map[string]interface{}{
-		"type":        "generic",
+		"type":        "kv",
 		"description": "foo",
 	})
 	testResponseStatus(t, resp, 204)
@@ -232,7 +288,7 @@ func TestSysRemount(t *testing.T) {
 	TestServerAuth(t, addr, token)
 
 	resp := testHttpPost(t, token, addr+"/v1/sys/mounts/foo", map[string]interface{}{
-		"type":        "generic",
+		"type":        "kv",
 		"description": "foo",
 	})
 	testResponseStatus(t, resp, 204)
@@ -256,7 +312,7 @@ func TestSysRemount(t *testing.T) {
 		"data": map[string]interface{}{
 			"bar/": map[string]interface{}{
 				"description": "foo",
-				"type":        "generic",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -265,8 +321,8 @@ func TestSysRemount(t *testing.T) {
 				"local": false,
 			},
 			"secret/": map[string]interface{}{
-				"description": "generic secret storage",
-				"type":        "generic",
+				"description": "key/value secret storage",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -294,10 +350,20 @@ func TestSysRemount(t *testing.T) {
 				},
 				"local": true,
 			},
+			"identity/": map[string]interface{}{
+				"description": "identity store",
+				"type":        "identity",
+				"config": map[string]interface{}{
+					"default_lease_ttl": json.Number("0"),
+					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
+				},
+				"local": false,
+			},
 		},
 		"bar/": map[string]interface{}{
 			"description": "foo",
-			"type":        "generic",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -306,8 +372,8 @@ func TestSysRemount(t *testing.T) {
 			"local": false,
 		},
 		"secret/": map[string]interface{}{
-			"description": "generic secret storage",
-			"type":        "generic",
+			"description": "key/value secret storage",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -335,10 +401,28 @@ func TestSysRemount(t *testing.T) {
 			},
 			"local": true,
 		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"config": map[string]interface{}{
+				"default_lease_ttl": json.Number("0"),
+				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
+			},
+			"local": false,
+		},
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 	expected["request_id"] = actual["request_id"]
+	for k, v := range actual["data"].(map[string]interface{}) {
+		if v.(map[string]interface{})["accessor"] == "" {
+			t.Fatalf("no accessor from %s", k)
+		}
+		expected[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+		expected["data"].(map[string]interface{})[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
@@ -351,7 +435,7 @@ func TestSysUnmount(t *testing.T) {
 	TestServerAuth(t, addr, token)
 
 	resp := testHttpPost(t, token, addr+"/v1/sys/mounts/foo", map[string]interface{}{
-		"type":        "generic",
+		"type":        "kv",
 		"description": "foo",
 	})
 	testResponseStatus(t, resp, 204)
@@ -371,8 +455,8 @@ func TestSysUnmount(t *testing.T) {
 		"auth":           nil,
 		"data": map[string]interface{}{
 			"secret/": map[string]interface{}{
-				"description": "generic secret storage",
-				"type":        "generic",
+				"description": "key/value secret storage",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -400,10 +484,20 @@ func TestSysUnmount(t *testing.T) {
 				},
 				"local": true,
 			},
+			"identity/": map[string]interface{}{
+				"description": "identity store",
+				"type":        "identity",
+				"config": map[string]interface{}{
+					"default_lease_ttl": json.Number("0"),
+					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
+				},
+				"local": false,
+			},
 		},
 		"secret/": map[string]interface{}{
-			"description": "generic secret storage",
-			"type":        "generic",
+			"description": "key/value secret storage",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -431,10 +525,28 @@ func TestSysUnmount(t *testing.T) {
 			},
 			"local": true,
 		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"config": map[string]interface{}{
+				"default_lease_ttl": json.Number("0"),
+				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
+			},
+			"local": false,
+		},
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 	expected["request_id"] = actual["request_id"]
+	for k, v := range actual["data"].(map[string]interface{}) {
+		if v.(map[string]interface{})["accessor"] == "" {
+			t.Fatalf("no accessor from %s", k)
+		}
+		expected[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+		expected["data"].(map[string]interface{})[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
@@ -447,7 +559,7 @@ func TestSysTuneMount(t *testing.T) {
 	TestServerAuth(t, addr, token)
 
 	resp := testHttpPost(t, token, addr+"/v1/sys/mounts/foo", map[string]interface{}{
-		"type":        "generic",
+		"type":        "kv",
 		"description": "foo",
 	})
 	testResponseStatus(t, resp, 204)
@@ -465,7 +577,7 @@ func TestSysTuneMount(t *testing.T) {
 		"data": map[string]interface{}{
 			"foo/": map[string]interface{}{
 				"description": "foo",
-				"type":        "generic",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -474,8 +586,8 @@ func TestSysTuneMount(t *testing.T) {
 				"local": false,
 			},
 			"secret/": map[string]interface{}{
-				"description": "generic secret storage",
-				"type":        "generic",
+				"description": "key/value secret storage",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -503,10 +615,20 @@ func TestSysTuneMount(t *testing.T) {
 				},
 				"local": true,
 			},
+			"identity/": map[string]interface{}{
+				"description": "identity store",
+				"type":        "identity",
+				"config": map[string]interface{}{
+					"default_lease_ttl": json.Number("0"),
+					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
+				},
+				"local": false,
+			},
 		},
 		"foo/": map[string]interface{}{
 			"description": "foo",
-			"type":        "generic",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -515,8 +637,8 @@ func TestSysTuneMount(t *testing.T) {
 			"local": false,
 		},
 		"secret/": map[string]interface{}{
-			"description": "generic secret storage",
-			"type":        "generic",
+			"description": "key/value secret storage",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -544,10 +666,28 @@ func TestSysTuneMount(t *testing.T) {
 			},
 			"local": true,
 		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"config": map[string]interface{}{
+				"default_lease_ttl": json.Number("0"),
+				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
+			},
+			"local": false,
+		},
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 	expected["request_id"] = actual["request_id"]
+	for k, v := range actual["data"].(map[string]interface{}) {
+		if v.(map[string]interface{})["accessor"] == "" {
+			t.Fatalf("no accessor from %s", k)
+		}
+		expected[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+		expected["data"].(map[string]interface{})[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
@@ -562,7 +702,7 @@ func TestSysTuneMount(t *testing.T) {
 	resp = testHttpPost(t, token, addr+"/v1/sys/mounts/foo/tune", map[string]interface{}{
 		"default_lease_ttl": "72000h",
 	})
-	testResponseStatus(t, resp, 400)
+	testResponseStatus(t, resp, 204)
 
 	// Longer than system default
 	resp = testHttpPost(t, token, addr+"/v1/sys/mounts/foo/tune", map[string]interface{}{
@@ -599,7 +739,7 @@ func TestSysTuneMount(t *testing.T) {
 		"data": map[string]interface{}{
 			"foo/": map[string]interface{}{
 				"description": "foo",
-				"type":        "generic",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("259196400"),
 					"max_lease_ttl":     json.Number("259200000"),
@@ -608,8 +748,8 @@ func TestSysTuneMount(t *testing.T) {
 				"local": false,
 			},
 			"secret/": map[string]interface{}{
-				"description": "generic secret storage",
-				"type":        "generic",
+				"description": "key/value secret storage",
+				"type":        "kv",
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
@@ -637,10 +777,20 @@ func TestSysTuneMount(t *testing.T) {
 				},
 				"local": true,
 			},
+			"identity/": map[string]interface{}{
+				"description": "identity store",
+				"type":        "identity",
+				"config": map[string]interface{}{
+					"default_lease_ttl": json.Number("0"),
+					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
+				},
+				"local": false,
+			},
 		},
 		"foo/": map[string]interface{}{
 			"description": "foo",
-			"type":        "generic",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("259196400"),
 				"max_lease_ttl":     json.Number("259200000"),
@@ -649,8 +799,8 @@ func TestSysTuneMount(t *testing.T) {
 			"local": false,
 		},
 		"secret/": map[string]interface{}{
-			"description": "generic secret storage",
-			"type":        "generic",
+			"description": "key/value secret storage",
+			"type":        "kv",
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
@@ -678,11 +828,29 @@ func TestSysTuneMount(t *testing.T) {
 			},
 			"local": true,
 		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"config": map[string]interface{}{
+				"default_lease_ttl": json.Number("0"),
+				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
+			},
+			"local": false,
+		},
 	}
 
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 	expected["request_id"] = actual["request_id"]
+	for k, v := range actual["data"].(map[string]interface{}) {
+		if v.(map[string]interface{})["accessor"] == "" {
+			t.Fatalf("no accessor from %s", k)
+		}
+		expected[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+		expected["data"].(map[string]interface{})[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad:\nExpected: %#v\nActual:%#v", expected, actual)
 	}
