@@ -17,7 +17,7 @@ import (
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/operatorkit/client/k8s"
+	"github.com/giantswarm/operatorkit/client/k8sclient"
 	"github.com/giantswarm/operatorkit/framework"
 	"github.com/giantswarm/operatorkit/framework/logresource"
 	"github.com/giantswarm/operatorkit/framework/metricsresource"
