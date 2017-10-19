@@ -90,11 +90,11 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 				},
 			},
 			LivenessProbe: &api.Probe{
-				InitialDelaySeconds: 10,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       15,
-				FailureThreshold:    2,
-				SuccessThreshold:    1,
+				InitialDelaySeconds: initialDelaySeconds,
+				TimeoutSeconds:      timeoutSeconds,
+				PeriodSeconds:       periodSeconds,
+				FailureThreshold:    failureThreshold,
+				SuccessThreshold:    successThreshold,
 				Handler: api.Handler{
 					HTTPGet: &api.HTTPGetAction{
 						Path: healthEndpoint,
@@ -161,11 +161,11 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 				},
 			},
 			LivenessProbe: &api.Probe{
-				InitialDelaySeconds: 10,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       15,
-				FailureThreshold:    2,
-				SuccessThreshold:    1,
+				InitialDelaySeconds: initialDelaySeconds,
+				TimeoutSeconds:      timeoutSeconds,
+				PeriodSeconds:       periodSeconds,
+				FailureThreshold:    failureThreshold,
+				SuccessThreshold:    successThreshold,
 				Handler: api.Handler{
 					HTTPGet: &api.HTTPGetAction{
 						Path: healthEndpoint,
@@ -213,6 +213,10 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 			Image:           networkHealthDockerImage(spec),
 			ImagePullPolicy: api.PullAlways,
 			Env: []api.EnvVar{
+				{
+					Name:  "LISTEN_ADDRESS",
+					Value: healthListenAddress(spec),
+				},
 				{
 					Name:  "NETWORK_BRIDGE_NAME",
 					Value: networkBridgeName(spec),

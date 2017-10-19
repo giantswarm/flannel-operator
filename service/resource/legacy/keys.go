@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/giantswarm/flanneltpr"
+	"strconv"
 )
 
 const (
@@ -20,6 +21,12 @@ const (
 	healthEndpoint = "/healthz"
 	// liveness probe host
 	probeHost = "127.0.0.1"
+	// liveness config
+	initialDelaySeconds = 10
+	timeoutSeconds      = 5
+	periodSeconds       = 10
+	failureThreshold    = 2
+	successThreshold    = 1
 )
 
 // networkNamespace returns the namespace in which the operator's resources run
@@ -66,6 +73,9 @@ func flannelRunDir(spec flanneltpr.Spec) string {
 	return spec.Flannel.Spec.RunDir
 }
 
+func healthListenAddress(spec flanneltpr.Spec) string {
+	return "http://" + probeHost + ":" + strconv.Itoa(int(livenessPort(spec)))
+}
 func hostPrivateNetwork(spec flanneltpr.Spec) string {
 	return spec.Bridge.Spec.PrivateNetwork
 }
@@ -73,13 +83,14 @@ func hostPrivateNetwork(spec flanneltpr.Spec) string {
 func livenessPort(spec flanneltpr.Spec) int32 {
 	return int32(portBase + spec.Flannel.Spec.VNI)
 }
+
 func networkBridgeDockerImage(spec flanneltpr.Spec) string {
 	//return spec.Bridge.Docker.Image
 	return "quay.io/giantswarm/k8s-network-bridge:b2ec1d7ed0672c35f160eec1cf90edf69200e36d"
 }
 func networkHealthDockerImage(spec flanneltpr.Spec) string {
 	//return spec.Health.Docker.Image
-	return "quay.io/giantswarm/flannel-network-health:b58ddc0d95002b9d46378d65a8c210d89e50d4e7"
+	return "quay.io/giantswarm/flannel-network-health:2c7e21f0aabd237515c472084626a7234032d5f8"
 }
 
 func networkBridgeName(spec flanneltpr.Spec) string {
