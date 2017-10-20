@@ -5,6 +5,7 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apisextensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
 	api "k8s.io/client-go/pkg/api/v1"
 )
 
@@ -88,6 +89,20 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 					},
 				},
 			},
+			LivenessProbe: &api.Probe{
+				InitialDelaySeconds: initialDelaySeconds,
+				TimeoutSeconds:      timeoutSeconds,
+				PeriodSeconds:       periodSeconds,
+				FailureThreshold:    failureThreshold,
+				SuccessThreshold:    successThreshold,
+				Handler: api.Handler{
+					HTTPGet: &api.HTTPGetAction{
+						Path: healthEndpoint,
+						Port: intstr.IntOrString{IntVal: livenessPort(spec)},
+						Host: probeHost,
+					},
+				},
+			},
 			VolumeMounts: []api.VolumeMount{
 				{
 					Name:      "etcd-certs",
@@ -145,6 +160,20 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 					Value: networkNTPBlock(spec),
 				},
 			},
+			LivenessProbe: &api.Probe{
+				InitialDelaySeconds: initialDelaySeconds,
+				TimeoutSeconds:      timeoutSeconds,
+				PeriodSeconds:       periodSeconds,
+				FailureThreshold:    failureThreshold,
+				SuccessThreshold:    successThreshold,
+				Handler: api.Handler{
+					HTTPGet: &api.HTTPGetAction{
+						Path: healthEndpoint,
+						Port: intstr.IntOrString{IntVal: livenessPort(spec)},
+						Host: probeHost,
+					},
+				},
+			},
 			SecurityContext: &api.SecurityContext{
 				Privileged: &privileged,
 			},
@@ -176,6 +205,38 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 				{
 					Name:      "sys-class-net",
 					MountPath: "/sys/class/net/",
+				},
+			},
+		},
+		{
+			Name:            "flannel-network-health",
+			Image:           networkHealthDockerImage(spec),
+			ImagePullPolicy: api.PullAlways,
+			Env: []api.EnvVar{
+				{
+					Name:  "LISTEN_ADDRESS",
+					Value: healthListenAddress(spec),
+				},
+				{
+					Name:  "NETWORK_BRIDGE_NAME",
+					Value: networkBridgeName(spec),
+				},
+				{
+					Name:  "NETWORK_ENV_FILE_PATH",
+					Value: networkEnvFilePath(spec),
+				},
+				{
+					Name:  "NETWORK_FLANNEL_DEVICE",
+					Value: networkFlannelDevice(spec),
+				},
+			},
+			SecurityContext: &api.SecurityContext{
+				Privileged: &privileged,
+			},
+			VolumeMounts: []api.VolumeMount{
+				{
+					Name:      "flannel",
+					MountPath: "/run/flannel",
 				},
 			},
 		},

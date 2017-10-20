@@ -1,6 +1,7 @@
 package radius
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"layeh.com/radius"
+	. "layeh.com/radius/rfc2865"
 
 	"github.com/hashicorp/vault/helper/policyutil"
 	"github.com/hashicorp/vault/logical"
@@ -51,12 +53,12 @@ func (b *backend) pathLogin(
 	if username == "" {
 		username = d.Get("urlusername").(string)
 		if username == "" {
-			return logical.ErrorResponse("username cannot be emtpy"), nil
+			return logical.ErrorResponse("username cannot be empty"), nil
 		}
 	}
 
 	if password == "" {
-		return logical.ErrorResponse("password cannot be emtpy"), nil
+		return logical.ErrorResponse("password cannot be empty"), nil
 	}
 
 	policies, resp, err := b.RadiusLogin(req, username, password)
@@ -83,6 +85,9 @@ func (b *backend) pathLogin(
 		DisplayName: username,
 		LeaseOptions: logical.LeaseOptions{
 			Renewable: true,
+		},
+		Alias: &logical.Alias{
+			Name: username,
 		},
 	}
 	return resp, nil
@@ -123,15 +128,16 @@ func (b *backend) RadiusLogin(req *logical.Request, username string, password st
 	hostport := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
 
 	packet := radius.New(radius.CodeAccessRequest, []byte(cfg.Secret))
-	packet.Add("User-Name", username)
-	packet.Add("User-Password", password)
-	packet.Add("NAS-Port", uint32(cfg.NasPort))
+	UserName_SetString(packet, username)
+	UserPassword_SetString(packet, password)
+	packet.Add(5, radius.NewInteger(uint32(cfg.NasPort)))
 
 	client := radius.Client{
-		DialTimeout: time.Duration(cfg.DialTimeout) * time.Second,
-		ReadTimeout: time.Duration(cfg.ReadTimeout) * time.Second,
+		Dialer: net.Dialer{
+			Timeout: time.Duration(cfg.DialTimeout) * time.Second,
+		},
 	}
-	received, err := client.Exchange(packet, hostport)
+	received, err := client.Exchange(context.Background(), packet, hostport)
 	if err != nil {
 		return nil, logical.ErrorResponse(err.Error()), nil
 	}
@@ -142,6 +148,9 @@ func (b *backend) RadiusLogin(req *logical.Request, username string, password st
 	var policies []string
 	// Retrieve user entry from storage
 	user, err := b.user(req.Storage, username)
+	if err != nil {
+		return policies, logical.ErrorResponse("could not retrieve user entry from storage"), err
+	}
 	if user == nil {
 		// No user found, check if unregistered users are allowed (unregistered_user_policies not empty)
 		if len(policyutil.SanitizePolicies(cfg.UnregisteredUserPolicies, false)) == 0 {

@@ -9,6 +9,7 @@ import (
 	bridge "github.com/giantswarm/flanneltpr/spec/bridge"
 	bridgespec "github.com/giantswarm/flanneltpr/spec/bridge/spec"
 	"github.com/giantswarm/flanneltpr/spec/flannel"
+	"github.com/giantswarm/flanneltpr/spec/health"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
@@ -52,6 +53,11 @@ func TestSpecYamlEncoding(t *testing.T) {
 			},
 			Docker: flannel.Docker{
 				Image: "quay.io/coreos/flannel",
+			},
+		},
+		Health: spec.Health{
+			Docker: health.Docker{
+				Image: "quay.io/giantswarm/flannel-network-health",
 			},
 		},
 	}

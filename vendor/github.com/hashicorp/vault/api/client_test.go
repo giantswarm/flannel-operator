@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 )
 
 func init() {
@@ -33,6 +34,15 @@ func TestDefaultConfig_envvar(t *testing.T) {
 
 	if token := client.Token(); token != "testing" {
 		t.Fatalf("bad: %s", token)
+	}
+}
+
+func TestClientDefaultHttpClient(t *testing.T) {
+	_, err := NewClient(&Config{
+		HttpClient: http.DefaultClient,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -158,5 +168,48 @@ func TestClientEnvSettings(t *testing.T) {
 	}
 	if tlsConfig.InsecureSkipVerify != true {
 		t.Fatalf("bad: %v", tlsConfig.InsecureSkipVerify)
+	}
+}
+
+func TestClientTimeoutSetting(t *testing.T) {
+	oldClientTimeout := os.Getenv(EnvVaultClientTimeout)
+	os.Setenv(EnvVaultClientTimeout, "10")
+	defer os.Setenv(EnvVaultClientTimeout, oldClientTimeout)
+	config := DefaultConfig()
+	config.ReadEnvironment()
+	client, err := NewClient(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = client.NewRequest("PUT", "/")
+	if client.config.HttpClient.Timeout != time.Second*10 {
+		t.Fatalf("error setting client timeout using env variable")
+	}
+
+	// Setting custom client timeout for a new request
+	client.SetClientTimeout(time.Second * 20)
+	_ = client.NewRequest("PUT", "/")
+	if client.config.HttpClient.Timeout != time.Second*20 {
+		t.Fatalf("error setting client timeout using SetClientTimeout")
+	}
+
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (rt roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return rt(r)
+}
+
+func TestClientNonTransportRoundTripper(t *testing.T) {
+	client := &http.Client{
+		Transport: roundTripperFunc(http.DefaultTransport.RoundTrip),
+	}
+
+	_, err := NewClient(&Config{
+		HttpClient: client,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

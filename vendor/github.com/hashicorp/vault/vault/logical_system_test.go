@@ -27,13 +27,16 @@ func TestSystemBackend_RootPaths(t *testing.T) {
 		"remount",
 		"audit",
 		"audit/*",
+		"raw",
 		"raw/*",
 		"replication/primary/secondary-token",
 		"replication/reindex",
 		"rotate",
+		"config/cors",
 		"config/auditing/*",
 		"plugins/catalog/*",
 		"revoke-prefix/*",
+		"revoke-force/*",
 		"leases/revoke-prefix/*",
 		"leases/revoke-force/*",
 		"leases/lookup/*",
@@ -44,6 +47,62 @@ func TestSystemBackend_RootPaths(t *testing.T) {
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
+}
+
+func TestSystemConfigCORS(t *testing.T) {
+	b := testSystemBackend(t)
+	_, barrier, _ := mockBarrier(t)
+	view := NewBarrierView(barrier, "")
+	b.(*SystemBackend).Core.systemBarrierView = view
+
+	req := logical.TestRequest(t, logical.UpdateOperation, "config/cors")
+	req.Data["allowed_origins"] = "http://www.example.com"
+	req.Data["allowed_headers"] = "X-Custom-Header"
+	_, err := b.HandleRequest(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &logical.Response{
+		Data: map[string]interface{}{
+			"enabled":         true,
+			"allowed_origins": []string{"http://www.example.com"},
+			"allowed_headers": append(StdAllowedHeaders, "X-Custom-Header"),
+		},
+	}
+
+	req = logical.TestRequest(t, logical.ReadOperation, "config/cors")
+	actual, err := b.HandleRequest(req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	req = logical.TestRequest(t, logical.DeleteOperation, "config/cors")
+	_, err = b.HandleRequest(req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req = logical.TestRequest(t, logical.ReadOperation, "config/cors")
+	actual, err = b.HandleRequest(req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	expected = &logical.Response{
+		Data: map[string]interface{}{
+			"enabled": false,
+		},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("DELETE FAILED -- bad: %#v", actual)
+	}
+
 }
 
 func TestSystemBackend_mounts(t *testing.T) {
@@ -58,8 +117,9 @@ func TestSystemBackend_mounts(t *testing.T) {
 	// copy what's given
 	exp := map[string]interface{}{
 		"secret/": map[string]interface{}{
-			"type":        "generic",
-			"description": "generic secret storage",
+			"type":        "kv",
+			"description": "key/value secret storage",
+			"accessor":    resp.Data["secret/"].(map[string]interface{})["accessor"],
 			"config": map[string]interface{}{
 				"default_lease_ttl": resp.Data["secret/"].(map[string]interface{})["config"].(map[string]interface{})["default_lease_ttl"].(int64),
 				"max_lease_ttl":     resp.Data["secret/"].(map[string]interface{})["config"].(map[string]interface{})["max_lease_ttl"].(int64),
@@ -70,6 +130,7 @@ func TestSystemBackend_mounts(t *testing.T) {
 		"sys/": map[string]interface{}{
 			"type":        "system",
 			"description": "system endpoints used for control, policy and debugging",
+			"accessor":    resp.Data["sys/"].(map[string]interface{})["accessor"],
 			"config": map[string]interface{}{
 				"default_lease_ttl": resp.Data["sys/"].(map[string]interface{})["config"].(map[string]interface{})["default_lease_ttl"].(int64),
 				"max_lease_ttl":     resp.Data["sys/"].(map[string]interface{})["config"].(map[string]interface{})["max_lease_ttl"].(int64),
@@ -80,12 +141,24 @@ func TestSystemBackend_mounts(t *testing.T) {
 		"cubbyhole/": map[string]interface{}{
 			"description": "per-token private secret storage",
 			"type":        "cubbyhole",
+			"accessor":    resp.Data["cubbyhole/"].(map[string]interface{})["accessor"],
 			"config": map[string]interface{}{
 				"default_lease_ttl": resp.Data["cubbyhole/"].(map[string]interface{})["config"].(map[string]interface{})["default_lease_ttl"].(int64),
 				"max_lease_ttl":     resp.Data["cubbyhole/"].(map[string]interface{})["config"].(map[string]interface{})["max_lease_ttl"].(int64),
 				"force_no_cache":    false,
 			},
 			"local": true,
+		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"accessor":    resp.Data["identity/"].(map[string]interface{})["accessor"],
+			"config": map[string]interface{}{
+				"default_lease_ttl": resp.Data["identity/"].(map[string]interface{})["config"].(map[string]interface{})["default_lease_ttl"].(int64),
+				"max_lease_ttl":     resp.Data["identity/"].(map[string]interface{})["config"].(map[string]interface{})["max_lease_ttl"].(int64),
+				"force_no_cache":    false,
+			},
+			"local": false,
 		},
 	}
 	if !reflect.DeepEqual(resp.Data, exp) {
@@ -97,7 +170,7 @@ func TestSystemBackend_mount(t *testing.T) {
 	b := testSystemBackend(t)
 
 	req := logical.TestRequest(t, logical.UpdateOperation, "mounts/prod/secret/")
-	req.Data["type"] = "generic"
+	req.Data["type"] = "kv"
 
 	resp, err := b.HandleRequest(req)
 	if err != nil {
@@ -112,7 +185,7 @@ func TestSystemBackend_mount_force_no_cache(t *testing.T) {
 	core, b, _ := testCoreSystemBackend(t)
 
 	req := logical.TestRequest(t, logical.UpdateOperation, "mounts/prod/secret/")
-	req.Data["type"] = "generic"
+	req.Data["type"] = "kv"
 	req.Data["config"] = map[string]interface{}{
 		"force_no_cache": true,
 	}
@@ -361,7 +434,7 @@ func TestSystemBackend_leases(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if resp.Data["renewable"] == nil || resp.Data["renewable"].(bool) {
-		t.Fatal("generic leases are not renewable")
+		t.Fatal("kv leases are not renewable")
 	}
 
 	// Invalid lease
@@ -927,7 +1000,8 @@ func TestSystemBackend_revokePrefixAuth(t *testing.T) {
 			MaxLeaseTTLVal:     time.Hour * 24 * 32,
 		},
 	}
-	b, err := NewSystemBackend(core, bc)
+	b := NewSystemBackend(core)
+	err := b.Backend.Setup(bc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -990,7 +1064,8 @@ func TestSystemBackend_revokePrefixAuth_origUrl(t *testing.T) {
 			MaxLeaseTTLVal:     time.Hour * 24 * 32,
 		},
 	}
-	b, err := NewSystemBackend(core, bc)
+	b := NewSystemBackend(core)
+	err := b.Backend.Setup(bc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1056,6 +1131,7 @@ func TestSystemBackend_authTable(t *testing.T) {
 		"token/": map[string]interface{}{
 			"type":        "token",
 			"description": "token based credentials",
+			"accessor":    resp.Data["token/"].(map[string]interface{})["accessor"],
 			"config": map[string]interface{}{
 				"default_lease_ttl": int64(0),
 				"max_lease_ttl":     int64(0),
@@ -1171,8 +1247,16 @@ func TestSystemBackend_policyCRUD(t *testing.T) {
 	// Read, and make sure that case has been normalized
 	req = logical.TestRequest(t, logical.ReadOperation, "policy/Foo")
 	resp, err = b.HandleRequest(req)
-	if resp != nil {
-		t.Fatalf("err: expected nil response, got %#v", *resp)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	exp = map[string]interface{}{
+		"name":  "foo",
+		"rules": rules,
+	}
+	if !reflect.DeepEqual(resp.Data, exp) {
+		t.Fatalf("got: %#v expect: %#v", resp.Data, exp)
 	}
 
 	// List the policies
@@ -1375,7 +1459,7 @@ func TestSystemBackend_disableAudit(t *testing.T) {
 }
 
 func TestSystemBackend_rawRead_Protected(t *testing.T) {
-	b := testSystemBackend(t)
+	b := testSystemBackendRaw(t)
 
 	req := logical.TestRequest(t, logical.ReadOperation, "raw/"+keyringPath)
 	_, err := b.HandleRequest(req)
@@ -1385,7 +1469,7 @@ func TestSystemBackend_rawRead_Protected(t *testing.T) {
 }
 
 func TestSystemBackend_rawWrite_Protected(t *testing.T) {
-	b := testSystemBackend(t)
+	b := testSystemBackendRaw(t)
 
 	req := logical.TestRequest(t, logical.UpdateOperation, "raw/"+keyringPath)
 	_, err := b.HandleRequest(req)
@@ -1395,7 +1479,7 @@ func TestSystemBackend_rawWrite_Protected(t *testing.T) {
 }
 
 func TestSystemBackend_rawReadWrite(t *testing.T) {
-	c, b, _ := testCoreSystemBackend(t)
+	c, b, _ := testCoreSystemBackendRaw(t)
 
 	req := logical.TestRequest(t, logical.UpdateOperation, "raw/sys/policy/test")
 	req.Data["value"] = `path "secret/" { policy = "read" }`
@@ -1431,7 +1515,7 @@ func TestSystemBackend_rawReadWrite(t *testing.T) {
 }
 
 func TestSystemBackend_rawDelete_Protected(t *testing.T) {
-	b := testSystemBackend(t)
+	b := testSystemBackendRaw(t)
 
 	req := logical.TestRequest(t, logical.DeleteOperation, "raw/"+keyringPath)
 	_, err := b.HandleRequest(req)
@@ -1441,7 +1525,7 @@ func TestSystemBackend_rawDelete_Protected(t *testing.T) {
 }
 
 func TestSystemBackend_rawDelete(t *testing.T) {
-	c, b, _ := testCoreSystemBackend(t)
+	c, b, _ := testCoreSystemBackendRaw(t)
 
 	// set the policy!
 	p := &Policy{Name: "test"}
@@ -1517,6 +1601,25 @@ func TestSystemBackend_rotate(t *testing.T) {
 
 func testSystemBackend(t *testing.T) logical.Backend {
 	c, _, _ := TestCoreUnsealed(t)
+	return testSystemBackendInternal(t, c)
+}
+
+func testSystemBackendRaw(t *testing.T) logical.Backend {
+	c, _, _ := TestCoreUnsealedRaw(t)
+	return testSystemBackendInternal(t, c)
+}
+
+func testCoreSystemBackend(t *testing.T) (*Core, logical.Backend, string) {
+	c, _, root := TestCoreUnsealed(t)
+	return c, testSystemBackendInternal(t, c), root
+}
+
+func testCoreSystemBackendRaw(t *testing.T) (*Core, logical.Backend, string) {
+	c, _, root := TestCoreUnsealedRaw(t)
+	return c, testSystemBackendInternal(t, c), root
+}
+
+func testSystemBackendInternal(t *testing.T, c *Core) logical.Backend {
 	bc := &logical.BackendConfig{
 		Logger: c.logger,
 		System: logical.StaticSystemView{
@@ -1525,29 +1628,13 @@ func testSystemBackend(t *testing.T) logical.Backend {
 		},
 	}
 
-	b, err := NewSystemBackend(c, bc)
+	b := NewSystemBackend(c)
+	err := b.Backend.Setup(bc)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	return b
-}
-
-func testCoreSystemBackend(t *testing.T) (*Core, logical.Backend, string) {
-	c, _, root := TestCoreUnsealed(t)
-	bc := &logical.BackendConfig{
-		Logger: c.logger,
-		System: logical.StaticSystemView{
-			DefaultLeaseTTLVal: time.Hour * 24,
-			MaxLeaseTTLVal:     time.Hour * 24 * 32,
-		},
-	}
-
-	b, err := NewSystemBackend(c, bc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return c, b, root
 }
 
 func TestSystemBackend_PluginCatalog_CRUD(t *testing.T) {
@@ -1574,22 +1661,16 @@ func TestSystemBackend_PluginCatalog_CRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	actualRespData := resp.Data
 
 	expectedBuiltin := &pluginutil.PluginRunner{
 		Name:    "mysql-database-plugin",
 		Builtin: true,
 	}
-	expectedBuiltin.BuiltinFactory, _ = builtinplugins.Get("mysql-database-plugin")
+	expectedRespData := structs.New(expectedBuiltin).Map()
 
-	p := resp.Data["plugin"].(*pluginutil.PluginRunner)
-	if &(p.BuiltinFactory) == &(expectedBuiltin.BuiltinFactory) {
-		t.Fatal("expected BuiltinFactory did not match actual")
-	}
-
-	expectedBuiltin.BuiltinFactory = nil
-	p.BuiltinFactory = nil
-	if !reflect.DeepEqual(p, expectedBuiltin) {
-		t.Fatalf("expected did not match actual, got %#v\n expected %#v\n", resp.Data["plugin"].(*pluginutil.PluginRunner), expectedBuiltin)
+	if !reflect.DeepEqual(actualRespData, expectedRespData) {
+		t.Fatalf("expected did not match actual, got %#v\n expected %#v\n", actualRespData, expectedRespData)
 	}
 
 	// Set a plugin
@@ -1613,16 +1694,19 @@ func TestSystemBackend_PluginCatalog_CRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	actual := resp.Data
 
-	expected := &pluginutil.PluginRunner{
+	expectedRunner := &pluginutil.PluginRunner{
 		Name:    "test-plugin",
 		Command: filepath.Join(sym, filepath.Base(file.Name())),
 		Args:    []string{"--test"},
 		Sha256:  []byte{'1'},
 		Builtin: false,
 	}
-	if !reflect.DeepEqual(resp.Data["plugin"].(*pluginutil.PluginRunner), expected) {
-		t.Fatalf("expected did not match actual, got %#v\n expected %#v\n", resp.Data["plugin"].(*pluginutil.PluginRunner), expected)
+	expected := structs.New(expectedRunner).Map()
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("expected did not match actual, got %#v\n expected %#v\n", actual, expected)
 	}
 
 	// Delete plugin

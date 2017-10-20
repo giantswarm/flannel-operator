@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/giantswarm/flanneltpr"
+	"strconv"
 )
 
 const (
@@ -14,6 +15,18 @@ const (
 	// networkApp is the app label for resources cleaning flannel network
 	// and bridges.
 	destroyerApp = "flannel-destroyer"
+	// base port for liveness probes
+	portBase = 21000
+	// health endpoint
+	healthEndpoint = "/healthz"
+	// liveness probe host
+	probeHost = "127.0.0.1"
+	// liveness config
+	initialDelaySeconds = 10
+	timeoutSeconds      = 5
+	periodSeconds       = 10
+	failureThreshold    = 2
+	successThreshold    = 1
 )
 
 // networkNamespace returns the namespace in which the operator's resources run
@@ -60,12 +73,22 @@ func flannelRunDir(spec flanneltpr.Spec) string {
 	return spec.Flannel.Spec.RunDir
 }
 
+func healthListenAddress(spec flanneltpr.Spec) string {
+	return "http://" + probeHost + ":" + strconv.Itoa(int(livenessPort(spec)))
+}
 func hostPrivateNetwork(spec flanneltpr.Spec) string {
 	return spec.Bridge.Spec.PrivateNetwork
 }
 
+func livenessPort(spec flanneltpr.Spec) int32 {
+	return int32(portBase + spec.Flannel.Spec.VNI)
+}
+
 func networkBridgeDockerImage(spec flanneltpr.Spec) string {
 	return spec.Bridge.Docker.Image
+}
+func networkHealthDockerImage(spec flanneltpr.Spec) string {
+	return spec.Health.Docker.Image
 }
 
 func networkBridgeName(spec flanneltpr.Spec) string {
