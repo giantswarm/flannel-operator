@@ -95,6 +95,10 @@ func networkBridgeName(spec flanneltpr.Spec) string {
 	return "br-" + clusterID(spec)
 }
 
+func networkTapName(spec flanneltpr.Spec) string {
+	return "tap-" + clusterID(spec)
+}
+
 func networkDNSBlock(spec flanneltpr.Spec) string {
 	var parts []string
 	for _, s := range spec.Bridge.Spec.DNS.Servers {
