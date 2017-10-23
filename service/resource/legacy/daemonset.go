@@ -159,6 +159,10 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 					Name:  "NETWORK_NTP_BLOCK",
 					Value: networkNTPBlock(spec),
 				},
+				{
+					Name:  "NETWORK_TAP_NAME",
+					Value: networkTapName(spec),
+				},
 			},
 			LivenessProbe: &api.Probe{
 				InitialDelaySeconds: initialDelaySeconds,

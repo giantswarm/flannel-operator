@@ -122,3 +122,7 @@ func networkNTPBlock(spec flanneltpr.Spec) string {
 	}
 	return strings.Join(parts, "\n")
 }
+
+func networkTapName(spec flanneltpr.Spec) string {
+	return "tap-" + clusterID(spec)
+}
