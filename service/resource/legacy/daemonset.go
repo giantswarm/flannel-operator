@@ -144,10 +144,6 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 					Value: networkDNSBlock(spec),
 				},
 				{
-					Name:  "NETWORK_TAP_NAME",
-					Value: networkTapName(spec),
-				},
-				{
 					Name:  "NETWORK_ENV_FILE_PATH",
 					Value: networkEnvFilePath(spec),
 				},
@@ -162,6 +158,10 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 				{
 					Name:  "NETWORK_NTP_BLOCK",
 					Value: networkNTPBlock(spec),
+				},
+				{
+					Name:  "NETWORK_TAP_NAME",
+					Value: networkTapName(spec),
 				},
 			},
 			LivenessProbe: &api.Probe{

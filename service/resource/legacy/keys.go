@@ -103,10 +103,6 @@ func networkDNSBlock(spec flanneltpr.Spec) string {
 	return strings.Join(parts, "\n")
 }
 
-func networkTapName(spec flanneltpr.Spec) string {
-	return "tap-" + clusterID(spec)
-}
-
 func networkEnvFilePath(spec flanneltpr.Spec) string {
 	return fmt.Sprintf("%s/networks/%s.env", flannelRunDir(spec), networkBridgeName(spec))
 }
@@ -125,4 +121,8 @@ func networkNTPBlock(spec flanneltpr.Spec) string {
 		parts = append(parts, fmt.Sprintf("NTP=%s", s))
 	}
 	return strings.Join(parts, "\n")
+}
+
+func networkTapName(spec flanneltpr.Spec) string {
+	return "tap-" + clusterID(spec)
 }
