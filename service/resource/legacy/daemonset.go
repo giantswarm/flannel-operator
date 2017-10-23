@@ -140,12 +140,12 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 					Value: networkBridgeName(spec),
 				},
 				{
-					Name:  "NETWORK_TAP_NAME",
-					Value: networkTapName(spec),
-				},
-				{
 					Name:  "NETWORK_DNS_BLOCK",
 					Value: networkDNSBlock(spec),
+				},
+				{
+					Name:  "NETWORK_TAP_NAME",
+					Value: networkTapName(spec),
 				},
 				{
 					Name:  "NETWORK_ENV_FILE_PATH",

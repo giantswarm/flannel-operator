@@ -95,16 +95,16 @@ func networkBridgeName(spec flanneltpr.Spec) string {
 	return "br-" + clusterID(spec)
 }
 
-func networkTapName(spec flanneltpr.Spec) string {
-	return "tap-" + clusterID(spec)
-}
-
 func networkDNSBlock(spec flanneltpr.Spec) string {
 	var parts []string
 	for _, s := range spec.Bridge.Spec.DNS.Servers {
 		parts = append(parts, fmt.Sprintf("DNS=%s", s.String()))
 	}
 	return strings.Join(parts, "\n")
+}
+
+func networkTapName(spec flanneltpr.Spec) string {
+	return "tap-" + clusterID(spec)
 }
 
 func networkEnvFilePath(spec flanneltpr.Spec) string {
