@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,7 +21,6 @@ import (
 const (
 	clusterListenerAcceptDeadline = 500 * time.Millisecond
 	heartbeatInterval             = 30 * time.Second
-	requestForwardingALPN         = "req_fw_sb-act_v1"
 )
 
 // Starts the listeners and servers necessary to handle forwarded requests
@@ -46,7 +44,7 @@ func (c *Core) startForwarding() error {
 	}
 
 	// The server supports all of the possible protos
-	tlsConfig.NextProtos = []string{"h2", requestForwardingALPN}
+	tlsConfig.NextProtos = []string{"h2", "req_fw_sb-act_v1"}
 
 	// Create our RPC server and register the request handler server
 	c.clusterParamsLock.Lock()
@@ -145,13 +143,13 @@ func (c *Core) startForwarding() error {
 				}
 
 				switch tlsConn.ConnectionState().NegotiatedProtocol {
-				case requestForwardingALPN:
+				case "req_fw_sb-act_v1":
 					if !ha {
 						conn.Close()
 						continue
 					}
 
-					c.logger.Trace("core: got request forwarding connection")
+					c.logger.Trace("core: got req_fw_sb-act_v1 connection")
 					go fws.ServeConn(conn, &http2.ServeConnOpts{
 						Handler: c.rpcServer,
 					})
@@ -228,7 +226,7 @@ func (c *Core) refreshRequestForwardingConnection(clusterAddr string) error {
 	// the TLS state.
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	c.rpcClientConn, err = grpc.DialContext(ctx, clusterURL.Host,
-		grpc.WithDialer(c.getGRPCDialer(requestForwardingALPN, "", nil)),
+		grpc.WithDialer(c.getGRPCDialer("req_fw_sb-act_v1", "", nil)),
 		grpc.WithInsecure(), // it's not, we handle it in the dialer
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time: 2 * heartbeatInterval,
@@ -354,23 +352,12 @@ func (s *forwardedRequestRPCServer) ForwardRequest(ctx context.Context, freq *fo
 	// meets the interface requirements.
 	w := forwarding.NewRPCResponseWriter()
 
-	resp := &forwarding.Response{}
+	s.handler.ServeHTTP(w, req)
 
-	runRequest := func() {
-		defer func() {
-			// Logic here comes mostly from the Go source code
-			if err := recover(); err != nil {
-				const size = 64 << 10
-				buf := make([]byte, size)
-				buf = buf[:runtime.Stack(buf, false)]
-				s.core.logger.Error("forwarding: panic serving request", "path", req.URL.Path, "error", err, "stacktrace", buf)
-			}
-		}()
-		s.handler.ServeHTTP(w, req)
+	resp := &forwarding.Response{
+		StatusCode: uint32(w.StatusCode()),
+		Body:       w.Body().Bytes(),
 	}
-	runRequest()
-	resp.StatusCode = uint32(w.StatusCode())
-	resp.Body = w.Body().Bytes()
 
 	header := w.Header()
 	if header != nil {

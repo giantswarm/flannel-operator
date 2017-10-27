@@ -6,11 +6,7 @@ import (
 )
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
-	b := Backend()
-	if err := b.Setup(conf); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return Backend().Setup(conf)
 }
 
 func Backend() *backend {
@@ -26,7 +22,6 @@ func Backend() *backend {
 		Secrets: []*framework.Secret{
 			secretToken(&b),
 		},
-		BackendType: logical.TypeLogical,
 	}
 
 	return &b

@@ -3,7 +3,6 @@ package api
 import (
 	"crypto/tls"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,7 +16,6 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-rootcerts"
-	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/sethgrid/pester"
 )
 
@@ -26,7 +24,6 @@ const EnvVaultCACert = "VAULT_CACERT"
 const EnvVaultCAPath = "VAULT_CAPATH"
 const EnvVaultClientCert = "VAULT_CLIENT_CERT"
 const EnvVaultClientKey = "VAULT_CLIENT_KEY"
-const EnvVaultClientTimeout = "VAULT_CLIENT_TIMEOUT"
 const EnvVaultInsecure = "VAULT_SKIP_VERIFY"
 const EnvVaultTLSServerName = "VAULT_TLS_SERVER_NAME"
 const EnvVaultWrapTTL = "VAULT_WRAP_TTL"
@@ -57,9 +54,6 @@ type Config struct {
 	// MaxRetries controls the maximum number of times to retry when a 5xx error
 	// occurs. Set to 0 or less to disable retrying. Defaults to 0.
 	MaxRetries int
-
-	// Timeout is for setting custom timeout parameter in the HttpClient
-	Timeout time.Duration
 }
 
 // TLSConfig contains the parameters needed to configure TLS on the HTTP client
@@ -162,7 +156,6 @@ func (c *Config) ReadEnvironment() error {
 	var envCAPath string
 	var envClientCert string
 	var envClientKey string
-	var envClientTimeout time.Duration
 	var envInsecure bool
 	var envTLSServerName string
 	var envMaxRetries *uint64
@@ -189,13 +182,6 @@ func (c *Config) ReadEnvironment() error {
 	}
 	if v := os.Getenv(EnvVaultClientKey); v != "" {
 		envClientKey = v
-	}
-	if t := os.Getenv(EnvVaultClientTimeout); t != "" {
-		clientTimeout, err := parseutil.ParseDurationSecond(t)
-		if err != nil {
-			return fmt.Errorf("Could not parse %s", EnvVaultClientTimeout)
-		}
-		envClientTimeout = clientTimeout
 	}
 	if v := os.Getenv(EnvVaultInsecure); v != "" {
 		var err error
@@ -229,10 +215,6 @@ func (c *Config) ReadEnvironment() error {
 		c.MaxRetries = int(*envMaxRetries) + 1
 	}
 
-	if envClientTimeout != 0 {
-		c.Timeout = envClientTimeout
-	}
-
 	return nil
 }
 
@@ -242,7 +224,6 @@ type Client struct {
 	addr               *url.URL
 	config             *Config
 	token              string
-	headers            http.Header
 	wrappingLookupFunc WrappingLookupFunc
 }
 
@@ -267,14 +248,10 @@ func NewClient(c *Config) (*Client, error) {
 	if c.HttpClient == nil {
 		c.HttpClient = DefaultConfig().HttpClient
 	}
-	if c.HttpClient.Transport == nil {
-		c.HttpClient.Transport = cleanhttp.DefaultTransport()
-	}
 
-	if tp, ok := c.HttpClient.Transport.(*http.Transport); ok {
-		if err := http2.ConfigureTransport(tp); err != nil {
-			return nil, err
-		}
+	tp := c.HttpClient.Transport.(*http.Transport)
+	if err := http2.ConfigureTransport(tp); err != nil {
+		return nil, err
 	}
 
 	redirFunc := func() {
@@ -327,11 +304,6 @@ func (c *Client) SetMaxRetries(retries int) {
 	c.config.MaxRetries = retries
 }
 
-// SetClientTimeout sets the client request timeout
-func (c *Client) SetClientTimeout(timeout time.Duration) {
-	c.config.Timeout = timeout
-}
-
 // SetWrappingLookupFunc sets a lookup function that returns desired wrap TTLs
 // for a given operation and path
 func (c *Client) SetWrappingLookupFunc(lookupFunc WrappingLookupFunc) {
@@ -355,37 +327,16 @@ func (c *Client) ClearToken() {
 	c.token = ""
 }
 
-// SetHeaders sets the headers to be used for future requests.
-func (c *Client) SetHeaders(headers http.Header) {
-	c.headers = headers
-}
-
-// Clone creates a copy of this client.
-func (c *Client) Clone() (*Client, error) {
-	return NewClient(c.config)
-}
-
 // NewRequest creates a new raw request object to query the Vault server
 // configured for this client. This is an advanced method and generally
 // doesn't need to be called externally.
 func (c *Client) NewRequest(method, requestPath string) *Request {
-	// if SRV records exist (see https://tools.ietf.org/html/draft-andrews-http-srv-02), lookup the SRV
-	// record and take the highest match; this is not designed for high-availability, just discovery
-	var host string = c.addr.Host
-	if c.addr.Port() == "" {
-		// Internet Draft specifies that the SRV record is ignored if a port is given
-		_, addrs, err := net.LookupSRV("http", "tcp", c.addr.Hostname())
-		if err == nil && len(addrs) > 0 {
-			host = fmt.Sprintf("%s:%d", addrs[0].Target, addrs[0].Port)
-		}
-	}
-
 	req := &Request{
 		Method: method,
 		URL: &url.URL{
 			User:   c.addr.User,
 			Scheme: c.addr.Scheme,
-			Host:   host,
+			Host:   c.addr.Host,
 			Path:   path.Join(c.addr.Path, requestPath),
 		},
 		ClientToken: c.token,
@@ -405,12 +356,6 @@ func (c *Client) NewRequest(method, requestPath string) *Request {
 		req.WrapTTL = c.wrappingLookupFunc(method, lookupPath)
 	} else {
 		req.WrapTTL = DefaultWrappingLookupFunc(method, lookupPath)
-	}
-	if c.config.Timeout != 0 {
-		c.config.HttpClient.Timeout = c.config.Timeout
-	}
-	if c.headers != nil {
-		req.Headers = c.headers
 	}
 
 	return req

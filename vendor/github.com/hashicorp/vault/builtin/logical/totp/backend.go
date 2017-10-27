@@ -2,22 +2,16 @@ package totp
 
 import (
 	"strings"
-	"time"
 
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
-	cache "github.com/patrickmn/go-cache"
 )
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
-	b := Backend()
-	if err := b.Setup(conf); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return Backend(conf).Setup(conf)
 }
 
-func Backend() *backend {
+func Backend(conf *logical.BackendConfig) *backend {
 	var b backend
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
@@ -28,19 +22,14 @@ func Backend() *backend {
 			pathCode(&b),
 		},
 
-		Secrets:     []*framework.Secret{},
-		BackendType: logical.TypeLogical,
+		Secrets: []*framework.Secret{},
 	}
-
-	b.usedCodes = cache.New(0, 30*time.Second)
 
 	return &b
 }
 
 type backend struct {
 	*framework.Backend
-
-	usedCodes *cache.Cache
 }
 
 const backendHelp = `

@@ -220,18 +220,16 @@ func TestCore_EnableAudit_Local(t *testing.T) {
 		Type: auditTableType,
 		Entries: []*MountEntry{
 			&MountEntry{
-				Table:    auditTableType,
-				Path:     "noop/",
-				Type:     "noop",
-				UUID:     "abcd",
-				Accessor: "noop-abcd",
+				Table: auditTableType,
+				Path:  "noop/",
+				Type:  "noop",
+				UUID:  "abcd",
 			},
 			&MountEntry{
-				Table:    auditTableType,
-				Path:     "noop2/",
-				Type:     "noop",
-				UUID:     "bcde",
-				Accessor: "noop-bcde",
+				Table: auditTableType,
+				Path:  "noop2/",
+				Type:  "noop",
+				UUID:  "bcde",
 			},
 		},
 	}

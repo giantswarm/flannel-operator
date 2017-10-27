@@ -17,7 +17,7 @@ func createBackendWithStorage(t *testing.T) (*backend, logical.Storage) {
 	if b == nil {
 		t.Fatalf("failed to create backend")
 	}
-	err = b.Backend.Setup(config)
+	_, err = b.Backend.Setup(config)
 	if err != nil {
 		t.Fatal(err)
 	}

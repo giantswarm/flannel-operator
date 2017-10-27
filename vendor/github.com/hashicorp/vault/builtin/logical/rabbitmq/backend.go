@@ -13,11 +13,7 @@ import (
 
 // Factory creates and configures the backend
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
-	b := Backend()
-	if err := b.Setup(conf); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return Backend().Setup(conf)
 }
 
 // Creates a new backend with all the paths and secrets belonging to it
@@ -38,9 +34,9 @@ func Backend() *backend {
 			secretCreds(&b),
 		},
 
-		Clean:       b.resetClient,
-		Invalidate:  b.invalidate,
-		BackendType: logical.TypeLogical,
+		Clean: b.resetClient,
+
+		Invalidate: b.invalidate,
 	}
 
 	return &b
