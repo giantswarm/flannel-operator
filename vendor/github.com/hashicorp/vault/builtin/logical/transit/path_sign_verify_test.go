@@ -8,7 +8,6 @@ import (
 	"golang.org/x/crypto/ed25519"
 
 	"github.com/hashicorp/vault/logical"
-	"github.com/mitchellh/mapstructure"
 )
 
 func TestTransit_SignVerify_P256(t *testing.T) {
@@ -161,10 +160,6 @@ func TestTransit_SignVerify_P256(t *testing.T) {
 	verifyRequest(req, false, "", sig)
 
 	req.Data["algorithm"] = "sha2-384"
-	sig = signRequest(req, false, "")
-	verifyRequest(req, false, "", sig)
-
-	req.Data["algorithm"] = "none"
 	sig = signRequest(req, false, "")
 	verifyRequest(req, false, "", sig)
 
@@ -336,12 +331,8 @@ func TestTransit_SignVerify_ED25519(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			val := keyReadResp.Data["keys"].(map[string]map[string]interface{})[strings.TrimPrefix(splitSig[1], "v")]
-			var ak asymKey
-			if err := mapstructure.Decode(val, &ak); err != nil {
-				t.Fatal(err)
-			}
-			if ak.PublicKey != "" {
+			val := keyReadResp.Data["keys"].(map[string]asymKey)[strings.TrimPrefix(splitSig[1], "v")]
+			if val.PublicKey != "" {
 				t.Fatal("got non-empty public key")
 			}
 			keyReadReq.Data = map[string]interface{}{
@@ -351,12 +342,9 @@ func TestTransit_SignVerify_ED25519(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			val = keyReadResp.Data["keys"].(map[string]map[string]interface{})[strings.TrimPrefix(splitSig[1], "v")]
-			if err := mapstructure.Decode(val, &ak); err != nil {
-				t.Fatal(err)
-			}
-			if ak.PublicKey != base64.StdEncoding.EncodeToString(pubKeyRaw.([]byte)) {
-				t.Fatalf("got incorrect public key; got %q, expected %q\nasymKey struct is\n%#v", ak.PublicKey, pubKeyRaw, ak)
+			val = keyReadResp.Data["keys"].(map[string]asymKey)[strings.TrimPrefix(splitSig[1], "v")]
+			if val.PublicKey != base64.StdEncoding.EncodeToString(pubKeyRaw.([]byte)) {
+				t.Fatalf("got incorrect public key; got %q, expected %q", val.PublicKey, pubKeyRaw)
 			}
 		}
 	}

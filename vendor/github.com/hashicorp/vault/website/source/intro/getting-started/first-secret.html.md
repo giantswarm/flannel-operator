@@ -1,6 +1,6 @@
 ---
 layout: "intro"
-page_title: "Your First Secret - Getting Started"
+page_title: "Your First Secret"
 sidebar_current: "gettingstarted-firstsecret"
 description: |-
   With the Vault server running, let's read and write our first secret.

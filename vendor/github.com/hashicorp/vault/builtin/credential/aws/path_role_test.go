@@ -19,7 +19,7 @@ func TestBackend_pathRoleEc2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = b.Setup(config)
+	_, err = b.Setup(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func Test_enableIamIDResolution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = b.Setup(config)
+	_, err = b.Setup(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestBackend_pathIam(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = b.Setup(config)
+	_, err = b.Setup(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -385,7 +385,7 @@ func TestBackend_pathRoleMixedTypes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = b.Setup(config)
+	_, err = b.Setup(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -463,9 +463,6 @@ func TestBackend_pathRoleMixedTypes(t *testing.T) {
 		t.Fatalf("didn't allow creation of role resolving unique IDs")
 	}
 	resp, err = submitRequest("withInternalIdResolution", logical.ReadOperation)
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.Data["bound_iam_principal_id"] != "FakeUniqueId1" {
 		t.Fatalf("expected fake unique ID of FakeUniqueId1, got %q", resp.Data["bound_iam_principal_id"])
 	}
@@ -491,7 +488,7 @@ func TestAwsEc2_RoleCrud(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = b.Setup(config)
+	_, err = b.Setup(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -566,7 +563,7 @@ func TestAwsEc2_RoleCrud(t *testing.T) {
 		"allow_instance_migration":       true,
 		"ttl":                       time.Duration(600),
 		"max_ttl":                   time.Duration(1200),
-		"policies":                  []string{"testpolicy1", "testpolicy2"},
+		"policies":                  []string{"default", "testpolicy1", "testpolicy2"},
 		"disallow_reauthentication": true,
 		"period":                    time.Duration(60),
 	}
@@ -617,7 +614,7 @@ func TestAwsEc2_RoleDurationSeconds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = b.Setup(config)
+	_, err = b.Setup(config)
 	if err != nil {
 		t.Fatal(err)
 	}

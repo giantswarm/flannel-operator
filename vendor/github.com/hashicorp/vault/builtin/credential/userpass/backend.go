@@ -7,11 +7,7 @@ import (
 )
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
-	b := Backend()
-	if err := b.Setup(conf); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return Backend().Setup(conf)
 }
 
 func Backend() *backend {
@@ -36,8 +32,7 @@ func Backend() *backend {
 			mfa.MFAPaths(b.Backend, pathLogin(&b))...,
 		),
 
-		AuthRenew:   b.pathLoginRenew,
-		BackendType: logical.TypeCredential,
+		AuthRenew: b.pathLoginRenew,
 	}
 
 	return &b

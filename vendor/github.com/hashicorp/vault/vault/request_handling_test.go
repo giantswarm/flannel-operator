@@ -12,14 +12,14 @@ import (
 func TestRequestHandling_Wrapping(t *testing.T) {
 	core, _, root := TestCoreUnsealed(t)
 
-	core.logicalBackends["kv"] = PassthroughBackendFactory
+	core.logicalBackends["generic"] = PassthroughBackendFactory
 
 	meUUID, _ := uuid.GenerateUUID()
 	err := core.mount(&MountEntry{
 		Table: mountTableType,
 		UUID:  meUUID,
 		Path:  "wraptest",
-		Type:  "kv",
+		Type:  "generic",
 	})
 	if err != nil {
 		t.Fatalf("err: %v", err)

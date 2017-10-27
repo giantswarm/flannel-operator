@@ -11,8 +11,7 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/helper/pgpkeys"
 	"github.com/hashicorp/vault/meta"
-	"github.com/hashicorp/vault/physical/consul"
-	"github.com/posener/complete"
+	"github.com/hashicorp/vault/physical"
 )
 
 // InitCommand is a Command that initializes a new Vault server.
@@ -37,7 +36,7 @@ func (c *InitCommand) Run(args []string) int {
 	flags.Var(&recoveryPgpKeys, "recovery-pgp-keys", "")
 	flags.BoolVar(&check, "check", false, "")
 	flags.BoolVar(&auto, "auto", false, "")
-	flags.StringVar(&consulServiceName, "consul-service", consul.DefaultServiceName, "")
+	flags.StringVar(&consulServiceName, "consul-service", physical.DefaultServiceName, "")
 	if err := flags.Parse(args); err != nil {
 		return 1
 	}
@@ -384,23 +383,4 @@ Init Options:
                             "service" option for the Consul backend.
 `
 	return strings.TrimSpace(helpText)
-}
-
-func (c *InitCommand) AutocompleteArgs() complete.Predictor {
-	return complete.PredictNothing
-}
-
-func (c *InitCommand) AutocompleteFlags() complete.Flags {
-	return complete.Flags{
-		"-check":              complete.PredictNothing,
-		"-key-shares":         complete.PredictNothing,
-		"-key-threshold":      complete.PredictNothing,
-		"-pgp-keys":           complete.PredictNothing,
-		"-root-token-pgp-key": complete.PredictNothing,
-		"-recovery-shares":    complete.PredictNothing,
-		"-recovery-threshold": complete.PredictNothing,
-		"-recovery-pgp-keys":  complete.PredictNothing,
-		"-auto":               complete.PredictNothing,
-		"-consul-service":     complete.PredictNothing,
-	}
 }

@@ -48,6 +48,8 @@ func Handler(core *vault.Core) http.Handler {
 	mux.Handle("/v1/sys/seal", handleSysSeal(core))
 	mux.Handle("/v1/sys/step-down", handleRequestForwarding(core, handleSysStepDown(core)))
 	mux.Handle("/v1/sys/unseal", handleSysUnseal(core))
+	mux.Handle("/v1/sys/renew", handleRequestForwarding(core, handleLogical(core, false, nil)))
+	mux.Handle("/v1/sys/renew/", handleRequestForwarding(core, handleLogical(core, false, nil)))
 	mux.Handle("/v1/sys/leader", handleSysLeader(core))
 	mux.Handle("/v1/sys/health", handleSysHealth(core))
 	mux.Handle("/v1/sys/generate-root/attempt", handleRequestForwarding(core, handleSysGenerateRootAttempt(core)))
@@ -59,19 +61,16 @@ func Handler(core *vault.Core) http.Handler {
 	mux.Handle("/v1/sys/wrapping/lookup", handleRequestForwarding(core, handleLogical(core, false, wrappingVerificationFunc)))
 	mux.Handle("/v1/sys/wrapping/rewrap", handleRequestForwarding(core, handleLogical(core, false, wrappingVerificationFunc)))
 	mux.Handle("/v1/sys/wrapping/unwrap", handleRequestForwarding(core, handleLogical(core, false, wrappingVerificationFunc)))
-	for _, path := range injectDataIntoTopRoutes {
-		mux.Handle(path, handleRequestForwarding(core, handleLogical(core, true, nil)))
-	}
-	mux.Handle("/v1/sys/", handleRequestForwarding(core, handleLogical(core, false, nil)))
+	mux.Handle("/v1/sys/capabilities-self", handleRequestForwarding(core, handleLogical(core, true, nil)))
+	mux.Handle("/v1/sys/", handleRequestForwarding(core, handleLogical(core, true, nil)))
 	mux.Handle("/v1/", handleRequestForwarding(core, handleLogical(core, false, nil)))
 
 	// Wrap the handler in another handler to trigger all help paths.
 	helpWrappedHandler := wrapHelpHandler(mux, core)
-	corsWrappedHandler := wrapCORSHandler(helpWrappedHandler, core)
 
 	// Wrap the help wrapped handler with another layer with a generic
 	// handler
-	genericWrappedHandler := wrapGenericHandler(corsWrappedHandler)
+	genericWrappedHandler := wrapGenericHandler(helpWrappedHandler)
 
 	return genericWrappedHandler
 }
@@ -153,7 +152,7 @@ func handleRequestForwarding(core *vault.Core, handler http.Handler) http.Handle
 		// Note: in an HA setup, this call will also ensure that connections to
 		// the leader are set up, as that happens once the advertised cluster
 		// values are read during this function
-		isLeader, leaderAddr, _, err := core.Leader()
+		isLeader, leaderAddr, err := core.Leader()
 		if err != nil {
 			if err == vault.ErrHANotEnabled {
 				// Standalone node, serve request normally
@@ -170,7 +169,7 @@ func handleRequestForwarding(core *vault.Core, handler http.Handler) http.Handle
 			return
 		}
 		if leaderAddr == "" {
-			respondError(w, http.StatusInternalServerError, fmt.Errorf("local node not active but active cluster node not found"))
+			respondError(w, http.StatusInternalServerError, fmt.Errorf("node not active but active node not found"))
 			return
 		}
 
@@ -222,7 +221,7 @@ func request(core *vault.Core, w http.ResponseWriter, rawReq *http.Request, r *l
 // respondStandby is used to trigger a redirect in the case that this Vault is currently a hot standby
 func respondStandby(core *vault.Core, w http.ResponseWriter, reqURL *url.URL) {
 	// Request the leader address
-	_, redirectAddr, _, err := core.Leader()
+	_, redirectAddr, err := core.Leader()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -351,28 +350,4 @@ func respondOk(w http.ResponseWriter, body interface{}) {
 
 type ErrorResponse struct {
 	Errors []string `json:"errors"`
-}
-
-var injectDataIntoTopRoutes = []string{
-	"/v1/sys/audit",
-	"/v1/sys/audit/",
-	"/v1/sys/audit-hash/",
-	"/v1/sys/auth",
-	"/v1/sys/auth/",
-	"/v1/sys/config/cors",
-	"/v1/sys/config/auditing/request-headers/",
-	"/v1/sys/config/auditing/request-headers",
-	"/v1/sys/capabilities",
-	"/v1/sys/capabilities-accessor",
-	"/v1/sys/capabilities-self",
-	"/v1/sys/key-status",
-	"/v1/sys/mounts",
-	"/v1/sys/mounts/",
-	"/v1/sys/policy",
-	"/v1/sys/policy/",
-	"/v1/sys/rekey/backup",
-	"/v1/sys/rekey/recovery-key-backup",
-	"/v1/sys/remount",
-	"/v1/sys/rotate",
-	"/v1/sys/wrapping/wrap",
 }

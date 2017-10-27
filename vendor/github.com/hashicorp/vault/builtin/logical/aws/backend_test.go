@@ -196,10 +196,6 @@ func teardown() error {
 		RoleName:  aws.String(testRoleName), // Required
 	}
 	_, err := svc.DetachRolePolicy(attachment)
-	if err != nil {
-		log.Printf("[WARN] AWS DetachRolePolicy failed: %v", err)
-		return err
-	}
 
 	params := &iam.DeleteRoleInput{
 		RoleName: aws.String(testRoleName),
@@ -210,10 +206,9 @@ func teardown() error {
 
 	if err != nil {
 		log.Printf("[WARN] AWS DeleteRole failed: %v", err)
-		return err
 	}
 
-	return nil
+	return err
 }
 
 func testAccStepConfig(t *testing.T) logicaltest.TestStep {

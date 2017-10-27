@@ -4,8 +4,6 @@ import (
 	"crypto/rand"
 	"time"
 
-	"fmt"
-
 	"github.com/hashicorp/vault/builtin/logical/database/dbplugin"
 )
 
@@ -18,43 +16,24 @@ type CredentialsProducer interface {
 	GenerateExpiration(ttl time.Time) (string, error)
 }
 
-const (
-	reqStr    = `A1a-`
-	minStrLen = 10
-)
+// RandomAlphaNumericOfLen returns a random byte slice of characters [A-Za-z0-9]
+// of the provided length.
+func RandomAlphaNumericOfLen(len int) ([]byte, error) {
+	retBytes := make([]byte, len)
+	size := 0
 
-// RandomAlphaNumeric returns a random string of characters [A-Za-z0-9-]
-// of the provided length. The string generated takes up to 4 characters
-// of space that are predefined and prepended to ensure password
-// character requirements. It also requires a min length of 10 characters.
-func RandomAlphaNumeric(length int, prependA1a bool) (string, error) {
-	if length < minStrLen {
-		return "", fmt.Errorf("minimum length of %d is required", minStrLen)
-	}
-
-	var size int
-	var retBytes []byte
-	if prependA1a {
-		size = len(reqStr)
-		retBytes = make([]byte, length-size)
-		// Enforce alphanumeric requirements
-		retBytes = append([]byte(reqStr), retBytes...)
-	} else {
-		retBytes = make([]byte, length)
-	}
-
-	for size < length {
+	for size < len {
 		// Extend the len of the random byte slice to lower odds of having to
 		// re-roll.
-		c := length + len(reqStr)
+		c := len + 3
 		bArr := make([]byte, c)
 		_, err := rand.Read(bArr)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		for _, b := range bArr {
-			if size == length {
+			if size == len {
 				break
 			}
 
@@ -71,8 +50,6 @@ func RandomAlphaNumeric(length int, prependA1a bool) (string, error) {
 			 */
 
 			b = b >> 1
-			// Bitwise OR to set min to 48, further reduces re-roll
-			b |= 0x30
 
 			// The byte is any of        0-9                  A-Z                      a-z
 			byteIsAllowable := (b >= 48 && b <= 57) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122)
@@ -83,5 +60,5 @@ func RandomAlphaNumeric(length int, prependA1a bool) (string, error) {
 		}
 	}
 
-	return string(retBytes), nil
+	return retBytes, nil
 }

@@ -1,6 +1,6 @@
 ---
 layout: "intro"
-page_title: "Starting the Server - Getting Started"
+page_title: "Starting the Server"
 sidebar_current: "gettingstarted-devserver"
 description: |-
   After installing Vault, the next step is to start the server.
