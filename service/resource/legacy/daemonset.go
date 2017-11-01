@@ -60,7 +60,7 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 			Command: []string{
 				"/bin/sh",
 				"-c",
-				"/opt/bin/flanneld --etcd-endpoints=https://127.0.0.1:2379 --etcd-cafile=${ETCD_CA} --etcd-certfile=${ETCD_CRT} --etcd-keyfile=${ETCD_KEY} --etcd-prefix=${ETCD_PREFIX} --public-ip=${NODE_IP} --iface=${NODE_IP} --subnet-file=${SUBNET_FILE} -v=0",
+				"/opt/bin/flanneld --etcd-endpoints=https://127.0.0.1:2379 --etcd-cafile=${ETCD_CA} --etcd-certfile=${ETCD_CRT} --etcd-keyfile=${ETCD_KEY} --etcd-prefix=${ETCD_PREFIX} --public-ip=${NODE_IP} --iface=${NODE_IP} --subnet-file=${NETWORK_ENV_FILE_PATH} -v=0",
 			},
 			Env: []api.EnvVar{
 				{
@@ -84,6 +84,10 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 					Value: networkBridgeName(spec),
 				},
 				{
+					Name:  "NETWORK_ENV_FILE_PATH",
+					Value: networkEnvFilePath(spec),
+				},
+				{
 					Name: "NODE_IP",
 					ValueFrom: &api.EnvVarSource{
 						FieldRef: &api.ObjectFieldSelector{
@@ -91,10 +95,6 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 							FieldPath:  "spec.nodeName",
 						},
 					},
-				},
-				{
-					Name:  "SUBNET_FILE",
-					Value: flannelSubnetFile(spec),
 				},
 			},
 			LivenessProbe: &api.Probe{

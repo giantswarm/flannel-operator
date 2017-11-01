@@ -77,10 +77,6 @@ func flannelRunDir(spec flanneltpr.Spec) string {
 	return spec.Flannel.Spec.RunDir
 }
 
-func flannelSubnetFile(spec flanneltpr.Spec) string {
-	return "/run/flannel/networks/" + networkBridgeName(spec) + ".env"
-}
-
 func healthListenAddress(spec flanneltpr.Spec) string {
 	return "http://" + probeHost + ":" + strconv.Itoa(int(livenessPort(spec)))
 }
