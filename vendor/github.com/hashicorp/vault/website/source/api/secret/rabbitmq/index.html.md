@@ -61,7 +61,8 @@ $ curl \
 
 ## Configure Lease
 
-This endpoint configures the lease settings for generated credentials.
+This endpoint configures the lease settings for generated credentials. This is
+endpoint requires sudo privileges.
 
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
@@ -167,7 +168,7 @@ This endpoint deletes the role definition.
 
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
-| `DELETE` | `/rabbitmq/roles/:name`     | `204 (empty body)`     |
+| `DELETE` | `/rabbitmq/roles/:namer`     | `204 (empty body)`     |
 
 ### Parameters
 

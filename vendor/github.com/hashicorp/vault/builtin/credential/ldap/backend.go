@@ -13,11 +13,7 @@ import (
 )
 
 func Factory(conf *logical.BackendConfig) (logical.Backend, error) {
-	b := Backend()
-	if err := b.Setup(conf); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return Backend().Setup(conf)
 }
 
 func Backend() *backend {
@@ -43,8 +39,7 @@ func Backend() *backend {
 			mfa.MFAPaths(b.Backend, pathLogin(&b))...,
 		),
 
-		AuthRenew:   b.pathLoginRenew,
-		BackendType: logical.TypeCredential,
+		AuthRenew: b.pathLoginRenew,
 	}
 
 	return &b
@@ -123,12 +118,7 @@ func (b *backend) Login(req *logical.Request, username string, password string) 
 	}
 
 	// Try to bind as the login user. This is where the actual authentication takes place.
-	if len(password) > 0 {
-		err = c.Bind(userBindDN, password)
-	} else {
-		err = c.UnauthenticatedBind(userBindDN)
-	}
-	if err != nil {
+	if err = c.Bind(userBindDN, password); err != nil {
 		return nil, logical.ErrorResponse(fmt.Sprintf("LDAP bind failed: %v", err)), nil
 	}
 
@@ -242,13 +232,7 @@ func (b *backend) getCN(dn string) string {
 func (b *backend) getUserBindDN(cfg *ConfigEntry, c *ldap.Conn, username string) (string, error) {
 	bindDN := ""
 	if cfg.DiscoverDN || (cfg.BindDN != "" && cfg.BindPassword != "") {
-		var err error
-		if cfg.BindPassword != "" {
-			err = c.Bind(cfg.BindDN, cfg.BindPassword)
-		} else {
-			err = c.UnauthenticatedBind(cfg.BindDN)
-		}
-		if err != nil {
+		if err := c.Bind(cfg.BindDN, cfg.BindPassword); err != nil {
 			return bindDN, fmt.Errorf("LDAP bind (service) failed: %v", err)
 		}
 

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/errwrap"
-
 	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/pluginutil"
 	"github.com/hashicorp/vault/helper/wrapping"
@@ -84,10 +82,13 @@ func (d dynamicSystemView) CachingDisabled() bool {
 	return d.core.cachingDisabled || (d.mountEntry != nil && d.mountEntry.Config.ForceNoCache)
 }
 
-// Checks if this is a primary Vault instance. Caller should hold the stateLock
-// in read mode.
+// Checks if this is a primary Vault instance.
 func (d dynamicSystemView) ReplicationState() consts.ReplicationState {
-	return d.core.replicationState
+	var state consts.ReplicationState
+	d.core.clusterParamsLock.RLock()
+	state = d.core.replicationState
+	d.core.clusterParamsLock.RUnlock()
+	return state
 }
 
 // ResponseWrapData wraps the given data in a cubbyhole and returns the
@@ -109,7 +110,7 @@ func (d dynamicSystemView) ResponseWrapData(data map[string]interface{}, ttl tim
 		resp.WrapInfo.Format = "jwt"
 	}
 
-	_, err := d.core.wrapInCubbyhole(req, resp, nil)
+	_, err := d.core.wrapInCubbyhole(req, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -120,18 +121,12 @@ func (d dynamicSystemView) ResponseWrapData(data map[string]interface{}, ttl tim
 // LookupPlugin looks for a plugin with the given name in the plugin catalog. It
 // returns a PluginRunner or an error if no plugin was found.
 func (d dynamicSystemView) LookupPlugin(name string) (*pluginutil.PluginRunner, error) {
-	if d.core == nil {
-		return nil, fmt.Errorf("system view core is nil")
-	}
-	if d.core.pluginCatalog == nil {
-		return nil, fmt.Errorf("system view core plugin catalog is nil")
-	}
 	r, err := d.core.pluginCatalog.Get(name)
 	if err != nil {
 		return nil, err
 	}
 	if r == nil {
-		return nil, errwrap.Wrapf(fmt.Sprintf("{{err}}: %s", name), ErrPluginNotFound)
+		return nil, fmt.Errorf("no plugin found with name: %s", name)
 	}
 
 	return r, nil

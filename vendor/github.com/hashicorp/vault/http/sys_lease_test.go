@@ -23,33 +23,14 @@ func TestSysRenew(t *testing.T) {
 	// read secret
 	resp = testHttpGet(t, token, addr+"/v1/secret/foo")
 	var result struct {
-		LeaseID string `json:"lease_id"`
+		LeaseId string `json:"lease_id"`
 	}
 	if err := jsonutil.DecodeJSONFromReader(resp.Body, &result); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 
-	var renewResult struct {
-		LeaseID string                 `json:"lease_id"`
-		Data    map[string]interface{} `json:"data"`
-	}
-	resp = testHttpPut(t, token, addr+"/v1/sys/renew/"+result.LeaseID, nil)
+	resp = testHttpPut(t, token, addr+"/v1/sys/renew/"+result.LeaseId, nil)
 	testResponseStatus(t, resp, 200)
-	if err := jsonutil.DecodeJSONFromReader(resp.Body, &renewResult); err != nil {
-		t.Fatal(err)
-	}
-	if result.LeaseID != renewResult.LeaseID {
-		t.Fatal("lease id changed in renew request")
-	}
-
-	resp = testHttpPut(t, token, addr+"/v1/sys/leases/renew/"+result.LeaseID, nil)
-	testResponseStatus(t, resp, 200)
-	if err := jsonutil.DecodeJSONFromReader(resp.Body, &renewResult); err != nil {
-		t.Fatal(err)
-	}
-	if result.LeaseID != renewResult.LeaseID {
-		t.Fatal("lease id changed in renew request")
-	}
 }
 
 func TestSysRevoke(t *testing.T) {

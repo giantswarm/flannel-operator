@@ -101,9 +101,6 @@ func (b *backend) pathLogin(
 			LeaseOptions: logical.LeaseOptions{
 				Renewable: true,
 			},
-			Alias: &logical.Alias{
-				Name: appId,
-			},
 		},
 	}, nil
 }

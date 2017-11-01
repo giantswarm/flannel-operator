@@ -127,7 +127,7 @@ endpoint.
 
 #### Mount the backend
 
-The first step to using the PKI backend is to mount it. Unlike the `kv`
+The first step to using the PKI backend is to mount it. Unlike the `generic`
 backend, the `pki` backend is not mounted by default.
 
 ```text

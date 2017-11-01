@@ -20,7 +20,6 @@ import (
 // interface for cassandra databases to make connections.
 type cassandraConnectionProducer struct {
 	Hosts             string      `json:"hosts" structs:"hosts" mapstructure:"hosts"`
-	Port              int         `json:"port" structs:"port" mapstructure:"port"`
 	Username          string      `json:"username" structs:"username" mapstructure:"username"`
 	Password          string      `json:"password" structs:"password" mapstructure:"password"`
 	TLS               bool        `json:"tls" structs:"tls" mapstructure:"tls"`
@@ -47,7 +46,7 @@ func (c *cassandraConnectionProducer) Initialize(conf map[string]interface{}, ve
 	c.Lock()
 	defer c.Unlock()
 
-	err := mapstructure.WeakDecode(conf, c)
+	err := mapstructure.Decode(conf, c)
 	if err != nil {
 		return err
 	}
@@ -150,15 +149,10 @@ func (c *cassandraConnectionProducer) Close() error {
 }
 
 func (c *cassandraConnectionProducer) createSession() (*gocql.Session, error) {
-	hosts := strings.Split(c.Hosts, ",")
-	clusterConfig := gocql.NewCluster(hosts...)
+	clusterConfig := gocql.NewCluster(strings.Split(c.Hosts, ",")...)
 	clusterConfig.Authenticator = gocql.PasswordAuthenticator{
 		Username: c.Username,
 		Password: c.Password,
-	}
-
-	if c.Port != 0 {
-		clusterConfig.Port = c.Port
 	}
 
 	clusterConfig.ProtoVersion = c.ProtocolVersion
@@ -228,7 +222,7 @@ func (c *cassandraConnectionProducer) createSession() (*gocql.Session, error) {
 	}
 
 	// Verify the info
-	err = session.Query(`LIST ALL`).Exec()
+	err = session.Query(`LIST USERS`).Exec()
 	if err != nil {
 		return nil, fmt.Errorf("error validating connection info: %s", err)
 	}
