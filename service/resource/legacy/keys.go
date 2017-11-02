@@ -65,6 +65,10 @@ func etcdNetworkPath(spec flanneltpr.Spec) string {
 	return "coreos.com/network/" + networkBridgeName(spec)
 }
 
+func etcdPrefix(spec flanneltpr.Spec) string {
+	return "/" + etcdNetworkPath(spec)
+}
+
 func flannelDockerImage(spec flanneltpr.Spec) string {
 	return spec.Flannel.Docker.Image
 }
