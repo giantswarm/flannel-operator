@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/giantswarm/flanneltpr"
 	"strconv"
+
+	"github.com/giantswarm/flanneltpr"
 )
 
 const (
@@ -67,10 +68,6 @@ func etcdNetworkPath(spec flanneltpr.Spec) string {
 
 func etcdPrefix(spec flanneltpr.Spec) string {
 	return "/" + etcdNetworkPath(spec)
-}
-
-func flannelDockerImage(spec flanneltpr.Spec) string {
-	return spec.Flannel.Docker.Image
 }
 
 func flannelRunDir(spec flanneltpr.Spec) string {
