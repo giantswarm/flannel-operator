@@ -15,7 +15,7 @@ import:
 - package: github.com/giantswarm/microstorage
   version: master
 - package: github.com/giantswarm/operatorkit
-  version: 57dd6cec0cc811e2bc2e2c8a56ea40f163673514
+  version: master
 
 - package: github.com/coreos/etcd
   version: 61fc123e7a8b14a0a258aa3f5c4159861b1ec2e7

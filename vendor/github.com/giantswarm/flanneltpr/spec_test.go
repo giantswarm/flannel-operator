@@ -51,9 +51,6 @@ func TestSpecYamlEncoding(t *testing.T) {
 				SubnetLen: 30,
 				VNI:       26,
 			},
-			Docker: flannel.Docker{
-				Image: "quay.io/coreos/flannel",
-			},
 		},
 		Health: spec.Health{
 			Docker: health.Docker{
