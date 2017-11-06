@@ -5,42 +5,17 @@ import (
 	"encoding/json"
 
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/operatorkit/framework"
 
 	"github.com/giantswarm/flannel-operator/service/key"
 )
 
-func (r *Resource) GetUpdateState(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, interface{}, interface{}, error) {
-	currentNetworkConfig, err := toNetworkConfig(currentState)
-	if err != nil {
-		return nil, nil, nil, microerror.Mask(err)
-	}
-	desiredNetworkConfig, err := toNetworkConfig(desiredState)
-	if err != nil {
-		return nil, nil, nil, microerror.Mask(err)
-	}
-
-	// We do not compute the create state here because the framework already
-	// handles it separately.
-	var networkConfigToCreate NetworkConfig
-
-	// We do not compute the delete state here because there are no resources we
-	// can safely remove.
-	var networkConfigToDelete NetworkConfig
-
-	var networkConfigToUpdate NetworkConfig
-	if currentNetworkConfig != desiredNetworkConfig {
-		networkConfigToUpdate = desiredNetworkConfig
-	}
-
-	return networkConfigToCreate, networkConfigToDelete, networkConfigToUpdate, nil
-}
-
-func (r *Resource) ProcessUpdateState(ctx context.Context, obj, updateState interface{}) error {
+func (r *Resource) ApplyUpdateChange(ctx context.Context, obj, updateChange interface{}) error {
 	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	networkConfigToUpdate, err := toNetworkConfig(updateState)
+	networkConfigToUpdate, err := toNetworkConfig(updateChange)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -65,4 +40,40 @@ func (r *Resource) ProcessUpdateState(ctx context.Context, obj, updateState inte
 	}
 
 	return nil
+}
+
+func (r *Resource) NewUpdatePatch(ctx context.Context, obj, currentState, desiredState interface{}) (*framework.Patch, error) {
+	create, err := r.newCreateChange(ctx, obj, currentState, desiredState)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	update, err := r.newUpdateChange(ctx, obj, currentState, desiredState)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	patch := framework.NewPatch()
+	patch.SetCreateChange(create)
+	patch.SetUpdateChange(update)
+
+	return patch, nil
+}
+
+func (r *Resource) newUpdateChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
+	currentNetworkConfig, err := toNetworkConfig(currentState)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+	desiredNetworkConfig, err := toNetworkConfig(desiredState)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	var networkConfigToUpdate NetworkConfig
+	if currentNetworkConfig != desiredNetworkConfig {
+		networkConfigToUpdate = desiredNetworkConfig
+	}
+
+	return networkConfigToUpdate, nil
 }
