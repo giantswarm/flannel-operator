@@ -9,33 +9,12 @@ import (
 	"github.com/giantswarm/flannel-operator/service/key"
 )
 
-func (r *Resource) GetCreateState(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	currentNetworkConfig, err := toNetworkConfig(currentState)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-	desiredNetworkConfig, err := toNetworkConfig(desiredState)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	var networkConfigToCreate NetworkConfig
-	{
-		var emptyNetworkConfig NetworkConfig
-		if currentNetworkConfig == emptyNetworkConfig {
-			networkConfigToCreate = desiredNetworkConfig
-		}
-	}
-
-	return networkConfigToCreate, nil
-}
-
-func (r *Resource) ProcessCreateState(ctx context.Context, obj, createState interface{}) error {
+func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange interface{}) error {
 	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return microerror.Mask(err)
 	}
-	networkConfigToCreate, err := toNetworkConfig(createState)
+	networkConfigToCreate, err := toNetworkConfig(createChange)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -54,4 +33,25 @@ func (r *Resource) ProcessCreateState(ctx context.Context, obj, createState inte
 	}
 
 	return nil
+}
+
+func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
+	currentNetworkConfig, err := toNetworkConfig(currentState)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+	desiredNetworkConfig, err := toNetworkConfig(desiredState)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	var networkConfigToCreate NetworkConfig
+	{
+		var emptyNetworkConfig NetworkConfig
+		if currentNetworkConfig == emptyNetworkConfig {
+			networkConfigToCreate = desiredNetworkConfig
+		}
+	}
+
+	return networkConfigToCreate, nil
 }

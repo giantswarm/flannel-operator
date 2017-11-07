@@ -11,7 +11,7 @@ import (
 	etcdv2fake "github.com/giantswarm/flannel-operator/service/etcdv2/fake"
 )
 
-func Test_Resource_NetworkConfig_GetUpdateState(t *testing.T) {
+func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 	testCases := []struct {
 		Obj                   interface{}
 		CurrentState          interface{}
@@ -145,24 +145,10 @@ func Test_Resource_NetworkConfig_GetUpdateState(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		createState, deleteState, updateState, err := newResource.GetUpdateState(context.TODO(), tc.Obj, tc.CurrentState, tc.DesiredState)
+		updateState, err := newResource.newUpdateChange(context.TODO(), tc.Obj, tc.CurrentState, tc.DesiredState)
 		if err != nil {
 			t.Fatalf("expected %#v got %#v", nil, err)
 		}
-
-		t.Run("ValidateCreateState", func(t *testing.T) {
-			var emptyNetworkConfig NetworkConfig
-			if createState != emptyNetworkConfig {
-				t.Fatalf("expected %#v got %#v", nil, createState)
-			}
-		})
-
-		t.Run("ValidateDeleteState", func(t *testing.T) {
-			var emptyNetworkConfig NetworkConfig
-			if createState != emptyNetworkConfig {
-				t.Fatalf("expected %#v got %#v", nil, deleteState)
-			}
-		})
 
 		t.Run("ValidateUpdateState", func(t *testing.T) {
 			networkConfigToUpdate, ok := updateState.(NetworkConfig)

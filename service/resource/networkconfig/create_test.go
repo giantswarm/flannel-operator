@@ -11,7 +11,7 @@ import (
 	etcdv2fake "github.com/giantswarm/flannel-operator/service/etcdv2/fake"
 )
 
-func Test_Resource_NetworkConfig_GetCreateState(t *testing.T) {
+func Test_Resource_NetworkConfig_newCreateChange(t *testing.T) {
 	testCases := []struct {
 		Obj                   interface{}
 		CurrentState          interface{}
@@ -111,7 +111,7 @@ func Test_Resource_NetworkConfig_GetCreateState(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		createState, err := newResource.GetCreateState(context.TODO(), tc.Obj, tc.CurrentState, tc.DesiredState)
+		createState, err := newResource.newCreateChange(context.TODO(), tc.Obj, tc.CurrentState, tc.DesiredState)
 		if err != nil {
 			t.Fatalf("expected %#v got %#v", nil, err)
 		}

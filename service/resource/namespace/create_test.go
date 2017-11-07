@@ -12,7 +12,7 @@ import (
 	apiv1 "k8s.io/client-go/pkg/api/v1"
 )
 
-func Test_Resource_Namespace_GetCreateState(t *testing.T) {
+func Test_Resource_Namespace_newCreateChange(t *testing.T) {
 	testCases := []struct {
 		Obj               interface{}
 		Cur               interface{}
@@ -107,7 +107,7 @@ func Test_Resource_Namespace_GetCreateState(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		result, err := newResource.GetCreateState(context.TODO(), tc.Obj, tc.Cur, tc.Des)
+		result, err := newResource.newCreateChange(context.TODO(), tc.Obj, tc.Cur, tc.Des)
 		if err != nil {
 			t.Fatal("case", i+1, "expected", nil, "got", err)
 		}

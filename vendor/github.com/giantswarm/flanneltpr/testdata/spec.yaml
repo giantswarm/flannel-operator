@@ -22,8 +22,6 @@ flannel:
     runDir: /run/flannel
     subnetLen: 30
     vni: 26
-  docker:
-    image: quay.io/coreos/flannel
 health:
   docker:
     image: quay.io/giantswarm/flannel-network-health

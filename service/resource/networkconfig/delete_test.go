@@ -11,7 +11,7 @@ import (
 	etcdv2fake "github.com/giantswarm/flannel-operator/service/etcdv2/fake"
 )
 
-func Test_Resource_NetworkConfig_GetDeleteState(t *testing.T) {
+func Test_Resource_NetworkConfig_newDeleteChange(t *testing.T) {
 	testCases := []struct {
 		Obj                   interface{}
 		CurrentState          interface{}
@@ -129,7 +129,7 @@ func Test_Resource_NetworkConfig_GetDeleteState(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		deleteState, err := newResource.GetDeleteState(context.TODO(), tc.Obj, tc.CurrentState, tc.DesiredState)
+		deleteState, err := newResource.newDeleteChange(context.TODO(), tc.Obj, tc.CurrentState, tc.DesiredState)
 		if err != nil {
 			t.Fatalf("expected %#v got %#v", nil, err)
 		}

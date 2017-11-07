@@ -10,7 +10,35 @@ import (
 	"github.com/giantswarm/flannel-operator/service/key"
 )
 
-func (r *Resource) GetCreateState(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
+func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange interface{}) error {
+	customObject, err := key.ToCustomObject(obj)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+	namespaceToCreate, err := toNamespace(createChange)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	if namespaceToCreate != nil {
+		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "creating the namespace in the Kubernetes API")
+
+		_, err = r.k8sClient.CoreV1().Namespaces().Create(namespaceToCreate)
+		if apierrors.IsAlreadyExists(err) {
+			// fall through
+		} else if err != nil {
+			return microerror.Mask(err)
+		}
+
+		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "created the namespace in the Kubernetes API")
+	} else {
+		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "the namespace does not need to be created in the Kubernetes API")
+	}
+
+	return nil
+}
+
+func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
 	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -34,32 +62,4 @@ func (r *Resource) GetCreateState(ctx context.Context, obj, currentState, desire
 	r.logger.Log("cluster", key.ClusterID(customObject), "debug", "found out if the namespace has to be created")
 
 	return namespaceToCreate, nil
-}
-
-func (r *Resource) ProcessCreateState(ctx context.Context, obj, createState interface{}) error {
-	customObject, err := key.ToCustomObject(obj)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-	namespaceToCreate, err := toNamespace(createState)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	if namespaceToCreate != nil {
-		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "creating the namespace in the Kubernetes API")
-
-		_, err = r.k8sClient.CoreV1().Namespaces().Create(namespaceToCreate)
-		if apierrors.IsAlreadyExists(err) {
-			// fall through
-		} else if err != nil {
-			return microerror.Mask(err)
-		}
-
-		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "created the namespace in the Kubernetes API")
-	} else {
-		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "the namespace does not need to be created in the Kubernetes API")
-	}
-
-	return nil
 }
