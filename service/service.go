@@ -24,7 +24,6 @@ import (
 	"github.com/giantswarm/operatorkit/framework/resource/retryresource"
 	"github.com/giantswarm/operatorkit/informer"
 	"github.com/giantswarm/operatorkit/tpr"
-	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -32,7 +31,6 @@ import (
 	"github.com/giantswarm/flannel-operator/flag"
 	"github.com/giantswarm/flannel-operator/service/etcdv2"
 	"github.com/giantswarm/flannel-operator/service/healthz"
-	"github.com/giantswarm/flannel-operator/service/operator"
 	legacyresource "github.com/giantswarm/flannel-operator/service/resource/legacy"
 	namespaceresource "github.com/giantswarm/flannel-operator/service/resource/namespace"
 	networkconfigresource "github.com/giantswarm/flannel-operator/service/resource/networkconfig"
@@ -45,8 +43,7 @@ const (
 // Config represents the configuration used to create a new service.
 type Config struct {
 	// Dependencies.
-	Logger      micrologger.Logger
-	VaultClient *vaultapi.Client
+	Logger micrologger.Logger
 
 	// Settings.
 	Flag  *flag.Flag
@@ -63,8 +60,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		// Dependencies.
-		Logger:      nil,
-		VaultClient: nil,
+		Logger: nil,
 
 		// Settings.
 		Flag:  nil,
@@ -79,9 +75,9 @@ func DefaultConfig() Config {
 
 type Service struct {
 	// Dependencies.
-	Healthz  *healthz.Service
-	Operator *operator.Operator
-	Version  *version.Service
+	Framework *framework.Framework
+	Healthz   *healthz.Service
+	Version   *version.Service
 
 	// Internals.
 	bootOnce sync.Once
@@ -250,27 +246,6 @@ func New(config Config) (*Service, error) {
 		return ctx, nil
 	}
 
-	var frameworkBackOff *backoff.ExponentialBackOff
-	{
-		frameworkBackOff = backoff.NewExponentialBackOff()
-		frameworkBackOff.MaxElapsedTime = 0 //retry forever
-	}
-
-	var operatorFramework *framework.Framework
-	{
-		frameworkConfig := framework.DefaultConfig()
-
-		frameworkConfig.BackOff = frameworkBackOff
-		frameworkConfig.InitCtxFunc = initCtxFunc
-		frameworkConfig.Logger = config.Logger
-		frameworkConfig.ResourceRouter = framework.NewDefaultResourceRouter(resources)
-
-		operatorFramework, err = framework.New(frameworkConfig)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	var newTPR *tpr.TPR
 	{
 		c := tpr.DefaultConfig()
@@ -313,6 +288,23 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var operatorFramework *framework.Framework
+	{
+		c := framework.DefaultConfig()
+
+		c.BackOffFactory = framework.DefaultBackOffFactory()
+		c.Informer = newInformer
+		c.InitCtxFunc = initCtxFunc
+		c.Logger = config.Logger
+		c.ResourceRouter = framework.DefaultResourceRouter(resources)
+		c.TPR = newTPR
+
+		operatorFramework, err = framework.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var healthzService *healthz.Service
 	{
 		healthzConfig := healthz.DefaultConfig()
@@ -321,28 +313,6 @@ func New(config Config) (*Service, error) {
 		healthzConfig.Logger = config.Logger
 
 		healthzService, err = healthz.New(healthzConfig)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
-	var operatorBackOff *backoff.ExponentialBackOff
-	{
-		operatorBackOff = backoff.NewExponentialBackOff()
-		operatorBackOff.MaxElapsedTime = 5 * time.Minute
-	}
-
-	var operatorService *operator.Operator
-	{
-		operatorConfig := operator.DefaultConfig()
-
-		operatorConfig.BackOff = operatorBackOff
-		operatorConfig.Framework = operatorFramework
-		operatorConfig.Informer = newInformer
-		operatorConfig.Logger = config.Logger
-		operatorConfig.TPR = newTPR
-
-		operatorService, err = operator.New(operatorConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -366,9 +336,9 @@ func New(config Config) (*Service, error) {
 
 	newService := &Service{
 		// Dependencies.
-		Healthz:  healthzService,
-		Operator: operatorService,
-		Version:  versionService,
+		Framework: operatorFramework,
+		Healthz:   healthzService,
+		Version:   versionService,
 
 		// Internals
 		bootOnce: sync.Once{},
@@ -379,6 +349,6 @@ func New(config Config) (*Service, error) {
 
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		s.Operator.Boot()
+		s.Framework.Boot()
 	})
 }
