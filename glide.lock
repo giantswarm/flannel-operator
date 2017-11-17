@@ -1,5 +1,5 @@
 hash: f92fd7af42f3de30fab18d38dabe70341e4cdd3a283ea77727d4f7ed309c69d5
-updated: 2017-11-17T11:27:46.333423683+01:00
+updated: 2017-11-17T12:08:39.237563045+01:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -86,7 +86,7 @@ imports:
   subpackages:
   - memory
 - name: github.com/giantswarm/operatorkit
-  version: 4d749661ae6510bb4ceee0be2b5f40e70db7f804
+  version: f4f5ada0b7447e1b71f6c622bbf873f6c74c1e1d
   subpackages:
   - client/k8sclient
   - framework
