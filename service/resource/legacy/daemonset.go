@@ -3,40 +3,44 @@ package legacy
 import (
 	"github.com/giantswarm/flanneltpr"
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apisextensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
 	api "k8s.io/client-go/pkg/api/v1"
+	apisextensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+
+	"github.com/giantswarm/flannel-operator/service/key"
 )
 
-func newDaemonSet(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile string) *apisextensions.DaemonSet {
+func newDaemonSet(customObject flanneltpr.CustomObject, etcdCAFile, etcdCrtFile, etcdKeyFile string) *apisextensions.DaemonSet {
 	app := networkApp
 
-	labels := map[string]string{
-		"cluster":  clusterName(spec),
-		"customer": clusterCustomer(spec),
-		"app":      app,
-	}
+	containers := newDaemonSetContainers(customObject.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile)
+	volumes := newDaemonSetVolumes(customObject.Spec)
 
-	containers := newDaemonSetContainers(spec, etcdCAFile, etcdCrtFile, etcdKeyFile)
-	volumes := newDaemonSetVolumes(spec)
-
-	return &apisextensions.DaemonSet{
+	daemonSet := &apisextensions.DaemonSet{
 		TypeMeta: apismeta.TypeMeta{
 			Kind:       "daemonset",
 			APIVersion: "extensions/v1beta",
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name:   app,
-			Labels: labels,
+			Name: app,
+			Labels: map[string]string{
+				"app":      app,
+				"cluster":  clusterName(customObject.Spec),
+				"customer": clusterCustomer(customObject.Spec),
+			},
 		},
 		Spec: apisextensions.DaemonSetSpec{
 			Template: api.PodTemplateSpec{
 				ObjectMeta: apismeta.ObjectMeta{
 					GenerateName: app,
-					Labels:       labels,
+					Labels: map[string]string{
+						"app":      app,
+						"cluster":  clusterName(customObject.Spec),
+						"customer": clusterCustomer(customObject.Spec),
+					},
 					Annotations: map[string]string{
 						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",
+						VersionBundleVersionAnnotation:             key.VersionBundleVersion(customObject),
 					},
 				},
 				Spec: api.PodSpec{
@@ -47,6 +51,8 @@ func newDaemonSet(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile str
 			},
 		},
 	}
+
+	return daemonSet
 }
 
 func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile string) []api.Container {

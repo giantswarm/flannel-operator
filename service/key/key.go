@@ -48,3 +48,7 @@ func ToCustomObject(v interface{}) (flanneltpr.CustomObject, error) {
 
 	return customObject, nil
 }
+
+func VersionBundleVersion(customObject flanneltpr.CustomObject) string {
+	return customObject.Spec.VersionBundle.Version
+}
