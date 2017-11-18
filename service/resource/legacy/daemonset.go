@@ -23,6 +23,9 @@ func newDaemonSet(customObject flanneltpr.CustomObject, etcdCAFile, etcdCrtFile,
 		},
 		ObjectMeta: apismeta.ObjectMeta{
 			Name: app,
+			Annotations: map[string]string{
+				VersionBundleVersionAnnotation: key.VersionBundleVersion(customObject),
+			},
 			Labels: map[string]string{
 				"app":      app,
 				"cluster":  clusterName(customObject.Spec),
@@ -40,7 +43,6 @@ func newDaemonSet(customObject flanneltpr.CustomObject, etcdCAFile, etcdCrtFile,
 					},
 					Annotations: map[string]string{
 						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",
-						VersionBundleVersionAnnotation:             key.VersionBundleVersion(customObject),
 					},
 				},
 				Spec: api.PodSpec{
