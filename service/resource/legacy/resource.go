@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cenk/backoff"
@@ -11,9 +12,13 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/framework"
+	"github.com/prometheus/client_golang/prometheus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
+
+	"github.com/giantswarm/flannel-operator/service/key"
 )
 
 const (
@@ -85,7 +90,49 @@ func New(config Config) (*Resource, error) {
 }
 
 func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interface{}, error) {
-	return nil, nil
+	customObject, err := key.ToCustomObject(obj)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	r.logger.Log("cluster", key.ClusterID(customObject), "debug", "looking for the daemon set in the Kubernetes API")
+
+	var currentDaemonSet *v1beta1.DaemonSet
+	{
+		manifest, err := r.k8sClient.Extensions().DaemonSets(networkNamespace(customObject.Spec)).Get(networkApp, apismetav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			r.logger.Log("cluster", key.ClusterID(customObject), "debug", "did not find the daemon set in the Kubernetes API")
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
+		} else {
+			r.logger.Log("cluster", key.ClusterID(customObject), "debug", "found the daemon set in the Kubernetes API")
+			currentDaemonSet = manifest
+			r.updateVersionBundleVersionGauge(customObject, versionBundleVersionGauge, currentDaemonSet)
+		}
+	}
+
+	return currentDaemonSet, nil
+}
+
+func (r *Resource) updateVersionBundleVersionGauge(customObject flanneltpr.CustomObject, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
+	version, ok := daemonSet.Annotations[VersionBundleVersionAnnotation]
+	if !ok {
+		r.logger.Log("cluster", key.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: annotation '%s' must not be empty", VersionBundleVersionAnnotation))
+		return
+	}
+
+	split := strings.Split(version, ".")
+	if len(split) != 3 {
+		r.logger.Log("cluster", key.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: invalid version format, expected '<major>.<minor>.<patch>', got '%s'", version))
+		return
+	}
+
+	major := split[0]
+	minor := split[1]
+	patch := split[2]
+
+	gauge.WithLabelValues(major, minor, patch).Set(1)
 }
 
 func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interface{}, error) {
@@ -93,27 +140,23 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 }
 
 func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	var spec flanneltpr.Spec
-	{
-		o, ok := obj.(*flanneltpr.CustomObject)
-		if !ok {
-			return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
-		}
-		spec = o.Spec
+	customObject, err := key.ToCustomObject(obj)
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
 
 	// Create a dameonset running flanneld and creating network bridge.
 	{
-		daemonSet := newDaemonSet(spec, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
-		_, err := r.k8sClient.ExtensionsV1beta1().DaemonSets(networkNamespace(spec)).Create(daemonSet)
+		daemonSet := newDaemonSet(customObject, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
+		_, err := r.k8sClient.ExtensionsV1beta1().DaemonSets(networkNamespace(customObject.Spec)).Create(daemonSet)
 		if apierrors.IsAlreadyExists(err) {
-			r.logger.Log("debug", "daemonSet "+daemonSet.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
+			r.logger.Log("debug", "daemonSet "+daemonSet.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
 		} else if err != nil {
 			return nil, microerror.Maskf(err, "creating daemonSet %s", daemonSet.Name)
 		}
 	}
 
-	r.logger.Log("info", "started flanneld", "event", "add", "cluster", spec.Cluster.ID)
+	r.logger.Log("info", "started flanneld", "event", "add", "cluster", customObject.Spec.Cluster.ID)
 
 	return nil, nil
 }
