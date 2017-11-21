@@ -4,17 +4,16 @@ import (
 	"io/ioutil"
 	"net"
 	"testing"
-	"time"
+
+	"github.com/kylelemons/godebug/pretty"
+	"github.com/stretchr/testify/require"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/giantswarm/flanneltpr/spec"
 	bridge "github.com/giantswarm/flanneltpr/spec/bridge"
 	bridgespec "github.com/giantswarm/flanneltpr/spec/bridge/spec"
 	"github.com/giantswarm/flanneltpr/spec/flannel"
 	"github.com/giantswarm/flanneltpr/spec/health"
-	"github.com/giantswarm/versionbundle"
-	"github.com/kylelemons/godebug/pretty"
-	"github.com/stretchr/testify/require"
-	yaml "gopkg.in/yaml.v2"
 )
 
 func TestSpecYamlEncoding(t *testing.T) {
@@ -59,35 +58,8 @@ func TestSpecYamlEncoding(t *testing.T) {
 				Image: "quay.io/giantswarm/flannel-network-health",
 			},
 		},
-		VersionBundle: versionbundle.Bundle{
-			Changelogs: []versionbundle.Changelog{
-				{
-					Component:   "calico",
-					Description: "Calico version updated.",
-					Kind:        "changed",
-				},
-			},
-			Components: []versionbundle.Component{
-				{
-					Name:    "calico",
-					Version: "1.1.0",
-				},
-				{
-					Name:    "kube-dns",
-					Version: "1.0.0",
-				},
-			},
-			Dependencies: []versionbundle.Dependency{
-				{
-					Name:    "kubernetes",
-					Version: "<= 1.7.x",
-				},
-			},
-			Deprecated: false,
-			Name:       "kubernetes-operator",
-			Time:       time.Unix(10, 5).In(time.UTC),
-			Version:    "0.1.0",
-			WIP:        false,
+		VersionBundle: spec.VersionBundle{
+			Version: "0.1.0",
 		},
 	}
 
