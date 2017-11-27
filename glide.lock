@@ -1,5 +1,5 @@
 hash: f92fd7af42f3de30fab18d38dabe70341e4cdd3a283ea77727d4f7ed309c69d5
-updated: 2017-11-21T16:54:14.161329555+01:00
+updated: 2017-11-27T12:30:09.512349+01:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -78,20 +78,20 @@ imports:
   - transaction/context/id
   - transaction/context/tracked
 - name: github.com/giantswarm/micrologger
-  version: 954d1261928bbb50dc917c629edf0b71db6a1527
+  version: bab5376fda89f10a5ebc5bd9feedab634400ab75
   subpackages:
+  - loggermeta
   - microloggertest
 - name: github.com/giantswarm/microstorage
   version: 99418478ec8f5c68f9b5fc5e6be7e0474948f80d
   subpackages:
   - memory
 - name: github.com/giantswarm/operatorkit
-  version: 0bd1c4365f66a52c233957c38367ca3a3c2a81e9
+  version: a805b836b6c6f5d03c923b86d443a86484114f8b
   subpackages:
   - client/k8sclient
   - framework
   - framework/context/canceledcontext
-  - framework/resource/logresource
   - framework/resource/metricsresource
   - framework/resource/retryresource
   - informer
@@ -209,7 +209,7 @@ imports:
 - name: github.com/spf13/cast
   version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
-  version: 19e54c4a2b8a78c9d54b2bed61b1a6c5e1bfcf6f
+  version: 1be1d2841c773c01bee8289f55f7463b6e2c2539
 - name: github.com/spf13/jwalterweatherman
   version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
 - name: github.com/spf13/pflag
