@@ -30,9 +30,9 @@ import (
 	"github.com/giantswarm/flannel-operator/flag"
 	"github.com/giantswarm/flannel-operator/service/etcdv2"
 	"github.com/giantswarm/flannel-operator/service/healthz"
-	legacyresource "github.com/giantswarm/flannel-operator/service/resource/legacy"
-	namespaceresource "github.com/giantswarm/flannel-operator/service/resource/namespace"
-	networkconfigresource "github.com/giantswarm/flannel-operator/service/resource/networkconfig"
+	legacyv1 "github.com/giantswarm/flannel-operator/service/resource/legacyv1"
+	namespacev1 "github.com/giantswarm/flannel-operator/service/resource/namespacev1"
+	networkconfigv1 "github.com/giantswarm/flannel-operator/service/resource/networkconfigv1"
 )
 
 const (
@@ -168,7 +168,7 @@ func New(config Config) (*Service, error) {
 
 	var legacyResource framework.Resource
 	{
-		legacyConfig := legacyresource.DefaultConfig()
+		legacyConfig := legacyv1.DefaultConfig()
 
 		legacyConfig.BackOff = legacyResourceBackOff
 		legacyConfig.K8sClient = k8sClient
@@ -178,7 +178,7 @@ func New(config Config) (*Service, error) {
 		legacyConfig.EtcdCrtFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile)
 		legacyConfig.EtcdKeyFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile)
 
-		legacyResource, err = legacyresource.New(legacyConfig)
+		legacyResource, err = legacyv1.New(legacyConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -186,12 +186,12 @@ func New(config Config) (*Service, error) {
 
 	var networkConfigResource framework.Resource
 	{
-		c := networkconfigresource.DefaultConfig()
+		c := networkconfigv1.DefaultConfig()
 
 		c.Logger = config.Logger
 		c.Store = storageService
 
-		networkConfigResource, err = networkconfigresource.New(c)
+		networkConfigResource, err = networkconfigv1.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -199,12 +199,12 @@ func New(config Config) (*Service, error) {
 
 	var namespaceResource framework.Resource
 	{
-		namespaceConfig := namespaceresource.DefaultConfig()
+		namespaceConfig := namespacev1.DefaultConfig()
 
 		namespaceConfig.K8sClient = k8sClient
 		namespaceConfig.Logger = config.Logger
 
-		namespaceResource, err = namespaceresource.New(namespaceConfig)
+		namespaceResource, err = namespacev1.New(namespaceConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
