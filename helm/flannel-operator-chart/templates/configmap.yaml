@@ -14,7 +14,7 @@ data:
         tls:
           cafile: '/etc/kubernetes/ssl/etcd/etcd-ca.pem'
           crtfile: '/etc/kubernetes/ssl/etcd/etcd.pem'
-          keyfile: '/etc/kubernetes/ssl/etcd/etcd-keyv1.pem'
+          keyfile: '/etc/kubernetes/ssl/etcd/etcd-key.pem'
       kubernetes:
         address: ''
         inCluster: true
