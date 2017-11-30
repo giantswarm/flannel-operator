@@ -1,7 +1,7 @@
-package keyv1
+package keyv2
 
 import (
-	"github.com/giantswarm/flanneltpr"
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
 )
 
@@ -11,44 +11,44 @@ const (
 	NetworkID = "flannel-network"
 )
 
-func ClusterCustomer(customObject flanneltpr.CustomObject) string {
+func ClusterCustomer(customObject v1alpha1.Flannel) string {
 	return customObject.Spec.Cluster.Customer
 }
 
-func ClusterID(customObject flanneltpr.CustomObject) string {
+func ClusterID(customObject v1alpha1.Flannel) string {
 	return customObject.Spec.Cluster.ID
 }
 
-func ClusterNamespace(customObject flanneltpr.CustomObject) string {
+func ClusterNamespace(customObject v1alpha1.Flannel) string {
 	return customObject.Spec.Cluster.Namespace
 }
 
-func EtcdNetworkConfigPath(customObject flanneltpr.CustomObject) string {
+func EtcdNetworkConfigPath(customObject v1alpha1.Flannel) string {
 	return EtcdNetworkPath(customObject) + "/config"
 }
 
-func EtcdNetworkPath(customObject flanneltpr.CustomObject) string {
+func EtcdNetworkPath(customObject v1alpha1.Flannel) string {
 	return "coreos.com/network/" + NetworkBridgeName(customObject)
 }
 
-func NetworkBridgeName(customObject flanneltpr.CustomObject) string {
+func NetworkBridgeName(customObject v1alpha1.Flannel) string {
 	return "br-" + ClusterID(customObject)
 }
 
-func NetworkNamespace(customObject flanneltpr.CustomObject) string {
+func NetworkNamespace(customObject v1alpha1.Flannel) string {
 	return NetworkID + "-" + ClusterID(customObject)
 }
 
-func ToCustomObject(v interface{}) (flanneltpr.CustomObject, error) {
-	customObjectPointer, ok := v.(*flanneltpr.CustomObject)
+func ToCustomObject(v interface{}) (v1alpha1.Flannel, error) {
+	customObjectPointer, ok := v.(*v1alpha1.Flannel)
 	if !ok {
-		return flanneltpr.CustomObject{}, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, v)
+		return v1alpha1.Flannel{}, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &v1alpha1.Flannel{}, v)
 	}
 	customObject := *customObjectPointer
 
 	return customObject, nil
 }
 
-func VersionBundleVersion(customObject flanneltpr.CustomObject) string {
+func VersionBundleVersion(customObject v1alpha1.Flannel) string {
 	return customObject.Spec.VersionBundle.Version
 }
