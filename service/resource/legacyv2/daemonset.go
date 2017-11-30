@@ -1,16 +1,16 @@
-package legacyv1
+package legacyv2
 
 import (
-	"github.com/giantswarm/flanneltpr"
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	api "k8s.io/client-go/pkg/api/v1"
 	apisextensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
-	"github.com/giantswarm/flannel-operator/service/keyv1"
+	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
-func newDaemonSet(customObject flanneltpr.CustomObject, etcdCAFile, etcdCrtFile, etcdKeyFile string) *apisextensions.DaemonSet {
+func newDaemonSet(customObject v1alpha1.Flannel, etcdCAFile, etcdCrtFile, etcdKeyFile string) *apisextensions.DaemonSet {
 	app := networkApp
 
 	containers := newDaemonSetContainers(customObject.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile)
@@ -24,7 +24,7 @@ func newDaemonSet(customObject flanneltpr.CustomObject, etcdCAFile, etcdCrtFile,
 		ObjectMeta: apismeta.ObjectMeta{
 			Name: app,
 			Annotations: map[string]string{
-				VersionBundleVersionAnnotation: keyv1.VersionBundleVersion(customObject),
+				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
 			Labels: map[string]string{
 				"app":      app,
@@ -57,7 +57,7 @@ func newDaemonSet(customObject flanneltpr.CustomObject, etcdCAFile, etcdCrtFile,
 	return daemonSet
 }
 
-func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile string) []api.Container {
+func newDaemonSetContainers(spec v1alpha1.FlannelSpec, etcdCAFile, etcdCrtFile, etcdKeyFile string) []api.Container {
 	privileged := true
 
 	return []api.Container{
@@ -263,7 +263,7 @@ func newDaemonSetContainers(spec flanneltpr.Spec, etcdCAFile, etcdCrtFile, etcdK
 	}
 }
 
-func newDaemonSetVolumes(spec flanneltpr.Spec) []api.Volume {
+func newDaemonSetVolumes(spec v1alpha1.FlannelSpec) []api.Volume {
 	return []api.Volume{
 		{
 			Name: "cgroup",
