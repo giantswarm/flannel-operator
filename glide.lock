@@ -1,5 +1,5 @@
-hash: f92fd7af42f3de30fab18d38dabe70341e4cdd3a283ea77727d4f7ed309c69d5
-updated: 2017-11-29T15:04:57.944155+01:00
+hash: 365a0f50d354536b0ae548ba12ce3fb3209adfab53c79e2d0d05160499e926f3
+updated: 2017-11-30T11:53:21.419611+01:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -40,6 +40,8 @@ imports:
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
+- name: github.com/giantswarm/apiextensions
+  version: a50685242279dfd7a9ea9c223ff09b6b82487eeb
 - name: github.com/giantswarm/flanneltpr
   version: bc1b0a338cc3852c5b06ec2191a720b21294d60b
   subpackages:
@@ -87,7 +89,7 @@ imports:
   subpackages:
   - memory
 - name: github.com/giantswarm/operatorkit
-  version: a3a11e7cd38b119e98d4db12036cb210f363a130
+  version: 2804229e2bf865f72763ec1cf6f1d9dabb096665
   subpackages:
   - client/k8sclient
   - client/k8scrdclient
