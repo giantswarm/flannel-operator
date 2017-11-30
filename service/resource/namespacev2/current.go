@@ -1,4 +1,4 @@
-package namespacev1
+package namespacev2
 
 import (
 	"context"
@@ -9,27 +9,27 @@ import (
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiv1 "k8s.io/client-go/pkg/api/v1"
 
-	"github.com/giantswarm/flannel-operator/service/keyv1"
+	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
 func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interface{}, error) {
-	customObject, err := keyv1.ToCustomObject(obj)
+	customObject, err := keyv2.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "looking for the namespace in the Kubernetes API")
+	r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "looking for the namespace in the Kubernetes API")
 
 	var namespace *apiv1.Namespace
 	{
-		manifest, err := r.k8sClient.CoreV1().Namespaces().Get(keyv1.NetworkNamespace(customObject), apismetav1.GetOptions{})
+		manifest, err := r.k8sClient.CoreV1().Namespaces().Get(keyv2.NetworkNamespace(customObject), apismetav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "did not find the namespace in the Kubernetes API")
+			r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "did not find the namespace in the Kubernetes API")
 			// fall through
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		} else {
-			r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "found the namespace in the Kubernetes API")
+			r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "found the namespace in the Kubernetes API")
 			namespace = manifest
 		}
 	}
@@ -38,11 +38,11 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 	// further work. Then we cancel the reconciliation to prevent the current and
 	// any further resource from being processed.
 	if namespace != nil && namespace.Status.Phase == "Terminating" {
-		r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "namespace is in state 'Terminating'")
+		r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "namespace is in state 'Terminating'")
 
 		canceledcontext.SetCanceled(ctx)
 		if canceledcontext.IsCanceled(ctx) {
-			r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "canceling reconciliation for custom object")
+			r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "canceling reconciliation for custom object")
 
 			return nil, nil
 		}

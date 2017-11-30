@@ -1,11 +1,10 @@
-package namespacev1
+package namespacev2
 
 import (
 	"context"
 	"testing"
 
-	"github.com/giantswarm/flanneltpr"
-	flanneltprspec "github.com/giantswarm/flanneltpr/spec"
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/micrologger/microloggertest"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -20,9 +19,9 @@ func Test_Resource_Namespace_newCreateChange(t *testing.T) {
 		ExpectedNamespace *apiv1.Namespace
 	}{
 		{
-			Obj: &flanneltpr.CustomObject{
-				Spec: flanneltpr.Spec{
-					Cluster: flanneltprspec.Cluster{
+			Obj: &v1alpha1.Flannel{
+				Spec: v1alpha1.FlannelSpec{
+					Cluster: v1alpha1.FlannelSpecCluster{
 						ID: "foobar",
 					},
 				},
@@ -57,9 +56,9 @@ func Test_Resource_Namespace_newCreateChange(t *testing.T) {
 		},
 
 		{
-			Obj: &flanneltpr.CustomObject{
-				Spec: flanneltpr.Spec{
-					Cluster: flanneltprspec.Cluster{
+			Obj: &v1alpha1.Flannel{
+				Spec: v1alpha1.FlannelSpec{
+					Cluster: v1alpha1.FlannelSpecCluster{
 						ID: "foobar",
 					},
 				},

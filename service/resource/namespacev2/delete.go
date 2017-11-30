@@ -1,4 +1,4 @@
-package namespacev1
+package namespacev2
 
 import (
 	"context"
@@ -9,11 +9,11 @@ import (
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiv1 "k8s.io/client-go/pkg/api/v1"
 
-	"github.com/giantswarm/flannel-operator/service/keyv1"
+	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
 func (r *Resource) ApplyDeleteChange(ctx context.Context, obj, deleteChange interface{}) error {
-	customObject, err := keyv1.ToCustomObject(obj)
+	customObject, err := keyv2.ToCustomObject(obj)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -23,7 +23,7 @@ func (r *Resource) ApplyDeleteChange(ctx context.Context, obj, deleteChange inte
 	}
 
 	if namespaceToDelete != nil {
-		r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "deleting the namespace in the Kubernetes API")
+		r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "deleting the namespace in the Kubernetes API")
 
 		err = r.k8sClient.CoreV1().Namespaces().Delete(namespaceToDelete.Name, &apismetav1.DeleteOptions{})
 		if apierrors.IsNotFound(err) {
@@ -32,9 +32,9 @@ func (r *Resource) ApplyDeleteChange(ctx context.Context, obj, deleteChange inte
 			return microerror.Mask(err)
 		}
 
-		r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "deleted the namespace in the Kubernetes API")
+		r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "deleted the namespace in the Kubernetes API")
 	} else {
-		r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "the namespace does not need to be deleted from the Kubernetes API")
+		r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "the namespace does not need to be deleted from the Kubernetes API")
 	}
 
 	return nil
@@ -53,7 +53,7 @@ func (r *Resource) NewDeletePatch(ctx context.Context, obj, currentState, desire
 }
 
 func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	customObject, err := keyv1.ToCustomObject(obj)
+	customObject, err := keyv2.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -66,14 +66,14 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "finding out if the namespace has to be deleted")
+	r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "finding out if the namespace has to be deleted")
 
 	var namespaceToDelete *apiv1.Namespace
 	if currentNamespace != nil {
 		namespaceToDelete = desiredNamespace
 	}
 
-	r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "found out if the namespace has to be deleted")
+	r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "found out if the namespace has to be deleted")
 
 	return namespaceToDelete, nil
 }
