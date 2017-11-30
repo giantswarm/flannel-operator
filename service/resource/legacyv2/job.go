@@ -1,14 +1,13 @@
-package legacyv1
+package legacyv2
 
 import (
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiv1 "k8s.io/client-go/pkg/api/v1"
 	batchv1 "k8s.io/client-go/pkg/apis/batch/v1"
-
-	"github.com/giantswarm/flanneltpr"
 )
 
-func newJob(spec flanneltpr.Spec, replicas int32) *batchv1.Job {
+func newJob(spec v1alpha1.FlannelSpec, replicas int32) *batchv1.Job {
 	privileged := true
 
 	app := destroyerApp

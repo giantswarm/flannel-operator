@@ -1,12 +1,11 @@
-package legacyv1
+package legacyv2
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
-	"strconv"
-
-	"github.com/giantswarm/flanneltpr"
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 )
 
 const (
@@ -32,91 +31,91 @@ const (
 
 // networkNamespace returns the namespace in which the operator's resources run
 // in.
-func networkNamespace(spec flanneltpr.Spec) string {
+func networkNamespace(spec v1alpha1.FlannelSpec) string {
 	return networkApp + "-" + clusterID(spec)
 }
 
 // destroyerNamespace returns the namespace in which resources performing
 // cleanup run in.
-func destroyerNamespace(spec flanneltpr.Spec) string {
+func destroyerNamespace(spec v1alpha1.FlannelSpec) string {
 	return destroyerApp + "-" + clusterID(spec)
 }
 
-func clusterCustomer(spec flanneltpr.Spec) string {
+func clusterCustomer(spec v1alpha1.FlannelSpec) string {
 	return spec.Cluster.Customer
 }
 
-func clusterID(spec flanneltpr.Spec) string {
+func clusterID(spec v1alpha1.FlannelSpec) string {
 	return spec.Cluster.ID
 }
 
-func clusterName(spec flanneltpr.Spec) string {
+func clusterName(spec v1alpha1.FlannelSpec) string {
 	return clusterID(spec)
 }
 
-func clusterNamespace(spec flanneltpr.Spec) string {
+func clusterNamespace(spec v1alpha1.FlannelSpec) string {
 	return spec.Cluster.Namespace
 }
 
-func etcdNetworkConfigPath(spec flanneltpr.Spec) string {
+func etcdNetworkConfigPath(spec v1alpha1.FlannelSpec) string {
 	return etcdNetworkPath(spec) + "/config"
 }
 
-func etcdNetworkPath(spec flanneltpr.Spec) string {
+func etcdNetworkPath(spec v1alpha1.FlannelSpec) string {
 	return "coreos.com/network/" + networkBridgeName(spec)
 }
 
-func etcdPrefix(spec flanneltpr.Spec) string {
+func etcdPrefix(spec v1alpha1.FlannelSpec) string {
 	return "/" + etcdNetworkPath(spec)
 }
 
-func flannelRunDir(spec flanneltpr.Spec) string {
+func flannelRunDir(spec v1alpha1.FlannelSpec) string {
 	return spec.Flannel.Spec.RunDir
 }
 
-func healthListenAddress(spec flanneltpr.Spec) string {
+func healthListenAddress(spec v1alpha1.FlannelSpec) string {
 	return "http://" + probeHost + ":" + strconv.Itoa(int(livenessPort(spec)))
 }
-func hostPrivateNetwork(spec flanneltpr.Spec) string {
+func hostPrivateNetwork(spec v1alpha1.FlannelSpec) string {
 	return spec.Bridge.Spec.PrivateNetwork
 }
 
-func livenessPort(spec flanneltpr.Spec) int32 {
+func livenessPort(spec v1alpha1.FlannelSpec) int32 {
 	return int32(portBase + spec.Flannel.Spec.VNI)
 }
 
-func networkBridgeDockerImage(spec flanneltpr.Spec) string {
+func networkBridgeDockerImage(spec v1alpha1.FlannelSpec) string {
 	return spec.Bridge.Docker.Image
 }
-func networkHealthDockerImage(spec flanneltpr.Spec) string {
+func networkHealthDockerImage(spec v1alpha1.FlannelSpec) string {
 	return spec.Health.Docker.Image
 }
 
-func networkBridgeName(spec flanneltpr.Spec) string {
+func networkBridgeName(spec v1alpha1.FlannelSpec) string {
 	return "br-" + clusterID(spec)
 }
 
-func networkDNSBlock(spec flanneltpr.Spec) string {
+func networkDNSBlock(spec v1alpha1.FlannelSpec) string {
 	var parts []string
 	for _, s := range spec.Bridge.Spec.DNS.Servers {
-		parts = append(parts, fmt.Sprintf("DNS=%s", s.String()))
+		parts = append(parts, fmt.Sprintf("DNS=%s", s))
 	}
 	return strings.Join(parts, "\n")
 }
 
-func networkEnvFilePath(spec flanneltpr.Spec) string {
+func networkEnvFilePath(spec v1alpha1.FlannelSpec) string {
 	return fmt.Sprintf("%s/networks/%s.env", flannelRunDir(spec), networkBridgeName(spec))
 }
 
-func networkFlannelDevice(spec flanneltpr.Spec) string {
+func networkFlannelDevice(spec v1alpha1.FlannelSpec) string {
 	return fmt.Sprintf("flannel.%d", spec.Flannel.Spec.VNI)
 }
 
-func networkInterfaceName(spec flanneltpr.Spec) string {
+func networkInterfaceName(spec v1alpha1.FlannelSpec) string {
 	return spec.Bridge.Spec.Interface
 }
 
-func networkNTPBlock(spec flanneltpr.Spec) string {
+func networkNTPBlock(spec v1alpha1.FlannelSpec) string {
 	var parts []string
 	for _, s := range spec.Bridge.Spec.NTP.Servers {
 		parts = append(parts, fmt.Sprintf("NTP=%s", s))
@@ -124,6 +123,6 @@ func networkNTPBlock(spec flanneltpr.Spec) string {
 	return strings.Join(parts, "\n")
 }
 
-func networkTapName(spec flanneltpr.Spec) string {
+func networkTapName(spec v1alpha1.FlannelSpec) string {
 	return "tap-" + clusterID(spec)
 }

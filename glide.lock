@@ -1,8 +1,8 @@
 hash: 365a0f50d354536b0ae548ba12ce3fb3209adfab53c79e2d0d05160499e926f3
-updated: 2017-11-30T11:53:21.419611+01:00
+updated: 2017-11-30T14:42:57.781045+01:00
 imports:
 - name: github.com/beorn7/perks
-  version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
 - name: github.com/cenk/backoff
@@ -41,7 +41,7 @@ imports:
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/giantswarm/apiextensions
-  version: a50685242279dfd7a9ea9c223ff09b6b82487eeb
+  version: 9e4dbd35f48903e4e94a66f0391c79dbec3332d0
 - name: github.com/giantswarm/flanneltpr
   version: bc1b0a338cc3852c5b06ec2191a720b21294d60b
   subpackages:
@@ -188,7 +188,7 @@ imports:
   - prometheus
   - prometheus/promhttp
 - name: github.com/prometheus/client_model
-  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
   subpackages:
   - go
 - name: github.com/prometheus/common
@@ -258,7 +258,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
-  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
+  version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
 - name: k8s.io/apiextensions-apiserver
   version: fcd622fe88a4a6efcb5aea9e94ee87324ac1b036
   subpackages:

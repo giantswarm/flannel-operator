@@ -1,4 +1,4 @@
-package legacyv1
+package legacyv2
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/cenk/backoff"
-	"github.com/giantswarm/flanneltpr"
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/framework"
@@ -18,12 +18,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
-	"github.com/giantswarm/flannel-operator/service/keyv1"
+	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
 const (
 	// Name is the identifier of the resource.
-	Name = "legacy"
+	Name = "legacyv2"
 )
 
 // Config represents the configuration used to create a new config map resource.
@@ -90,23 +90,23 @@ func New(config Config) (*Resource, error) {
 }
 
 func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interface{}, error) {
-	customObject, err := keyv1.ToCustomObject(obj)
+	customObject, err := keyv2.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "looking for the daemon set in the Kubernetes API")
+	r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "looking for the daemon set in the Kubernetes API")
 
 	var currentDaemonSet *v1beta1.DaemonSet
 	{
 		manifest, err := r.k8sClient.Extensions().DaemonSets(networkNamespace(customObject.Spec)).Get(networkApp, apismetav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "did not find the daemon set in the Kubernetes API")
+			r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "did not find the daemon set in the Kubernetes API")
 			// fall through
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		} else {
-			r.logger.Log("cluster", keyv1.ClusterID(customObject), "debug", "found the daemon set in the Kubernetes API")
+			r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "found the daemon set in the Kubernetes API")
 			currentDaemonSet = manifest
 			r.updateVersionBundleVersionGauge(customObject, versionBundleVersionGauge, currentDaemonSet)
 		}
@@ -115,16 +115,16 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 	return currentDaemonSet, nil
 }
 
-func (r *Resource) updateVersionBundleVersionGauge(customObject flanneltpr.CustomObject, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
+func (r *Resource) updateVersionBundleVersionGauge(customObject v1alpha1.Flannel, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
 	version, ok := daemonSet.Annotations[VersionBundleVersionAnnotation]
 	if !ok {
-		r.logger.Log("cluster", keyv1.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: annotation '%s' must not be empty", VersionBundleVersionAnnotation))
+		r.logger.Log("cluster", keyv2.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: annotation '%s' must not be empty", VersionBundleVersionAnnotation))
 		return
 	}
 
 	split := strings.Split(version, ".")
 	if len(split) != 3 {
-		r.logger.Log("cluster", keyv1.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: invalid version format, expected '<major>.<minor>.<patch>', got '%s'", version))
+		r.logger.Log("cluster", keyv2.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: invalid version format, expected '<major>.<minor>.<patch>', got '%s'", version))
 		return
 	}
 
@@ -140,7 +140,7 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 }
 
 func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	customObject, err := keyv1.ToCustomObject(obj)
+	customObject, err := keyv2.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -174,11 +174,11 @@ func (r *Resource) NewDeletePatch(ctx context.Context, obj, currentState, desire
 }
 
 func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	var spec flanneltpr.Spec
+	var spec v1alpha1.FlannelSpec
 	{
-		o, ok := obj.(*flanneltpr.CustomObject)
+		o, ok := obj.(*v1alpha1.Flannel)
 		if !ok {
-			return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &flanneltpr.CustomObject{}, obj)
+			return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &v1alpha1.Flannel{}, obj)
 		}
 		spec = o.Spec
 	}
