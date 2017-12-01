@@ -1,13 +1,11 @@
-package networkconfigv1
+package networkconfigv2
 
 import (
 	"context"
 	"reflect"
 	"testing"
 
-	"github.com/giantswarm/flanneltpr"
-	"github.com/giantswarm/flanneltpr/spec"
-	"github.com/giantswarm/flanneltpr/spec/flannel"
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/micrologger/microloggertest"
 
 	etcdv2fake "github.com/giantswarm/flannel-operator/service/etcdv2/fake"
@@ -19,7 +17,7 @@ func Test_Resource_NetworkConfig_GetDesiredState(t *testing.T) {
 		ExpectedNetworkConfig NetworkConfig
 	}{
 		{
-			Obj: &flanneltpr.CustomObject{},
+			Obj: &v1alpha1.FlannelConfig{},
 			ExpectedNetworkConfig: NetworkConfig{
 				Backend: Backend{
 					Type: "vxlan",
@@ -28,10 +26,10 @@ func Test_Resource_NetworkConfig_GetDesiredState(t *testing.T) {
 		},
 
 		{
-			Obj: &flanneltpr.CustomObject{
-				Spec: flanneltpr.Spec{
-					Flannel: spec.Flannel{
-						Spec: flannel.Spec{
+			Obj: &v1alpha1.FlannelConfig{
+				Spec: v1alpha1.FlannelConfigSpec{
+					Flannel: v1alpha1.FlannelConfigSpecFlannel{
+						Spec: v1alpha1.FlannelConfigSpecFlannelSpec{
 							Network:   "172.26.0.0/16",
 							SubnetLen: 30,
 							VNI:       26,

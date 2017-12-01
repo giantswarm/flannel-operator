@@ -1,4 +1,4 @@
-package networkconfigv1
+package networkconfigv2
 
 type Backend struct {
 	Type string

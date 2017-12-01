@@ -1,4 +1,4 @@
-package networkconfigv1
+package networkconfigv2
 
 import (
 	"context"
@@ -6,11 +6,11 @@ import (
 
 	"github.com/giantswarm/microerror"
 
-	"github.com/giantswarm/flannel-operator/service/keyv1"
+	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
 func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange interface{}) error {
-	customObject, err := keyv1.ToCustomObject(obj)
+	customObject, err := keyv2.ToCustomObject(obj)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -25,7 +25,7 @@ func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange inte
 		if err != nil {
 			return microerror.Mask(err)
 		}
-		p := keyv1.EtcdNetworkConfigPath(customObject)
+		p := keyv2.EtcdNetworkConfigPath(customObject)
 		err = r.store.Create(ctx, p, string(b))
 		if err != nil {
 			return microerror.Mask(err)

@@ -1,11 +1,11 @@
-package networkconfigv1
+package networkconfigv2
 
 import (
 	"context"
 	"reflect"
 	"testing"
 
-	"github.com/giantswarm/flanneltpr"
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/micrologger/microloggertest"
 
 	etcdv2fake "github.com/giantswarm/flannel-operator/service/etcdv2/fake"
@@ -20,7 +20,7 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 	}{
 		// Test 0 ensures that zero value inputs result in zero value outputs.
 		{
-			Obj:                   &flanneltpr.CustomObject{},
+			Obj:                   &v1alpha1.FlannelConfig{},
 			CurrentState:          NetworkConfig{},
 			DesiredState:          NetworkConfig{},
 			ExpectedNetworkConfig: NetworkConfig{},
@@ -29,7 +29,7 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 		// Test 1 ensures that the update state matches the desired state in case
 		// the current state is empty.
 		{
-			Obj:          &flanneltpr.CustomObject{},
+			Obj:          &v1alpha1.FlannelConfig{},
 			CurrentState: NetworkConfig{},
 			DesiredState: NetworkConfig{
 				Network:   "172.26.0.0/16",
@@ -52,7 +52,7 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 		// Test 2 ensures that the update state is empty in case the current state
 		// is not empty.
 		{
-			Obj: &flanneltpr.CustomObject{},
+			Obj: &v1alpha1.FlannelConfig{},
 			CurrentState: NetworkConfig{
 				Network:   "172.26.0.0/16",
 				SubnetLen: 30,
@@ -75,7 +75,7 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 		// Test 3 ensures that the update state matches the desired state in case
 		// the current state does not match the desired state.
 		{
-			Obj: &flanneltpr.CustomObject{},
+			Obj: &v1alpha1.FlannelConfig{},
 			CurrentState: NetworkConfig{
 				Backend: Backend{
 					Type: "vxlan",
@@ -102,7 +102,7 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 		// Test 3 is the same as 2 but with different changes between current and
 		// desired state.
 		{
-			Obj: &flanneltpr.CustomObject{},
+			Obj: &v1alpha1.FlannelConfig{},
 			CurrentState: NetworkConfig{
 				Network:   "foo/16",
 				SubnetLen: 30000000000,

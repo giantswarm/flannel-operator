@@ -1,4 +1,4 @@
-package networkconfigv1
+package networkconfigv2
 
 import "github.com/giantswarm/microerror"
 
