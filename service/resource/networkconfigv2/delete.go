@@ -1,4 +1,4 @@
-package networkconfigv1
+package networkconfigv2
 
 import (
 	"context"
@@ -6,11 +6,11 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/operatorkit/framework"
 
-	"github.com/giantswarm/flannel-operator/service/keyv1"
+	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
 func (r *Resource) ApplyDeleteChange(ctx context.Context, obj, deleteChange interface{}) error {
-	customObject, err := keyv1.ToCustomObject(obj)
+	customObject, err := keyv2.ToCustomObject(obj)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -21,7 +21,7 @@ func (r *Resource) ApplyDeleteChange(ctx context.Context, obj, deleteChange inte
 
 	var emptyNetworkConfig NetworkConfig
 	if networkConfigToDelete != emptyNetworkConfig {
-		p := keyv1.EtcdNetworkPath(customObject)
+		p := keyv2.EtcdNetworkPath(customObject)
 		err = r.store.Delete(ctx, p)
 		if err != nil {
 			return microerror.Mask(err)

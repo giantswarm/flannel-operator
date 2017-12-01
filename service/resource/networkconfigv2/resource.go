@@ -1,4 +1,4 @@
-package networkconfigv1
+package networkconfigv2
 
 import (
 	"github.com/giantswarm/microerror"
@@ -12,7 +12,7 @@ const (
 	// BackendType is the backend type the flannel network is configured with.
 	BackendType = "vxlan"
 	// Name is the identifier of the resource.
-	Name = "networkconfig"
+	Name = "networkconfigv2"
 )
 
 // Config represents the configuration used to create a new network config

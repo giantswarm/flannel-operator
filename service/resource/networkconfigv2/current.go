@@ -1,4 +1,4 @@
-package networkconfigv1
+package networkconfigv2
 
 import (
 	"context"
@@ -6,18 +6,18 @@ import (
 
 	"github.com/giantswarm/microerror"
 
-	"github.com/giantswarm/flannel-operator/service/keyv1"
+	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
 func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interface{}, error) {
-	customObject, err := keyv1.ToCustomObject(obj)
+	customObject, err := keyv2.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	var networkConfig NetworkConfig
 	{
-		p := keyv1.EtcdNetworkConfigPath(customObject)
+		p := keyv2.EtcdNetworkConfigPath(customObject)
 		exists, err := r.store.Exists(ctx, p)
 		if err != nil {
 			return nil, microerror.Mask(err)
