@@ -16,9 +16,9 @@ func Test_Resource_Namespace_GetDesiredState(t *testing.T) {
 		ExpectedName string
 	}{
 		{
-			Obj: &v1alpha1.Flannel{
-				Spec: v1alpha1.FlannelSpec{
-					Cluster: v1alpha1.FlannelSpecCluster{
+			Obj: &v1alpha1.FlannelConfig{
+				Spec: v1alpha1.FlannelConfigSpec{
+					Cluster: v1alpha1.FlannelConfigSpecCluster{
 						ID: "al9qy",
 					},
 				},
@@ -26,9 +26,9 @@ func Test_Resource_Namespace_GetDesiredState(t *testing.T) {
 			ExpectedName: "flannel-network-al9qy",
 		},
 		{
-			Obj: &v1alpha1.Flannel{
-				Spec: v1alpha1.FlannelSpec{
-					Cluster: v1alpha1.FlannelSpecCluster{
+			Obj: &v1alpha1.FlannelConfig{
+				Spec: v1alpha1.FlannelConfigSpec{
+					Cluster: v1alpha1.FlannelConfigSpecCluster{
 						ID: "foobar",
 					},
 				},

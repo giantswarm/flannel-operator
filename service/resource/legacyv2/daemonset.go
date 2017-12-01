@@ -10,7 +10,7 @@ import (
 	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
-func newDaemonSet(customObject v1alpha1.Flannel, etcdCAFile, etcdCrtFile, etcdKeyFile string) *apisextensions.DaemonSet {
+func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *apisextensions.DaemonSet {
 	app := networkApp
 
 	containers := newDaemonSetContainers(customObject.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile)
@@ -57,7 +57,7 @@ func newDaemonSet(customObject v1alpha1.Flannel, etcdCAFile, etcdCrtFile, etcdKe
 	return daemonSet
 }
 
-func newDaemonSetContainers(spec v1alpha1.FlannelSpec, etcdCAFile, etcdCrtFile, etcdKeyFile string) []api.Container {
+func newDaemonSetContainers(spec v1alpha1.FlannelConfigSpec, etcdCAFile, etcdCrtFile, etcdKeyFile string) []api.Container {
 	privileged := true
 
 	return []api.Container{
@@ -263,7 +263,7 @@ func newDaemonSetContainers(spec v1alpha1.FlannelSpec, etcdCAFile, etcdCrtFile, 
 	}
 }
 
-func newDaemonSetVolumes(spec v1alpha1.FlannelSpec) []api.Volume {
+func newDaemonSetVolumes(spec v1alpha1.FlannelConfigSpec) []api.Volume {
 	return []api.Volume{
 		{
 			Name: "cgroup",
