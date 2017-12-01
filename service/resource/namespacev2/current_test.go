@@ -17,9 +17,9 @@ func Test_Resource_Namespace_GetCurrentState(t *testing.T) {
 		ExpectedNamespace *apiv1.Namespace
 	}{
 		{
-			Obj: &v1alpha1.Flannel{
-				Spec: v1alpha1.FlannelSpec{
-					Cluster: v1alpha1.FlannelSpecCluster{
+			Obj: &v1alpha1.FlannelConfig{
+				Spec: v1alpha1.FlannelConfigSpec{
+					Cluster: v1alpha1.FlannelConfigSpecCluster{
 						ID: "al9qy",
 					},
 				},

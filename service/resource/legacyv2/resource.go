@@ -115,7 +115,7 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 	return currentDaemonSet, nil
 }
 
-func (r *Resource) updateVersionBundleVersionGauge(customObject v1alpha1.Flannel, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
+func (r *Resource) updateVersionBundleVersionGauge(customObject v1alpha1.FlannelConfig, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
 	version, ok := daemonSet.Annotations[VersionBundleVersionAnnotation]
 	if !ok {
 		r.logger.Log("cluster", keyv2.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: annotation '%s' must not be empty", VersionBundleVersionAnnotation))
@@ -174,11 +174,11 @@ func (r *Resource) NewDeletePatch(ctx context.Context, obj, currentState, desire
 }
 
 func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	var spec v1alpha1.FlannelSpec
+	var spec v1alpha1.FlannelConfigSpec
 	{
-		o, ok := obj.(*v1alpha1.Flannel)
+		o, ok := obj.(*v1alpha1.FlannelConfig)
 		if !ok {
-			return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &v1alpha1.Flannel{}, obj)
+			return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &v1alpha1.FlannelConfig{}, obj)
 		}
 		spec = o.Spec
 	}

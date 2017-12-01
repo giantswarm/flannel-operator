@@ -7,7 +7,7 @@ import (
 	batchv1 "k8s.io/client-go/pkg/apis/batch/v1"
 )
 
-func newJob(spec v1alpha1.FlannelSpec, replicas int32) *batchv1.Job {
+func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 	privileged := true
 
 	app := destroyerApp
