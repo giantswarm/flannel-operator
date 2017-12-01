@@ -10,7 +10,7 @@ import (
 
 const (
 	// Name is the identifier of the resource.
-	Name = "namespace"
+	Name = "namespacev2"
 )
 
 // Config represents the configuration used to create a new cloud config resource.
