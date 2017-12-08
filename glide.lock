@@ -41,7 +41,7 @@ imports:
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/giantswarm/apiextensions
-  version: b6ae8205a4c9fe136c020dbbddaf25f5e41a970c
+  version: 7ec3d5ca6238c9d2473d71494a2b36d295513a4e
   subpackages:
   - pkg/apis/core/v1alpha1
 - name: github.com/giantswarm/flanneltpr
@@ -91,7 +91,7 @@ imports:
   subpackages:
   - memory
 - name: github.com/giantswarm/operatorkit
-  version: 2804229e2bf865f72763ec1cf6f1d9dabb096665
+  version: 8b3446a2ecbe707fb6ba351b035cd60508af5aec
   subpackages:
   - client/k8sclient
   - client/k8scrdclient
