@@ -17,7 +17,7 @@ import:
 - package: github.com/giantswarm/microstorage
   version: master
 - package: github.com/giantswarm/operatorkit
-  version: master
+  version: kubernetes-1.7
 
 - package: github.com/coreos/etcd
   version: 61fc123e7a8b14a0a258aa3f5c4159861b1ec2e7
