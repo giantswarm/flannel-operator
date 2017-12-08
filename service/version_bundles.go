@@ -32,7 +32,7 @@ func NewVersionBundles() []versionbundle.Bundle {
 			Name:       "flannel-operator",
 			Time:       time.Date(2017, time.October, 27, 16, 21, 0, 0, time.UTC),
 			Version:    "0.1.0",
-			WIP:        true,
+			WIP:        false,
 		},
 	}
 }
