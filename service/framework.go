@@ -573,9 +573,9 @@ func migrateTPRsToCRDs(logger micrologger.Logger, clientSet *versioned.Clientset
 			cro.TypeMeta.APIVersion = "core.giantswarm.io"
 			cro.TypeMeta.Kind = "FlannelConfig"
 			cro.ObjectMeta.Name = tpo.Name
-			cro.ObjectMeta.Finalizers = []string{
-				FlannelConfigCleanupFinalizer,
-			}
+			//cro.ObjectMeta.Finalizers = []string{
+			//	FlannelConfigCleanupFinalizer,
+			//}
 			cro.Spec.Bridge.Docker.Image = tpo.Spec.Bridge.Docker.Image
 			cro.Spec.Bridge.Spec.DNS.Servers = toStrings(tpo.Spec.Bridge.Spec.DNS.Servers)
 			cro.Spec.Bridge.Spec.Interface = tpo.Spec.Bridge.Spec.Interface
