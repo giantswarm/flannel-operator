@@ -52,10 +52,9 @@ func DefaultConfig() Config {
 
 type Service struct {
 	// Dependencies.
-	CRDFramework          *framework.Framework
-	customObjectFramework *framework.Framework
-	Healthz               *healthz.Service
-	Version               *version.Service
+	CRDFramework *framework.Framework
+	Healthz      *healthz.Service
+	Version      *version.Service
 
 	// Internals.
 	bootOnce sync.Once
@@ -98,14 +97,6 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
-	var customObjectFramework *framework.Framework
-	{
-		customObjectFramework, err = newCustomObjectFramework(config)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	var healthzService *healthz.Service
 	{
 		healthzConfig := healthz.DefaultConfig()
@@ -137,10 +128,9 @@ func New(config Config) (*Service, error) {
 
 	newService := &Service{
 		// Dependencies.
-		CRDFramework:          crdFramework,
-		customObjectFramework: customObjectFramework,
-		Healthz:               healthzService,
-		Version:               versionService,
+		CRDFramework: crdFramework,
+		Healthz:      healthzService,
+		Version:      versionService,
 
 		// Internals
 		bootOnce: sync.Once{},
@@ -152,6 +142,5 @@ func New(config Config) (*Service, error) {
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
 		go s.CRDFramework.Boot()
-		//go s.customObjectFramework.Boot()
 	})
 }
