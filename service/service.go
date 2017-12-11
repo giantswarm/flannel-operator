@@ -152,6 +152,6 @@ func New(config Config) (*Service, error) {
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
 		go s.CRDFramework.Boot()
-		go s.customObjectFramework.Boot()
+		//go s.customObjectFramework.Boot()
 	})
 }
