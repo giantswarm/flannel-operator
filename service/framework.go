@@ -2,8 +2,6 @@ package service
 
 import (
 	"crypto/tls"
-	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -12,10 +10,8 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
-	"github.com/giantswarm/flanneltpr"
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
-	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/micrologger/microloggertest"
 	"github.com/giantswarm/operatorkit/client/k8sclient"
 	"github.com/giantswarm/operatorkit/client/k8scrdclient"
@@ -25,7 +21,6 @@ import (
 	"github.com/giantswarm/operatorkit/framework/resource/retryresource"
 	"github.com/giantswarm/operatorkit/informer"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
@@ -39,10 +34,6 @@ import (
 
 const (
 	ResourceRetries uint64 = 3
-)
-
-const (
-	FlannelConfigCleanupFinalizer = "flannel-operator.giantswarm.io/custom-object-cleanup"
 )
 
 func newCRDFramework(config Config) (*framework.Framework, error) {
@@ -258,9 +249,6 @@ func newCRDFramework(config Config) (*framework.Framework, error) {
 		}
 	}
 
-	// TODO remove after migration.
-	migrateTPRsToCRDs(config.Logger, clientSet)
-
 	var newWatcherFactory informer.WatcherFactory
 	{
 		newWatcherFactory = func() (watch.Interface, error) {
@@ -302,106 +290,4 @@ func newCRDFramework(config Config) (*framework.Framework, error) {
 	}
 
 	return crdFramework, nil
-}
-
-func migrateTPRsToCRDs(logger micrologger.Logger, clientSet *versioned.Clientset) {
-	logger.Log("debug", "start TPR migration")
-
-	var err error
-
-	// List all TPOs.
-	var b []byte
-	{
-		e := "apis/giantswarm.io/v1/namespaces/default/flannelnetworks"
-		b, err = clientSet.Discovery().RESTClient().Get().AbsPath(e).DoRaw()
-		if err != nil {
-			logger.Log("error", fmt.Sprintf("%#v", err))
-			return
-		}
-
-		fmt.Printf("\n")
-		fmt.Printf("b start\n")
-		fmt.Printf("%s\n", b)
-		fmt.Printf("b end\n")
-		fmt.Printf("\n")
-	}
-
-	// Convert bytes into structure.
-	var v *flanneltpr.List
-	{
-		v = &flanneltpr.List{}
-		if err := json.Unmarshal(b, v); err != nil {
-			logger.Log("error", fmt.Sprintf("%#v", err))
-			return
-		}
-
-		fmt.Printf("\n")
-		fmt.Printf("v start\n")
-		fmt.Printf("%#v\n", v)
-		fmt.Printf("v end\n")
-		fmt.Printf("\n")
-	}
-
-	// Iterate over all TPOs.
-	for _, tpo := range v.Items {
-		// Compute CRO using TPO.
-		var cro *v1alpha1.FlannelConfig
-		{
-			cro = &v1alpha1.FlannelConfig{}
-
-			cro.TypeMeta.APIVersion = "core.giantswarm.io"
-			cro.TypeMeta.Kind = "FlannelConfig"
-			cro.ObjectMeta.Name = tpo.Name
-			//cro.ObjectMeta.Finalizers = []string{
-			//	FlannelConfigCleanupFinalizer,
-			//}
-			cro.Spec.Bridge.Docker.Image = tpo.Spec.Bridge.Docker.Image
-			cro.Spec.Bridge.Spec.DNS.Servers = toStrings(tpo.Spec.Bridge.Spec.DNS.Servers)
-			cro.Spec.Bridge.Spec.Interface = tpo.Spec.Bridge.Spec.Interface
-			cro.Spec.Bridge.Spec.NTP.Servers = tpo.Spec.Bridge.Spec.NTP.Servers
-			cro.Spec.Bridge.Spec.PrivateNetwork = tpo.Spec.Bridge.Spec.PrivateNetwork
-			cro.Spec.Cluster.Customer = tpo.Spec.Cluster.Customer
-			cro.Spec.Cluster.ID = tpo.Spec.Cluster.ID
-			cro.Spec.Cluster.Namespace = tpo.Spec.Cluster.Namespace
-			cro.Spec.Flannel.Spec.Network = tpo.Spec.Flannel.Spec.Network
-			cro.Spec.Flannel.Spec.RunDir = tpo.Spec.Flannel.Spec.RunDir
-			cro.Spec.Flannel.Spec.SubnetLen = tpo.Spec.Flannel.Spec.SubnetLen
-			cro.Spec.Flannel.Spec.VNI = tpo.Spec.Flannel.Spec.VNI
-			cro.Spec.Health.Docker.Image = tpo.Spec.Health.Docker.Image
-			cro.Spec.VersionBundle.Version = tpo.Spec.VersionBundle.Version
-
-			fmt.Printf("\n")
-			fmt.Printf("cro start\n")
-			fmt.Printf("%#v\n", cro)
-			fmt.Printf("cro end\n")
-			fmt.Printf("\n")
-		}
-
-		// Create CRO in Kubernetes API.
-		{
-			_, err := clientSet.CoreV1alpha1().FlannelConfigs(tpo.Namespace).Get(cro.Name, apismetav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				_, err := clientSet.CoreV1alpha1().FlannelConfigs(tpo.Namespace).Create(cro)
-				if err != nil {
-					logger.Log("error", fmt.Sprintf("%#v", err))
-					return
-				}
-			} else if err != nil {
-				logger.Log("error", fmt.Sprintf("%#v", err))
-				return
-			}
-		}
-	}
-
-	logger.Log("debug", "end TPR migration")
-}
-
-func toStrings(ipList []net.IP) []string {
-	var newList []string
-
-	for _, ip := range ipList {
-		newList = append(newList, ip.String())
-	}
-
-	return newList
 }
