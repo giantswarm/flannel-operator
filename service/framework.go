@@ -36,10 +36,6 @@ const (
 	ResourceRetries uint64 = 3
 )
 
-const (
-	FlannelConfigCleanupFinalizer = "flannel-operator.giantswarm.io/custom-object-cleanup"
-)
-
 func newCRDFramework(config Config) (*framework.Framework, error) {
 	if config.Flag == nil {
 		return nil, microerror.Maskf(invalidConfigError, "config.Flag must not be empty")
