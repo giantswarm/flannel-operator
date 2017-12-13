@@ -21,8 +21,6 @@ import (
 	"github.com/giantswarm/operatorkit/framework/resource/retryresource"
 	"github.com/giantswarm/operatorkit/informer"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -249,23 +247,11 @@ func newCRDFramework(config Config) (*framework.Framework, error) {
 		}
 	}
 
-	var newWatcherFactory informer.WatcherFactory
-	{
-		newWatcherFactory = func() (watch.Interface, error) {
-			watcher, err := clientSet.CoreV1alpha1().FlannelConfigs("").Watch(apismetav1.ListOptions{})
-			if err != nil {
-				return nil, microerror.Mask(err)
-			}
-
-			return watcher, nil
-		}
-	}
-
 	var newInformer *informer.Informer
 	{
 		c := informer.DefaultConfig()
 
-		c.WatcherFactory = newWatcherFactory
+		c.Watcher = clientSet.CoreV1alpha1().FlannelConfigs("")
 
 		newInformer, err = informer.New(c)
 		if err != nil {
