@@ -2,21 +2,21 @@ package legacyv2
 
 import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
+	api "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	api "k8s.io/client-go/pkg/api/v1"
-	apisextensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
 	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
-func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *apisextensions.DaemonSet {
+func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *v1beta1.DaemonSet {
 	app := networkApp
 
 	containers := newDaemonSetContainers(customObject.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile)
 	volumes := newDaemonSetVolumes(customObject.Spec)
 
-	daemonSet := &apisextensions.DaemonSet{
+	daemonSet := &v1beta1.DaemonSet{
 		TypeMeta: apismeta.TypeMeta{
 			Kind:       "daemonset",
 			APIVersion: "extensions/v1beta",
@@ -32,7 +32,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 				"customer": clusterCustomer(customObject.Spec),
 			},
 		},
-		Spec: apisextensions.DaemonSetSpec{
+		Spec: v1beta1.DaemonSetSpec{
 			Template: api.PodTemplateSpec{
 				ObjectMeta: apismeta.ObjectMeta{
 					GenerateName: app,

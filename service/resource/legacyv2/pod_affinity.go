@@ -2,8 +2,8 @@ package legacyv2
 
 import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
+	apiv1 "k8s.io/api/core/v1"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apiv1 "k8s.io/client-go/pkg/api/v1"
 )
 
 // newPodAffinity create an affinity ensuring that pod of the app in the

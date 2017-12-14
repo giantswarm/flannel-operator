@@ -2,9 +2,9 @@ package legacyv2
 
 import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
+	batchv1 "k8s.io/api/batch/v1"
+	apiv1 "k8s.io/api/core/v1"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apiv1 "k8s.io/client-go/pkg/api/v1"
-	batchv1 "k8s.io/client-go/pkg/apis/batch/v1"
 )
 
 func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
