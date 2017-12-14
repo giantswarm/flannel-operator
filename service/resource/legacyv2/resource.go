@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cenk/backoff"
+	"github.com/cenkalti/backoff"
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
