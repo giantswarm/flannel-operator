@@ -1,4 +1,4 @@
-package legacyv2
+package flanneldv1
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,3 +19,7 @@ var versionBundleVersionGauge = prometheus.NewGaugeVec(
 	},
 	[]string{"major", "minor", "patch"},
 )
+
+func init() {
+	prometheus.MustRegister(versionBundleVersionGauge)
+}
