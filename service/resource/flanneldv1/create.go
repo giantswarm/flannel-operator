@@ -5,8 +5,9 @@ import (
 
 	"github.com/giantswarm/microerror"
 	"k8s.io/api/extensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/giantswarm/kvm-operator/service/keyv2"
+	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
 func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange interface{}) error {
@@ -22,7 +23,8 @@ func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange inte
 	if daemonSetToCreate != nil {
 		r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "creating the daemon set in the Kubernetes API")
 
-		_, err = r.k8sClient.CoreV1().DaemonSets().Create(daemonSetToCreate)
+		namespace := keyv2.NetworkNamespace(customObject)
+		_, err = r.k8sClient.Extensions().DaemonSets(namespace).Create(daemonSetToCreate)
 		if apierrors.IsAlreadyExists(err) {
 			// fall through
 		} else if err != nil {
@@ -38,10 +40,6 @@ func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange inte
 }
 
 func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	customObject, err := keyv2.ToCustomObject(obj)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
 	currentDaemonSet, err := toDaemonSet(currentState)
 	if err != nil {
 		return nil, microerror.Mask(err)
