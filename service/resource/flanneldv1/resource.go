@@ -4,6 +4,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/framework"
+	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -85,4 +86,17 @@ func (r *Resource) Name() string {
 
 func (r *Resource) Underlying() framework.Resource {
 	return r
+}
+
+func toDaemonSet(v interface{}) (*v1beta1.DaemonSet, error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	daemonSet, ok := v.(*v1beta1.DaemonSet)
+	if !ok {
+		return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &v1beta1.DaemonSet{}, v)
+	}
+
+	return daemonSet, nil
 }
