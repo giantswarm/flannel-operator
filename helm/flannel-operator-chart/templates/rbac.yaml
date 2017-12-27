@@ -1,0 +1,33 @@
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: flannel-operator
+  namespace: giantswarm
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - create
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: userd
+subjects:
+  - kind: ServiceAccount
+    name: flannel-operator
+roleRef:
+  kind: ClusterRole
+  name: flannel-operator
+  apiGroup: rbac.authorization.k8s.io
