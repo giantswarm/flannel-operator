@@ -18,6 +18,22 @@ rules:
       - nodes
     verbs:
       - list
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - flannel-operator-configmap
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - flannel-operator-pull-secret
+    verbs:
+      - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -26,7 +42,35 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: flannel-operator
+    namespace: flannel-operator
 roleRef:
   kind: ClusterRole
   name: flannel-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: flannel-operator-psp
+rules:
+  - apiGroups:
+      - extensions
+    resources:
+      - podsecuritypolicies
+    verbs:
+      - use
+    resourceNames:
+      - flannel-operator-psp
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: flannel-operator-psp
+subjects:
+  - kind: ServiceAccount
+    name: flannel-operator
+    namespace: giantswarm
+roleRef:
+  kind: ClusterRole
+  name: flannel-operator-psp
   apiGroup: rbac.authorization.k8s.io
