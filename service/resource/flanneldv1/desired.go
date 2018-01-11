@@ -89,7 +89,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							Command: []string{
 								"/bin/sh",
 								"-c",
-								"/opt/bin/flanneld --etcd-endpoints=https://127.0.0.1:2379 --etcd-cafile=${ETCD_CA} --etcd-certfile=${ETCD_CRT} --etcd-keyfile=${ETCD_KEY} --etcd-prefix=${ETCD_PREFIX} --public-ip=${NODE_IP} --iface=${NODE_IP} --subnet-file=${NETWORK_ENV_FILE_PATH} -v=0",
+								"/opt/bin/flanneld --etcd-endpoints=https://127.0.0.1:2379 --etcd-cafile=${ETCD_CA} --etcd-certfile=${ETCD_CRT} --etcd-keyfile=${ETCD_KEY} --etcd-prefix=${ETCD_PREFIX} --iface=${NETWORK_INTERFACE_NAME} --subnet-file=${NETWORK_ENV_FILE_PATH} -v=0",
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -117,14 +117,10 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 									Value: keyv2.NetworkEnvFilePath(customObject),
 								},
 								{
-									Name: "NODE_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											APIVersion: "v1",
-											FieldPath:  "spec.nodeName",
-										},
-									},
+									Name:  "NETWORK_INTERFACE_NAME",
+									Value: keyv2.NetworkInterfaceName(customObject),
 								},
+
 							},
 							LivenessProbe: &corev1.Probe{
 								InitialDelaySeconds: initialDelaySeconds,
