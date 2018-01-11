@@ -120,7 +120,6 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 									Name:  "NETWORK_INTERFACE_NAME",
 									Value: keyv2.NetworkInterfaceName(customObject),
 								},
-
 							},
 							LivenessProbe: &corev1.Probe{
 								InitialDelaySeconds: initialDelaySeconds,

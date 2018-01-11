@@ -99,7 +99,6 @@ func newDaemonSetContainers(spec v1alpha1.FlannelConfigSpec, etcdCAFile, etcdCrt
 					Name:  "NETWORK_INTERFACE_NAME",
 					Value: networkInterfaceName(spec),
 				},
-
 			},
 			LivenessProbe: &api.Probe{
 				InitialDelaySeconds: initialDelaySeconds,
