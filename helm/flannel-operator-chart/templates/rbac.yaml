@@ -4,6 +4,24 @@ metadata:
   name: flannel-operator
 rules:
   - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - "*"
+  - apiGroups:
+      - core.giantswarm.io
+    resources:
+      - flannelconfigs
+    verbs:
+      - "*"
+  - apiGroups:
+      - extensions
+    resources:
+      - daemonsets
+    verbs:
+      - "*"
+  - apiGroups:
       - ""
     resources:
       - namespaces
@@ -47,7 +65,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: flannel-operator
-    namespace: flannel-operator
+    namespace: giantswarm
 roleRef:
   kind: ClusterRole
   name: flannel-operator
