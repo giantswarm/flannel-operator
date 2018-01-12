@@ -14,7 +14,7 @@ func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.Cluster
 	clusterRoleBinding := &v1beta1.ClusterRoleBinding{
 		TypeMeta: apismeta.TypeMeta{
 			Kind:       "ClusterRoleBinding",
-			APIVersion: "rbac.authorization.k8s.io/v1beta1",
+			APIVersion: v1beta1.GroupName,
 		},
 		ObjectMeta: apismeta.ObjectMeta{
 			Name: networkNamespace(customObject.Spec),
@@ -38,6 +38,42 @@ func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.Cluster
 			APIGroup: v1beta1.GroupName,
 			Kind:     "ClusterRole",
 			Name:     "flannel-operator",
+		},
+	}
+
+	return clusterRoleBinding
+}
+
+func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
+	app := networkApp
+
+	clusterRoleBinding := &v1beta1.ClusterRoleBinding{
+		TypeMeta: apismeta.TypeMeta{
+			Kind:       "ClusterRoleBinding",
+			APIVersion: v1beta1.GroupName,
+		},
+		ObjectMeta: apismeta.ObjectMeta{
+			Name: networkNamespace(customObject.Spec),
+			Annotations: map[string]string{
+				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
+			},
+			Labels: map[string]string{
+				"app":      app,
+				"cluster":  clusterName(customObject.Spec),
+				"customer": clusterCustomer(customObject.Spec),
+			},
+		},
+		Subjects: []v1beta1.Subject{
+			{
+				Kind:      v1beta1.ServiceAccountKind,
+				Namespace: networkNamespace(customObject.Spec),
+				Name:      networkNamespace(customObject.Spec),
+			},
+		},
+		RoleRef: v1beta1.RoleRef{
+			APIGroup: v1beta1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "flannel-operator-psp",
 		},
 	}
 

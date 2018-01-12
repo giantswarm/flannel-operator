@@ -167,6 +167,17 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 		}
 	}
 
+	// Bind the service account with the cluster role of flannel operator pod security policy
+	{
+		clusterRoleBindingPodSecurityPolicy := newClusterRoleBindingPodSecurityPolicy(customObject)
+		_, err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Create(clusterRoleBindingPodSecurityPolicy)
+		if apierrors.IsAlreadyExists(err) {
+			r.logger.Log("debug", "clusterRoleBindingPodSecurityPolicy "+clusterRoleBindingPodSecurityPolicy.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
+		} else if err != nil {
+			return nil, microerror.Maskf(err, "creating clusterRoleBindingPodSecurityPolicy %s", clusterRoleBindingPodSecurityPolicy.Name)
+		}
+	}
+
 	// Create a dameonset running flanneld and creating network bridge.
 	{
 		daemonSet := newDaemonSet(customObject, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
