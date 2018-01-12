@@ -16,6 +16,6 @@ spec:
     - 'secret'
     - 'configMap'
     - 'hostPath'
-  hostNetwork: false
+  hostNetwork: true
   hostIPC: false
   hostPID: false

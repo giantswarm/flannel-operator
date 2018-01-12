@@ -1,0 +1,45 @@
+package legacyv2
+
+import (
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
+	"k8s.io/api/rbac/v1beta1"
+	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/giantswarm/flannel-operator/service/keyv2"
+)
+
+func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
+	app := networkApp
+
+	clusterRoleBinding := &v1beta1.ClusterRoleBinding{
+		TypeMeta: apismeta.TypeMeta{
+			Kind:       "ClusterRoleBinding",
+			APIVersion: "rbac.authorization.k8s.io/v1beta1",
+		},
+		ObjectMeta: apismeta.ObjectMeta{
+			Name: networkNamespace(customObject.Spec),
+			Annotations: map[string]string{
+				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
+			},
+			Labels: map[string]string{
+				"app":      app,
+				"cluster":  clusterName(customObject.Spec),
+				"customer": clusterCustomer(customObject.Spec),
+			},
+		},
+		Subjects: []v1beta1.Subject{
+			{
+				Kind:      v1beta1.ServiceAccountKind,
+				Namespace: networkNamespace(customObject.Spec),
+				Name:      networkNamespace(customObject.Spec),
+			},
+		},
+		RoleRef: v1beta1.RoleRef{
+			APIGroup: v1beta1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "flannel-operator",
+		},
+	}
+
+	return clusterRoleBinding
+}
