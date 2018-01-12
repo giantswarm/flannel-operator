@@ -53,7 +53,7 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 			APIVersion: v1beta1.GroupName,
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: networkNamespace(customObject.Spec),
+			Name: networkNamespace(customObject.Spec) + "-psp",
 			Annotations: map[string]string{
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
