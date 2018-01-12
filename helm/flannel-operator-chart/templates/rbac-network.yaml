@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: flannel-network-psp
+rules:
+  - apiGroups:
+      - extensions
+    resources:
+      - podsecuritypolicies
+    verbs:
+      - use
+    resourceNames:
+      - flannel-network-psp
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: flannel-network-psp
+subjects:
+  - kind: ServiceAccount
+    name: flannel-network
+    namespace: giantswarm
+roleRef:
+  kind: ClusterRole
+  name: flannel-network-psp
+  apiGroup: rbac.authorization.k8s.io

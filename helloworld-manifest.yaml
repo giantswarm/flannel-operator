@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: helloworld
+  labels:
+    app: helloworld
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+  selector:
+    app: helloworld
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: helloworld
+  labels:
+    app: helloworld
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: helloworld
+  template:
+    metadata:
+      labels:
+        app: helloworld
+      namespace: default
+    spec:
+      containers:
+      - name: helloworld
+        image: giantswarm/helloworld:latest
+        ports:
+        - containerPort: 8080
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  labels:
+    app: helloworld 
+  name: helloworld2
+  namespace: default
+spec:
+  rules:
+  - host: helloworld.33a9k.k8s.eu-central-1.aws.gigantic.io
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: helloworld
+          servicePort: 8080
