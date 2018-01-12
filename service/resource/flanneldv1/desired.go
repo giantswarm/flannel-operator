@@ -80,7 +80,8 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 					},
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
+					HostNetwork:        true,
+					ServiceAccountName: "flannel-operator",
 					Containers: []corev1.Container{
 						{
 							Name:            "flanneld",

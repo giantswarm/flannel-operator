@@ -3,7 +3,7 @@ kind: PodSecurityPolicy
 metadata:
   name: flannel-operator-psp
 spec:
-  privileged: false
+  privileged: true
   fsGroup:
     rule: RunAsAny
   runAsUser:
