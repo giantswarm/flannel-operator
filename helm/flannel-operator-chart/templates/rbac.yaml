@@ -41,6 +41,18 @@ rules:
   - apiGroups:
       - ""
     resources:
+      - serviceaccounts
+    verbs:
+      - create
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
       - nodes
     verbs:
       - list
