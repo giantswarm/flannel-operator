@@ -41,9 +41,6 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 						"cluster":  clusterName(customObject.Spec),
 						"customer": clusterCustomer(customObject.Spec),
 					},
-					Annotations: map[string]string{
-						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",
-					},
 				},
 				Spec: api.PodSpec{
 					HostNetwork:        true,
