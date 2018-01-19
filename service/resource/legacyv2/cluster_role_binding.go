@@ -17,7 +17,7 @@ func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.Cluster
 			APIVersion: v1beta1.GroupName,
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: networkNamespace(customObject.Spec),
+			Name: clusterRoleBinding(customObject.Spec),
 			Annotations: map[string]string{
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
@@ -31,7 +31,7 @@ func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.Cluster
 			{
 				Kind:      v1beta1.ServiceAccountKind,
 				Namespace: networkNamespace(customObject.Spec),
-				Name:      networkNamespace(customObject.Spec),
+				Name:      serviceAccountName(customObject.Spec),
 			},
 		},
 		RoleRef: v1beta1.RoleRef{
@@ -53,7 +53,7 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 			APIVersion: v1beta1.GroupName,
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: networkNamespace(customObject.Spec) + "-psp",
+			Name: clusterRoleBindingForPodSecurityPolicy(customObject.Spec),
 			Annotations: map[string]string{
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
@@ -67,7 +67,7 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 			{
 				Kind:      v1beta1.ServiceAccountKind,
 				Namespace: networkNamespace(customObject.Spec),
-				Name:      networkNamespace(customObject.Spec),
+				Name:      serviceAccountNamePodSecurityPolicy(customObject.Spec),
 			},
 		},
 		RoleRef: v1beta1.RoleRef{

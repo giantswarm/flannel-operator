@@ -41,6 +41,22 @@ func destroyerNamespace(spec v1alpha1.FlannelConfigSpec) string {
 	return destroyerApp + "-" + clusterID(spec)
 }
 
+func serviceAccountName(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec)
+}
+
+func clusterRoleBinding(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec)
+}
+
+func serviceAccountNamePodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec) + "-psp"
+}
+
+func clusterRoleBindingForPodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec) + "-psp"
+}
+
 func clusterCustomer(spec v1alpha1.FlannelConfigSpec) string {
 	return spec.Cluster.Customer
 }

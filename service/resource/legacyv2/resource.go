@@ -343,6 +343,23 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		}
 	}
 
+	// Remove cluster role bindings.
+	{
+		r.logger.Log("debug", "removing cluster role bindings", "cluster", spec.Cluster.ID)
+
+		clusterRoleBindingName := clusterRoleBinding(spec)
+		err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingName, &apismetav1.DeleteOptions{})
+		if err != nil {
+			return nil, microerror.Maskf(err, "deleting cluster role binding %s", clusterRoleBindingName)
+		}
+
+		clusterRoleBindingForPodSecurityPolicyName := clusterRoleBindingForPodSecurityPolicy(spec)
+		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForPodSecurityPolicyName, &apismetav1.DeleteOptions{})
+		if err != nil {
+			return nil, microerror.Maskf(err, "deleting cluster role binding %s", clusterRoleBindingForPodSecurityPolicyName)
+		}
+	}
+
 	r.logger.Log("info", "finished flannel cleanup for cluster", "cluster", spec.Cluster.ID)
 
 	return nil, nil
