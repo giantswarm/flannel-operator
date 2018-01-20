@@ -38,6 +38,7 @@ rules:
       - get
       - list
       - create
+      - update
   - apiGroups:
       - ""
     resources:
@@ -68,8 +69,6 @@ rules:
       - ""
     resources:
       - secrets
-    resourceNames:
-      - flannel-operator-pull-secret
     verbs:
       - get
   - nonResourceURLs:
