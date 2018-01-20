@@ -22,9 +22,9 @@ func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.Cluster
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
 			Labels: map[string]string{
-				"app":      app,
-				"cluster":  clusterName(customObject.Spec),
-				"customer": clusterCustomer(customObject.Spec),
+				"app":         app,
+				"cluster-id":  clusterName(customObject.Spec),
+				"customer-id": clusterCustomer(customObject.Spec),
 			},
 		},
 		Subjects: []v1beta1.Subject{
@@ -58,9 +58,9 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
 			Labels: map[string]string{
-				"app":      app,
-				"cluster":  clusterName(customObject.Spec),
-				"customer": clusterCustomer(customObject.Spec),
+				"app":         app,
+				"cluster-id":  clusterName(customObject.Spec),
+				"customer-id": clusterCustomer(customObject.Spec),
 			},
 		},
 		Subjects: []v1beta1.Subject{

@@ -22,9 +22,9 @@ func newServiceAccount(customObject v1alpha1.FlannelConfig) *api.ServiceAccount 
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
 			Labels: map[string]string{
-				"app":      app,
-				"cluster":  clusterName(customObject.Spec),
-				"customer": clusterCustomer(customObject.Spec),
+				"app":         app,
+				"cluster-id":  clusterName(customObject.Spec),
+				"customer-id": clusterCustomer(customObject.Spec),
 			},
 		},
 	}

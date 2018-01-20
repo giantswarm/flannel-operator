@@ -26,8 +26,8 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 		ObjectMeta: apismetav1.ObjectMeta{
 			Name: keyv2.NetworkNamespace(customObject),
 			Labels: map[string]string{
-				"cluster":  keyv2.ClusterID(customObject),
-				"customer": keyv2.ClusterCustomer(customObject),
+				"cluster-id":  keyv2.ClusterID(customObject),
+				"customer-id": keyv2.ClusterCustomer(customObject),
 			},
 		},
 	}

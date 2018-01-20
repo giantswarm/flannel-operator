@@ -17,8 +17,8 @@ func newNamespace(spec v1alpha1.FlannelConfigSpec, name string) *apiv1.Namespace
 		ObjectMeta: apismetav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
-				"cluster":  clusterName(spec),
-				"customer": clusterCustomer(spec),
+				"cluster-id":  clusterName(spec),
+				"customer-id": clusterCustomer(spec),
 			},
 		},
 	}

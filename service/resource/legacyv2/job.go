@@ -13,9 +13,9 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 	app := destroyerApp
 
 	labels := map[string]string{
-		"cluster":  clusterName(spec),
-		"customer": clusterCustomer(spec),
-		"app":      app,
+		"cluster-id":  clusterName(spec),
+		"customer-id": clusterCustomer(spec),
+		"app":         app,
 	}
 
 	return &batchv1.Job{
