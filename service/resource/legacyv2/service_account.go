@@ -17,7 +17,7 @@ func newServiceAccount(customObject v1alpha1.FlannelConfig) *api.ServiceAccount 
 			APIVersion: "v1",
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: networkNamespace(customObject.Spec),
+			Name: serviceAccountName(customObject.Spec),
 			Annotations: map[string]string{
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},

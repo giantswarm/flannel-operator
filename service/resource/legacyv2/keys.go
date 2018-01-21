@@ -29,32 +29,10 @@ const (
 	successThreshold    = 1
 )
 
-// networkNamespace returns the namespace in which the operator's resources run
-// in.
-func networkNamespace(spec v1alpha1.FlannelConfigSpec) string {
-	return networkApp + "-" + clusterID(spec)
-}
-
 // destroyerNamespace returns the namespace in which resources performing
 // cleanup run in.
 func destroyerNamespace(spec v1alpha1.FlannelConfigSpec) string {
 	return destroyerApp + "-" + clusterID(spec)
-}
-
-func serviceAccountName(spec v1alpha1.FlannelConfigSpec) string {
-	return networkApp + "-" + clusterID(spec)
-}
-
-func clusterRoleBinding(spec v1alpha1.FlannelConfigSpec) string {
-	return networkApp + "-" + clusterID(spec)
-}
-
-func serviceAccountNamePodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
-	return networkApp + "-" + clusterID(spec) + "-psp"
-}
-
-func clusterRoleBindingForPodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
-	return networkApp + "-" + clusterID(spec) + "-psp"
 }
 
 func clusterCustomer(spec v1alpha1.FlannelConfigSpec) string {
@@ -69,12 +47,16 @@ func clusterName(spec v1alpha1.FlannelConfigSpec) string {
 	return clusterID(spec)
 }
 
-func clusterNamespace(spec v1alpha1.FlannelConfigSpec) string {
-	return spec.Cluster.Namespace
+func clusterRoleBinding(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec)
 }
 
-func etcdNetworkConfigPath(spec v1alpha1.FlannelConfigSpec) string {
-	return etcdNetworkPath(spec) + "/config"
+func clusterRoleBindingForDeletion(spec v1alpha1.FlannelConfigSpec) string {
+	return clusterID(spec)
+}
+
+func clusterRoleBindingForPodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec) + "-psp"
 }
 
 func etcdNetworkPath(spec v1alpha1.FlannelConfigSpec) string {
@@ -139,6 +121,23 @@ func networkNTPBlock(spec v1alpha1.FlannelConfigSpec) string {
 	return strings.Join(parts, "\n")
 }
 
+// networkNamespace returns the namespace in which the operator's resources run
+// in.
+func networkNamespace(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec)
+}
+
 func networkTapName(spec v1alpha1.FlannelConfigSpec) string {
 	return "tap-" + clusterID(spec)
+}
+
+func serviceAccountName(spec v1alpha1.FlannelConfigSpec) string {
+	return clusterID(spec)
+}
+
+func serviceAccountNameForDeletion(spec v1alpha1.FlannelConfigSpec) string {
+	return clusterID(spec)
+}
+func serviceAccountNamePodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec) + "-psp"
 }

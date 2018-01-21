@@ -8,43 +8,59 @@ import (
 	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
-func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
-	app := networkApp
+// Config represents the configuration used to create a new cluster role binding resource.
+type ClusterRoleBindingConfig struct {
+	name             string
+	subjectName      string
+	subjectNamespace string
+	roleName         string
+}
 
-	clusterRoleBinding := &v1beta1.ClusterRoleBinding{
-		TypeMeta: apismeta.TypeMeta{
-			Kind:       "ClusterRoleBinding",
-			APIVersion: v1beta1.GroupName,
-		},
-		ObjectMeta: apismeta.ObjectMeta{
-			Name: clusterRoleBinding(customObject.Spec),
-			Annotations: map[string]string{
-				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
-			},
-			Labels: map[string]string{
-				"app":         app,
-				"cluster-id":  clusterName(customObject.Spec),
-				"customer-id": clusterCustomer(customObject.Spec),
-			},
-		},
-		Subjects: []v1beta1.Subject{
-			{
-				Kind:      v1beta1.ServiceAccountKind,
-				Namespace: networkNamespace(customObject.Spec),
-				Name:      serviceAccountName(customObject.Spec),
-			},
-		},
-		RoleRef: v1beta1.RoleRef{
-			APIGroup: v1beta1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     "flannel-operator",
-		},
+// DefaultConfig provides a default configuration to create a new cluster role binding
+// resource by best effort.
+func ClusterRoleBindingConfigDefaultConfig() ClusterRoleBindingConfig {
+	return ClusterRoleBindingConfig{
+		name:             "",
+		subjectName:      "",
+		subjectNamespace: "",
+		roleName:         "",
 	}
+}
+
+func newClusterRoleBinding(customObject v1alpha1.FlannelConfig, namespace string) *v1beta1.ClusterRoleBinding {
+	config := ClusterRoleBindingConfigDefaultConfig()
+	config.name = clusterRoleBinding(customObject.Spec)
+	config.subjectName = serviceAccountName(customObject.Spec)
+	config.subjectNamespace = networkNamespace(customObject.Spec)
+	config.roleName = "flannel-operator"
+	clusterRoleBinding := createClusterRoleBinding(customObject, config)
 
 	return clusterRoleBinding
 }
 
 func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
+	config := ClusterRoleBindingConfigDefaultConfig()
+	config.name = clusterRoleBindingForPodSecurityPolicy(customObject.Spec)
+	config.subjectName = serviceAccountNamePodSecurityPolicy(customObject.Spec)
+	config.subjectNamespace = networkNamespace(customObject.Spec)
+	config.roleName = "flannel-operator-psp"
+	clusterRoleBinding := createClusterRoleBinding(customObject, config)
+
+	return clusterRoleBinding
+}
+
+func newClusterRoleBindingForDeletion(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
+	config := ClusterRoleBindingConfigDefaultConfig()
+	config.name = clusterRoleBindingForDeletion(customObject.Spec)
+	config.subjectName = serviceAccountNameForDeletion(customObject.Spec)
+	config.subjectNamespace = networkNamespace(customObject.Spec)
+	config.roleName = "flannel-operator"
+	clusterRoleBinding := createClusterRoleBinding(customObject, config)
+
+	return clusterRoleBinding
+}
+
+func createClusterRoleBinding(customObject v1alpha1.FlannelConfig, config ClusterRoleBindingConfig) *v1beta1.ClusterRoleBinding {
 	app := networkApp
 
 	clusterRoleBinding := &v1beta1.ClusterRoleBinding{
@@ -53,7 +69,7 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 			APIVersion: v1beta1.GroupName,
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: clusterRoleBindingForPodSecurityPolicy(customObject.Spec),
+			Name: config.name,
 			Annotations: map[string]string{
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
@@ -66,14 +82,14 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 		Subjects: []v1beta1.Subject{
 			{
 				Kind:      v1beta1.ServiceAccountKind,
-				Namespace: networkNamespace(customObject.Spec),
-				Name:      serviceAccountNamePodSecurityPolicy(customObject.Spec),
+				Namespace: config.subjectNamespace,
+				Name:      config.subjectName,
 			},
 		},
 		RoleRef: v1beta1.RoleRef{
 			APIGroup: v1beta1.GroupName,
 			Kind:     "ClusterRole",
-			Name:     "flannel-operator-psp",
+			Name:     config.roleName,
 		},
 	}
 
