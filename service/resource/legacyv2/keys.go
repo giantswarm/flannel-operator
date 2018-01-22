@@ -52,7 +52,7 @@ func clusterRoleBinding(spec v1alpha1.FlannelConfigSpec) string {
 }
 
 func clusterRoleBindingForDeletion(spec v1alpha1.FlannelConfigSpec) string {
-	return clusterID(spec)
+	return clusterID(spec) + "-deletion"
 }
 
 func clusterRoleBindingForPodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {

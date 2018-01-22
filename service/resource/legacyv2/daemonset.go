@@ -44,7 +44,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 				},
 				Spec: api.PodSpec{
 					HostNetwork:        true,
-					ServiceAccountName: networkNamespace(customObject.Spec),
+					ServiceAccountName: serviceAccountName(customObject.Spec),
 					Containers:         containers,
 					Volumes:            volumes,
 				},
