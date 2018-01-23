@@ -57,6 +57,10 @@ func clusterNamespace(spec v1alpha1.FlannelConfigSpec) string {
 	return spec.Cluster.Namespace
 }
 
+func clusterRoleBindingForDeletion(spec v1alpha1.FlannelConfigSpec) string {
+	return clusterID(spec) + "-deletion"
+}
+
 func etcdNetworkConfigPath(spec v1alpha1.FlannelConfigSpec) string {
 	return etcdNetworkPath(spec) + "/config"
 }
@@ -125,4 +129,8 @@ func networkNTPBlock(spec v1alpha1.FlannelConfigSpec) string {
 
 func networkTapName(spec v1alpha1.FlannelConfigSpec) string {
 	return "tap-" + clusterID(spec)
+}
+
+func serviceAccountNameForDeletion(spec v1alpha1.FlannelConfigSpec) string {
+	return clusterID(spec)
 }
