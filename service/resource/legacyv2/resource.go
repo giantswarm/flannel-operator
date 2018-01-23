@@ -147,7 +147,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 
 	// Create a service account for the daemonset
 	{
-		serviceAccount := newServiceAccount(customObject)
+		serviceAccount := newServiceAccount(customObject, serviceAccountName(customObject.Spec))
 		_, err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Create(serviceAccount)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)

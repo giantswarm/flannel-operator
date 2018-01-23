@@ -6,7 +6,7 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func newServiceAccount(customObject v1alpha1.FlannelConfig) *api.ServiceAccount {
+func newServiceAccount(customObject v1alpha1.FlannelConfig, name string) *api.ServiceAccount {
 	app := networkApp
 
 	serviceAccount := &api.ServiceAccount{
@@ -15,7 +15,7 @@ func newServiceAccount(customObject v1alpha1.FlannelConfig) *api.ServiceAccount 
 			APIVersion: "v1",
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: serviceAccountName(customObject.Spec),
+			Name: name,
 			Labels: map[string]string{
 				"app":         app,
 				"cluster-id":  clusterName(customObject.Spec),
