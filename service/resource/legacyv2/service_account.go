@@ -4,11 +4,9 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	api "k8s.io/api/core/v1"
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
-func newServiceAccount(customObject v1alpha1.FlannelConfig) *api.ServiceAccount {
+func newServiceAccount(customObject v1alpha1.FlannelConfig, name string) *api.ServiceAccount {
 	app := networkApp
 
 	serviceAccount := &api.ServiceAccount{
@@ -17,10 +15,7 @@ func newServiceAccount(customObject v1alpha1.FlannelConfig) *api.ServiceAccount 
 			APIVersion: "v1",
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: serviceAccountName(customObject.Spec),
-			Annotations: map[string]string{
-				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
-			},
+			Name: name,
 			Labels: map[string]string{
 				"app":         app,
 				"cluster-id":  clusterName(customObject.Spec),

@@ -147,7 +147,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 
 	// Create a service account for the daemonset
 	{
-		serviceAccount := newServiceAccount(customObject)
+		serviceAccount := newServiceAccount(customObject, serviceAccountName(customObject.Spec))
 		_, err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Create(serviceAccount)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
@@ -158,7 +158,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 
 	// Bind the service account with the cluster role of flannel operator
 	{
-		clusterRoleBinding := newClusterRoleBinding(customObject, networkNamespace(customObject.Spec))
+		clusterRoleBinding := newClusterRoleBinding(customObject)
 		_, err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Create(clusterRoleBinding)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "clusterRoleBinding "+clusterRoleBinding.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
@@ -267,7 +267,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 	// Create a service account for the cleanup job.
 	{
-		serviceAccount := newServiceAccount(customObject)
+		serviceAccount := newServiceAccount(customObject, serviceAccountNameForDeletion(spec))
 		_, err := r.k8sClient.CoreV1().ServiceAccounts(destroyerNamespace(spec)).Create(serviceAccount)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
@@ -278,7 +278,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 	// Bind the service account with the cluster role of flannel operator
 	{
-		clusterRoleBinding := newClusterRoleBinding(customObject, destroyerNamespace(spec))
+		clusterRoleBinding := newClusterRoleBindingForDeletion(customObject)
 		_, err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Create(clusterRoleBinding)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "clusterRoleBinding "+clusterRoleBinding.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)

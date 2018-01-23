@@ -4,8 +4,6 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"k8s.io/api/rbac/v1beta1"
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/giantswarm/flannel-operator/service/keyv2"
 )
 
 // Config represents the configuration used to create a new cluster role binding resource.
@@ -27,7 +25,7 @@ func ClusterRoleBindingConfigDefaultConfig() ClusterRoleBindingConfig {
 	}
 }
 
-func newClusterRoleBinding(customObject v1alpha1.FlannelConfig, namespace string) *v1beta1.ClusterRoleBinding {
+func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
 	config := ClusterRoleBindingConfigDefaultConfig()
 	config.name = clusterRoleBinding(customObject.Spec)
 	config.subjectName = serviceAccountName(customObject.Spec)
@@ -70,9 +68,6 @@ func createClusterRoleBinding(customObject v1alpha1.FlannelConfig, config Cluste
 		},
 		ObjectMeta: apismeta.ObjectMeta{
 			Name: config.name,
-			Annotations: map[string]string{
-				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
-			},
 			Labels: map[string]string{
 				"app":         app,
 				"cluster-id":  clusterName(customObject.Spec),
