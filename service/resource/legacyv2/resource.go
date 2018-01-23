@@ -174,14 +174,11 @@ func (r *Resource) NewDeletePatch(ctx context.Context, obj, currentState, desire
 }
 
 func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	var spec v1alpha1.FlannelConfigSpec
-	{
-		o, ok := obj.(*v1alpha1.FlannelConfig)
-		if !ok {
-			return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &v1alpha1.FlannelConfig{}, obj)
-		}
-		spec = o.Spec
+	customObject, err := keyv2.ToCustomObject(obj)
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
+	spec := customObject.Spec
 
 	waitForNamespaceDeleted := func(name string) error {
 		// op does not mask errors, they are used only to be logged in notify.
@@ -232,6 +229,17 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
 		if err != nil {
 			return nil, microerror.Maskf(err, "creating namespace %s", ns.Name)
+		}
+	}
+
+	// Create a service account for the cleanup job.
+	{
+		serviceAccount := newServiceAccount(customObject, serviceAccountNameForDeletion(spec))
+		_, err := r.k8sClient.CoreV1().ServiceAccounts(destroyerNamespace(spec)).Create(serviceAccount)
+		if apierrors.IsAlreadyExists(err) {
+			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
+		} else if err != nil {
+			return nil, microerror.Maskf(err, "creating serviceAccount %s", serviceAccount.Name)
 		}
 	}
 
