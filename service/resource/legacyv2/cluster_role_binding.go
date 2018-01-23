@@ -25,7 +25,7 @@ func ClusterRoleBindingConfigDefaultConfig() ClusterRoleBindingConfig {
 	}
 }
 
-func newClusterRoleBinding(customObject v1alpha1.FlannelConfig, namespace string) *v1beta1.ClusterRoleBinding {
+func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
 	config := ClusterRoleBindingConfigDefaultConfig()
 	config.name = clusterRoleBinding(customObject.Spec)
 	config.subjectName = serviceAccountName(customObject.Spec)

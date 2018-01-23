@@ -147,7 +147,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 
 	// Bind the service account with the cluster role of flannel operator
 	{
-		clusterRoleBinding := newClusterRoleBinding(customObject, networkNamespace(customObject.Spec))
+		clusterRoleBinding := newClusterRoleBinding(customObject)
 		_, err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Create(clusterRoleBinding)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "clusterRoleBinding "+clusterRoleBinding.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
@@ -349,7 +349,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		}
 	}
 
-		r.logger.Log("info", "finished flannel cleanup for cluster", "cluster", spec.Cluster.ID)
+	r.logger.Log("info", "finished flannel cleanup for cluster", "cluster", spec.Cluster.ID)
 
 	return nil, nil
 }
