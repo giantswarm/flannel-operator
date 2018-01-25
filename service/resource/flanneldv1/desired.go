@@ -61,9 +61,9 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
 			},
 			Labels: map[string]string{
-				"app":      keyv2.NetworkID,
-				"cluster":  keyv2.ClusterID(customObject),
-				"customer": keyv2.ClusterCustomer(customObject),
+				"app":         keyv2.NetworkID,
+				"cluster-id":  keyv2.ClusterID(customObject),
+				"customer-id": keyv2.ClusterCustomer(customObject),
 			},
 		},
 		Spec: v1beta1.DaemonSetSpec{
@@ -71,16 +71,14 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 				ObjectMeta: apismeta.ObjectMeta{
 					GenerateName: keyv2.NetworkID,
 					Labels: map[string]string{
-						"app":      keyv2.NetworkID,
-						"cluster":  keyv2.ClusterID(customObject),
-						"customer": keyv2.ClusterCustomer(customObject),
-					},
-					Annotations: map[string]string{
-						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",
+						"app":         keyv2.NetworkID,
+						"cluster-id":  keyv2.ClusterID(customObject),
+						"customer-id": keyv2.ClusterCustomer(customObject),
 					},
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
+					HostNetwork:        true,
+					ServiceAccountName: "flannel-operator",
 					Containers: []corev1.Container{
 						{
 							Name:            "flanneld",

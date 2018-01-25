@@ -13,9 +13,9 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 	app := destroyerApp
 
 	labels := map[string]string{
-		"cluster":  clusterName(spec),
-		"customer": clusterCustomer(spec),
-		"app":      app,
+		"cluster-id":  clusterName(spec),
+		"customer-id": clusterCustomer(spec),
+		"app":         app,
 	}
 
 	return &batchv1.Job{
@@ -34,13 +34,11 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 				ObjectMeta: apismetav1.ObjectMeta{
 					GenerateName: app,
 					Labels:       labels,
-					Annotations: map[string]string{
-						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",
-					},
 				},
 				Spec: apiv1.PodSpec{
-					RestartPolicy: apiv1.RestartPolicyOnFailure,
-					HostNetwork:   true,
+					RestartPolicy:      apiv1.RestartPolicyOnFailure,
+					HostNetwork:        true,
+					ServiceAccountName: clusterName(spec),
 					Volumes: []apiv1.Volume{
 						{
 							Name: "cgroup",

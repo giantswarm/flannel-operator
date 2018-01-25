@@ -34,8 +34,8 @@ func Test_Resource_Namespace_newDeleteChange(t *testing.T) {
 				ObjectMeta: apismetav1.ObjectMeta{
 					Name: "al9qy",
 					Labels: map[string]string{
-						"cluster":  "al9qy",
-						"customer": "test-customer",
+						"cluster-id":  "al9qy",
+						"customer-id": "test-customer",
 					},
 				},
 			},
@@ -47,8 +47,8 @@ func Test_Resource_Namespace_newDeleteChange(t *testing.T) {
 				ObjectMeta: apismetav1.ObjectMeta{
 					Name: "al9qy",
 					Labels: map[string]string{
-						"cluster":  "al9qy",
-						"customer": "test-customer",
+						"cluster-id":  "al9qy",
+						"customer-id": "test-customer",
 					},
 				},
 			},
@@ -60,8 +60,8 @@ func Test_Resource_Namespace_newDeleteChange(t *testing.T) {
 				ObjectMeta: apismetav1.ObjectMeta{
 					Name: "al9qy",
 					Labels: map[string]string{
-						"cluster":  "al9qy",
-						"customer": "test-customer",
+						"cluster-id":  "al9qy",
+						"customer-id": "test-customer",
 					},
 				},
 			},
@@ -84,8 +84,8 @@ func Test_Resource_Namespace_newDeleteChange(t *testing.T) {
 				ObjectMeta: apismetav1.ObjectMeta{
 					Name: "al9qy",
 					Labels: map[string]string{
-						"cluster":  "al9qy",
-						"customer": "test-customer",
+						"cluster-id":  "al9qy",
+						"customer-id": "test-customer",
 					},
 				},
 			},
