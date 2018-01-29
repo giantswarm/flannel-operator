@@ -48,8 +48,6 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 }
 
 func createClusterRoleBinding(customObject v1alpha1.FlannelConfig, config ClusterRoleBindingConfig) *v1beta1.ClusterRoleBinding {
-	app := networkApp
-
 	clusterRoleBinding := &v1beta1.ClusterRoleBinding{
 		TypeMeta: apismeta.TypeMeta{
 			Kind:       "ClusterRoleBinding",
@@ -58,7 +56,7 @@ func createClusterRoleBinding(customObject v1alpha1.FlannelConfig, config Cluste
 		ObjectMeta: apismeta.ObjectMeta{
 			Name: config.name,
 			Labels: map[string]string{
-				"app":         app,
+				"app":         networkApp,
 				"cluster-id":  clusterName(customObject.Spec),
 				"customer-id": clusterCustomer(customObject.Spec),
 			},
