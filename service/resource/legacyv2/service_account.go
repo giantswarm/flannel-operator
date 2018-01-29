@@ -7,8 +7,6 @@ import (
 )
 
 func newServiceAccount(customObject v1alpha1.FlannelConfig, name string) *api.ServiceAccount {
-	app := networkApp
-
 	serviceAccount := &api.ServiceAccount{
 		TypeMeta: apismeta.TypeMeta{
 			Kind:       "ServiceAccount",
@@ -17,7 +15,7 @@ func newServiceAccount(customObject v1alpha1.FlannelConfig, name string) *api.Se
 		ObjectMeta: apismeta.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
-				"app":         app,
+				"app":         networkApp,
 				"cluster-id":  clusterName(customObject.Spec),
 				"customer-id": clusterCustomer(customObject.Spec),
 			},
