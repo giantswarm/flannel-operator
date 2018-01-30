@@ -362,6 +362,15 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		}
 	}
 
+	// Delete the service account for the daemonset
+	{
+		serviceAccountName := serviceAccountName(customObject.Spec)
+		err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Delete(serviceAccountName, &apismetav1.DeleteOptions{})
+		if err != nil {
+			return nil, microerror.Maskf(err, "deleting service account %s", serviceAccountName)
+		}
+	}
+
 	// Remove cluster role bindings.
 	{
 		r.logger.Log("debug", "removing cluster role bindings", "cluster", spec.Cluster.ID)
