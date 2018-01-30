@@ -145,6 +145,17 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 		return nil, microerror.Mask(err)
 	}
 
+	// Create a service account for the daemonset
+	{
+		serviceAccount := newServiceAccount(customObject, serviceAccountName(customObject.Spec))
+		_, err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Create(serviceAccount)
+		if apierrors.IsAlreadyExists(err) {
+			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
+		} else if err != nil {
+			return nil, microerror.Maskf(err, "creating serviceAccount %s", serviceAccount.Name)
+		}
+	}
+
 	// Bind the service account with the cluster role of flannel operator
 	{
 		clusterRoleBinding := newClusterRoleBinding(customObject)
@@ -201,6 +212,15 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		return nil, microerror.Mask(err)
 	}
 	spec := customObject.Spec
+
+	// Delete the service account for the daemonset
+	{
+		serviceAccountName := serviceAccountName(customObject.Spec)
+		err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Delete(serviceAccountName, &apismetav1.DeleteOptions{})
+		if err != nil {
+			return nil, microerror.Maskf(err, "deleting service account %s", serviceAccountName)
+		}
+	}
 
 	waitForNamespaceDeleted := func(name string) error {
 		// op does not mask errors, they are used only to be logged in notify.
