@@ -234,7 +234,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 	// Create a service account for the cleanup job.
 	{
-		serviceAccount := newServiceAccount(customObject, serviceAccountNameForDeletion(spec))
+		serviceAccount := newServiceAccount(customObject, keyv2.ClusterID(customObject))
 		_, err := r.k8sClient.CoreV1().ServiceAccounts(destroyerNamespace(spec)).Create(serviceAccount)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)

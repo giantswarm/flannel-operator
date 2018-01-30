@@ -126,7 +126,3 @@ func networkNTPBlock(spec v1alpha1.FlannelConfigSpec) string {
 func networkTapName(spec v1alpha1.FlannelConfigSpec) string {
 	return "tap-" + clusterID(spec)
 }
-
-func serviceAccountNameForDeletion(spec v1alpha1.FlannelConfigSpec) string {
-	return clusterID(spec)
-}
