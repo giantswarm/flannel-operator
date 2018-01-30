@@ -254,6 +254,17 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		}
 	}
 
+	// Bind the service account for the clean up with the cluster role of flannel operator
+	{
+		clusterRoleBinding := newClusterRoleBindingForDeletion(customObject)
+		_, err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Create(clusterRoleBinding)
+		if apierrors.IsAlreadyExists(err) {
+			r.logger.Log("debug", "clusterRoleBinding "+clusterRoleBinding.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
+		} else if err != nil {
+			return nil, microerror.Maskf(err, "creating clusterRoleBinding %s", clusterRoleBinding.Name)
+		}
+	}
+
 	// Create a service account for the cleanup job.
 	{
 		serviceAccount := newServiceAccount(customObject, keyv2.ClusterID(customObject))
@@ -343,6 +354,12 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	// Remove cluster role bindings.
 	{
 		r.logger.Log("debug", "removing cluster role bindings", "cluster", spec.Cluster.ID)
+
+		clusterRoleBindingForDeletionName := clusterRoleBindingForDeletion(spec)
+		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForDeletionName, &apismetav1.DeleteOptions{})
+		if err != nil {
+			return nil, microerror.Maskf(err, "deleting cluster role binding %s", clusterRoleBindingForDeletionName)
+		}
 
 		clusterRoleBindingName := clusterRoleBinding(spec)
 		err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingName, &apismetav1.DeleteOptions{})

@@ -57,6 +57,10 @@ func clusterNamespace(spec v1alpha1.FlannelConfigSpec) string {
 	return spec.Cluster.Namespace
 }
 
+func clusterRoleBindingForDeletion(spec v1alpha1.FlannelConfigSpec) string {
+	return clusterID(spec) + "-deletion"
+}
+
 func clusterRoleBinding(spec v1alpha1.FlannelConfigSpec) string {
 	return networkApp + "-" + clusterID(spec)
 }
