@@ -57,6 +57,18 @@ func clusterNamespace(spec v1alpha1.FlannelConfigSpec) string {
 	return spec.Cluster.Namespace
 }
 
+func clusterRoleBindingForDeletion(spec v1alpha1.FlannelConfigSpec) string {
+	return clusterID(spec) + "-deletion"
+}
+
+func clusterRoleBinding(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec)
+}
+
+func clusterRoleBindingForPodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec) + "-psp"
+}
+
 func etcdNetworkConfigPath(spec v1alpha1.FlannelConfigSpec) string {
 	return etcdNetworkPath(spec) + "/config"
 }
@@ -129,4 +141,8 @@ func networkTapName(spec v1alpha1.FlannelConfigSpec) string {
 
 func serviceAccountName(spec v1alpha1.FlannelConfigSpec) string {
 	return clusterID(spec)
+}
+
+func serviceAccountNamePodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec) + "-psp"
 }
