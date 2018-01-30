@@ -57,6 +57,14 @@ func clusterNamespace(spec v1alpha1.FlannelConfigSpec) string {
 	return spec.Cluster.Namespace
 }
 
+func clusterRoleBinding(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec)
+}
+
+func clusterRoleBindingForPodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec) + "-psp"
+}
+
 func etcdNetworkConfigPath(spec v1alpha1.FlannelConfigSpec) string {
 	return etcdNetworkPath(spec) + "/config"
 }
@@ -125,4 +133,12 @@ func networkNTPBlock(spec v1alpha1.FlannelConfigSpec) string {
 
 func networkTapName(spec v1alpha1.FlannelConfigSpec) string {
 	return "tap-" + clusterID(spec)
+}
+
+func serviceAccountName(spec v1alpha1.FlannelConfigSpec) string {
+	return clusterID(spec)
+}
+
+func serviceAccountNamePodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
+	return networkApp + "-" + clusterID(spec) + "-psp"
 }
