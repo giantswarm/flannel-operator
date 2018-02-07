@@ -39,8 +39,9 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 					},
 				},
 				Spec: apiv1.PodSpec{
-					RestartPolicy: apiv1.RestartPolicyOnFailure,
-					HostNetwork:   true,
+					ServiceAccountName: serviceAccountName(spec),
+					RestartPolicy:      apiv1.RestartPolicyOnFailure,
+					HostNetwork:        true,
 					Volumes: []apiv1.Volume{
 						{
 							Name: "cgroup",

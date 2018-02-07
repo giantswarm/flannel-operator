@@ -51,7 +51,7 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 	config := ClusterRoleBindingConfigDefaultConfig()
 	config.name = clusterRoleBindingForPodSecurityPolicy(customObject.Spec)
 	config.subjectName = serviceAccountName(customObject.Spec)
-	config.subjectNamespace = networkNamespace(customObject.Spec)
+	config.subjectNamespace = destroyerNamespace(customObject.Spec)
 	config.roleName = "flannel-operator-psp"
 	clusterRoleBinding := createClusterRoleBinding(customObject, config)
 
