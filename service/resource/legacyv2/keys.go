@@ -142,7 +142,3 @@ func networkTapName(spec v1alpha1.FlannelConfigSpec) string {
 func serviceAccountName(spec v1alpha1.FlannelConfigSpec) string {
 	return clusterID(spec)
 }
-
-func serviceAccountNamePodSecurityPolicy(spec v1alpha1.FlannelConfigSpec) string {
-	return networkApp + "-" + clusterID(spec) + "-psp"
-}
