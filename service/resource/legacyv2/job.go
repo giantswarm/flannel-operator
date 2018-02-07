@@ -34,9 +34,6 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 				ObjectMeta: apismetav1.ObjectMeta{
 					GenerateName: app,
 					Labels:       labels,
-					Annotations: map[string]string{
-						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",
-					},
 				},
 				Spec: apiv1.PodSpec{
 					ServiceAccountName: serviceAccountName(spec),
