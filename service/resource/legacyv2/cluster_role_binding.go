@@ -58,6 +58,17 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 	return clusterRoleBinding
 }
 
+func newClusterRoleBindingPodSecurityPolicyForDeletion(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
+	config := ClusterRoleBindingConfigDefaultConfig()
+	config.name = clusterRoleBindingForPodSecurityPolicyForDeletion(customObject.Spec)
+	config.subjectName = serviceAccountName(customObject.Spec)
+	config.subjectNamespace = destroyerNamespace(customObject.Spec)
+	config.roleName = "flannel-operator-psp"
+	clusterRoleBinding := createClusterRoleBinding(customObject, config)
+
+	return clusterRoleBinding
+}
+
 func createClusterRoleBinding(customObject v1alpha1.FlannelConfig, config ClusterRoleBindingConfig) *v1beta1.ClusterRoleBinding {
 	clusterRoleBinding := &v1beta1.ClusterRoleBinding{
 		TypeMeta: apismeta.TypeMeta{
