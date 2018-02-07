@@ -39,8 +39,8 @@ func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.Cluster
 func newClusterRoleBindingForDeletion(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
 	config := ClusterRoleBindingConfigDefaultConfig()
 	config.name = clusterRoleBindingForDeletion(customObject.Spec)
-	config.subjectName = clusterID(customObject.Spec)
-	config.subjectNamespace = networkNamespace(customObject.Spec)
+	config.subjectName = serviceAccountName(customObject.Spec)
+	config.subjectNamespace = destroyerNamespace(customObject.Spec)
 	config.roleName = "flannel-operator"
 	clusterRoleBinding := createClusterRoleBinding(customObject, config)
 
@@ -50,8 +50,19 @@ func newClusterRoleBindingForDeletion(customObject v1alpha1.FlannelConfig) *v1be
 func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
 	config := ClusterRoleBindingConfigDefaultConfig()
 	config.name = clusterRoleBindingForPodSecurityPolicy(customObject.Spec)
-	config.subjectName = serviceAccountNamePodSecurityPolicy(customObject.Spec)
+	config.subjectName = serviceAccountName(customObject.Spec)
 	config.subjectNamespace = networkNamespace(customObject.Spec)
+	config.roleName = "flannel-operator-psp"
+	clusterRoleBinding := createClusterRoleBinding(customObject, config)
+
+	return clusterRoleBinding
+}
+
+func newClusterRoleBindingPodSecurityPolicyForDeletion(customObject v1alpha1.FlannelConfig) *v1beta1.ClusterRoleBinding {
+	config := ClusterRoleBindingConfigDefaultConfig()
+	config.name = clusterRoleBindingForPodSecurityPolicyForDeletion(customObject.Spec)
+	config.subjectName = serviceAccountName(customObject.Spec)
+	config.subjectNamespace = destroyerNamespace(customObject.Spec)
 	config.roleName = "flannel-operator-psp"
 	clusterRoleBinding := createClusterRoleBinding(customObject, config)
 
