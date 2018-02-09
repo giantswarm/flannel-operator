@@ -1,4 +1,4 @@
-package flanneldv1
+package flanneld
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package flanneldv1
+package flanneld
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
