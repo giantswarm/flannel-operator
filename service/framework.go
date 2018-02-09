@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcdv2"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/legacyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/legacy"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/namespacev2"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/networkconfigv2"
 )
@@ -146,7 +146,7 @@ func newCRDFramework(config Config) (*framework.Framework, error) {
 
 	var legacyResource framework.Resource
 	{
-		legacyConfig := legacyv2.DefaultConfig()
+		legacyConfig := legacy.DefaultConfig()
 
 		legacyConfig.BackOff = legacyResourceBackOff
 		legacyConfig.K8sClient = k8sClient
@@ -156,7 +156,7 @@ func newCRDFramework(config Config) (*framework.Framework, error) {
 		legacyConfig.EtcdCrtFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile)
 		legacyConfig.EtcdKeyFile = config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile)
 
-		legacyResource, err = legacyv2.New(legacyConfig)
+		legacyResource, err = legacy.New(legacyConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
