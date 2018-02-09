@@ -1,4 +1,4 @@
-package legacyv2
+package legacy
 
 import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"

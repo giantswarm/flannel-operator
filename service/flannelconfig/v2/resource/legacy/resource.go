@@ -1,4 +1,4 @@
-package legacyv2
+package legacy
 
 import (
 	"context"
