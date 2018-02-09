@@ -1,4 +1,4 @@
-package namespacev2
+package namespace
 
 import "github.com/giantswarm/microerror"
 
