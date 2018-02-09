@@ -5,7 +5,7 @@ import (
 
 	"github.com/giantswarm/microerror"
 
-	"github.com/giantswarm/flannel-operator/service/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
 )
 
 func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interface{}, error) {

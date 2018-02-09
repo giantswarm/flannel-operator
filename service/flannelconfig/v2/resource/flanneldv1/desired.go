@@ -11,7 +11,7 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/giantswarm/flannel-operator/service/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
 )
 
 var (

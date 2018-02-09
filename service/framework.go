@@ -22,10 +22,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/giantswarm/flannel-operator/service/etcdv2"
-	"github.com/giantswarm/flannel-operator/service/resource/legacyv2"
-	"github.com/giantswarm/flannel-operator/service/resource/namespacev2"
-	"github.com/giantswarm/flannel-operator/service/resource/networkconfigv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcdv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/legacyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/namespacev2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/networkconfigv2"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/framework"
 
-	"github.com/giantswarm/flannel-operator/service/etcdv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcdv2"
 )
 
 const (

@@ -6,7 +6,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/operatorkit/framework"
 
-	"github.com/giantswarm/flannel-operator/service/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
 )
 
 func (r *Resource) ApplyDeleteChange(ctx context.Context, obj, deleteChange interface{}) error {
