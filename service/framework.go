@@ -24,7 +24,7 @@ import (
 
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcdv2"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/legacy"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/namespacev2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/namespace"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/networkconfigv2"
 )
 
@@ -177,12 +177,12 @@ func newCRDFramework(config Config) (*framework.Framework, error) {
 
 	var namespaceResource framework.Resource
 	{
-		c := namespacev2.DefaultConfig()
+		c := namespace.DefaultConfig()
 
 		c.K8sClient = k8sClient
 		c.Logger = config.Logger
 
-		namespaceResource, err = namespacev2.New(c)
+		namespaceResource, err = namespace.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
