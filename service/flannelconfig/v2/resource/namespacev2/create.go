@@ -7,7 +7,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/giantswarm/flannel-operator/service/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
 )
 
 func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange interface{}) error {
