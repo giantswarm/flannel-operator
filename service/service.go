@@ -5,16 +5,20 @@ package service
 import (
 	"sync"
 
+	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
 	"github.com/giantswarm/microendpoint/service/version"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	"github.com/giantswarm/operatorkit/client/k8scrdclient"
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
 	"github.com/giantswarm/operatorkit/framework"
 	"github.com/spf13/viper"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/giantswarm/flannel-operator/flag"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig"
 	"github.com/giantswarm/flannel-operator/service/healthz"
 )
 
@@ -51,9 +55,9 @@ func DefaultConfig() Config {
 
 type Service struct {
 	// Dependencies.
-	CRDFramework *framework.Framework
-	Healthz      *healthz.Service
-	Version      *version.Service
+	FlannelConfigFramework *framework.Framework
+	Healthz                *healthz.Service
+	Version                *version.Service
 
 	// Internals.
 	bootOnce sync.Once
@@ -88,14 +92,49 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	g8sClient, err := versioned.NewForConfig(restConfig)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	k8sClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	var crdFramework *framework.Framework
+	k8sExtClient, err := apiextensionsclient.NewForConfig(restConfig)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	var crdClient *k8scrdclient.CRDClient
 	{
-		crdFramework, err = newCRDFramework(config)
+		c := k8scrdclient.DefaultConfig()
+
+		c.K8sExtClient = k8sExtClient
+		c.Logger = config.Logger
+
+		crdClient, err = k8scrdclient.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	var flannelConfigFramework *framework.Framework
+	{
+		c := flannelconfig.FrameworkConfig{
+			CRDClient: crdClient,
+			G8sClient: g8sClient,
+			K8sClient: k8sClient,
+			Logger:    config.Logger,
+
+			CAFile:       config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile),
+			CrtFile:      config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
+			EtcdEndpoint: config.Viper.GetString(config.Flag.Service.Etcd.Endpoint),
+			KeyFile:      config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
+			ProjectName:  config.Name,
+		}
+		flannelConfigFramework, err = flannelconfig.NewFramework(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -132,9 +171,9 @@ func New(config Config) (*Service, error) {
 
 	newService := &Service{
 		// Dependencies.
-		CRDFramework: crdFramework,
-		Healthz:      healthzService,
-		Version:      versionService,
+		FlannelConfigFramework: flannelConfigFramework,
+		Healthz:                healthzService,
+		Version:                versionService,
 
 		// Internals
 		bootOnce: sync.Once{},
@@ -145,6 +184,6 @@ func New(config Config) (*Service, error) {
 
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		go s.CRDFramework.Boot()
+		go s.FlannelConfigFramework.Boot()
 	})
 }
