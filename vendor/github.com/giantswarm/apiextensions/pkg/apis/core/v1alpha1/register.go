@@ -17,10 +17,22 @@ const (
 var knownTypes = []runtime.Object{
 	&CertConfig{},
 	&CertConfigList{},
+	&AWSClusterConfig{},
+	&AWSClusterConfigList{},
+	&AzureClusterConfig{},
+	&AzureClusterConfigList{},
+	&KVMClusterConfig{},
+	&KVMClusterConfigList{},
+	&DraughtsmanConfig{},
+	&DraughtsmanConfigList{},
 	&FlannelConfig{},
 	&FlannelConfigList{},
 	&IngressConfig{},
 	&IngressConfigList{},
+	&NodeConfig{},
+	&NodeConfigList{},
+	&StorageConfig{},
+	&StorageConfigList{},
 }
 
 // SchemeGroupVersion is group version used to register these objects

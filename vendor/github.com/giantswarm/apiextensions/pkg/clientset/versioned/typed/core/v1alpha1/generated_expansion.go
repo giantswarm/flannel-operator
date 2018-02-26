@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 Giant Swarm GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,10 +16,20 @@ limitations under the License.
 
 package v1alpha1
 
+type AWSClusterConfigExpansion interface{}
+
+type AzureClusterConfigExpansion interface{}
+
 type CertConfigExpansion interface{}
+
+type DraughtsmanConfigExpansion interface{}
 
 type FlannelConfigExpansion interface{}
 
 type IngressConfigExpansion interface{}
+
+type KVMClusterConfigExpansion interface{}
+
+type NodeConfigExpansion interface{}
 
 type StorageConfigExpansion interface{}
