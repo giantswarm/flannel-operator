@@ -6,18 +6,18 @@ import (
 
 	"github.com/giantswarm/microerror"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
 )
 
 func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interface{}, error) {
-	customObject, err := keyv2.ToCustomObject(obj)
+	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	var networkConfig NetworkConfig
 	{
-		p := keyv2.EtcdNetworkConfigPath(customObject)
+		p := key.EtcdNetworkConfigPath(customObject)
 		exists, err := r.store.Exists(ctx, p)
 		if err != nil {
 			return nil, microerror.Mask(err)

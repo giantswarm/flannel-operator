@@ -7,7 +7,7 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
 )
 
 func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *v1beta1.DaemonSet {
@@ -24,7 +24,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 		ObjectMeta: apismeta.ObjectMeta{
 			Name: app,
 			Annotations: map[string]string{
-				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
+				VersionBundleVersionAnnotation: key.VersionBundleVersion(customObject),
 			},
 			Labels: map[string]string{
 				"app":      app,

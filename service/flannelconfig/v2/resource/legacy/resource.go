@@ -18,7 +18,7 @@ import (
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
 )
 
 const (
@@ -90,23 +90,23 @@ func New(config Config) (*Resource, error) {
 }
 
 func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interface{}, error) {
-	customObject, err := keyv2.ToCustomObject(obj)
+	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "looking for the daemon set in the Kubernetes API")
+	r.logger.Log("cluster", key.ClusterID(customObject), "debug", "looking for the daemon set in the Kubernetes API")
 
 	var currentDaemonSet *v1beta1.DaemonSet
 	{
 		manifest, err := r.k8sClient.Extensions().DaemonSets(networkNamespace(customObject.Spec)).Get(networkApp, apismetav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "did not find the daemon set in the Kubernetes API")
+			r.logger.Log("cluster", key.ClusterID(customObject), "debug", "did not find the daemon set in the Kubernetes API")
 			// fall through
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		} else {
-			r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "found the daemon set in the Kubernetes API")
+			r.logger.Log("cluster", key.ClusterID(customObject), "debug", "found the daemon set in the Kubernetes API")
 			currentDaemonSet = manifest
 			r.updateVersionBundleVersionGauge(customObject, versionBundleVersionGauge, currentDaemonSet)
 		}
@@ -118,13 +118,13 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 func (r *Resource) updateVersionBundleVersionGauge(customObject v1alpha1.FlannelConfig, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
 	version, ok := daemonSet.Annotations[VersionBundleVersionAnnotation]
 	if !ok {
-		r.logger.Log("cluster", keyv2.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: annotation '%s' must not be empty", VersionBundleVersionAnnotation))
+		r.logger.Log("cluster", key.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: annotation '%s' must not be empty", VersionBundleVersionAnnotation))
 		return
 	}
 
 	split := strings.Split(version, ".")
 	if len(split) != 3 {
-		r.logger.Log("cluster", keyv2.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: invalid version format, expected '<major>.<minor>.<patch>', got '%s'", version))
+		r.logger.Log("cluster", key.ClusterID(customObject), "warning", fmt.Sprintf("cannot update current version bundle version metric: invalid version format, expected '<major>.<minor>.<patch>', got '%s'", version))
 		return
 	}
 
@@ -140,7 +140,7 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 }
 
 func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	customObject, err := keyv2.ToCustomObject(obj)
+	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -207,7 +207,7 @@ func (r *Resource) NewDeletePatch(ctx context.Context, obj, currentState, desire
 }
 
 func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desiredState interface{}) (interface{}, error) {
-	customObject, err := keyv2.ToCustomObject(obj)
+	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -298,7 +298,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 	// Create a service account for the cleanup job.
 	{
-		serviceAccount := newServiceAccount(customObject, keyv2.ClusterID(customObject))
+		serviceAccount := newServiceAccount(customObject, key.ClusterID(customObject))
 		_, err := r.k8sClient.CoreV1().ServiceAccounts(destroyerNamespace(spec)).Create(serviceAccount)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
