@@ -103,11 +103,8 @@ func newResourceRouter(config FrameworkConfig) (*framework.ResourceRouter, error
 			CAFile:       config.CAFile,
 			CrtFile:      config.CrtFile,
 			EtcdEndpoint: config.EtcdEndpoint,
-			HandledVersionBundles: []string{
-				"0.1.0",
-			},
-			KeyFile:     config.KeyFile,
-			ProjectName: config.ProjectName,
+			KeyFile:      config.KeyFile,
+			ProjectName:  config.ProjectName,
 		}
 
 		v2ResourceSet, err = v2.NewResourceSet(c)
