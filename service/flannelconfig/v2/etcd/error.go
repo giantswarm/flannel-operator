@@ -1,4 +1,4 @@
-package etcdv2
+package etcd
 
 import (
 	"github.com/coreos/etcd/client"
