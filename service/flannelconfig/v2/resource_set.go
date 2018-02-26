@@ -31,12 +31,11 @@ type ResourceSetConfig struct {
 	K8sClient kubernetes.Interface
 	Logger    micrologger.Logger
 
-	CAFile                string
-	CrtFile               string
-	EtcdEndpoint          string
-	HandledVersionBundles []string
-	KeyFile               string
-	ProjectName           string
+	CAFile       string
+	CrtFile      string
+	EtcdEndpoint string
+	KeyFile      string
+	ProjectName  string
 }
 
 func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
@@ -52,9 +51,6 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 	}
 	if config.EtcdEndpoint == "" {
 		return nil, microerror.Maskf(invalidConfigError, "config.EtcdEndpoint must not be empty")
-	}
-	if len(config.HandledVersionBundles) == 0 {
-		return nil, microerror.Maskf(invalidConfigError, "config.HandledVersionBundles must not be empty")
 	}
 	if config.KeyFile == "" {
 		return nil, microerror.Maskf(invalidConfigError, "config.KeyFile must not be empty")
@@ -198,12 +194,9 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		if err != nil {
 			return false
 		}
-		versionBundleVersion := keyv2.VersionBundleVersion(customObject)
 
-		for _, v := range config.HandledVersionBundles {
-			if versionBundleVersion == v {
-				return true
-			}
+		if keyv2.VersionBundleVersion(customObject) == VersionBundle().Version {
+			return true
 		}
 
 		return false
