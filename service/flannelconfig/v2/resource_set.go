@@ -16,7 +16,7 @@ import (
 	"github.com/giantswarm/operatorkit/framework/resource/retryresource"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcdv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcd"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/legacy"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/namespace"
@@ -81,7 +81,7 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		}
 	}
 
-	var storageService *etcdv2.Service
+	var storageService *etcd.Service
 	{
 		etcdConfig := client.Config{
 			Endpoints: []string{
@@ -102,9 +102,9 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 			return nil, microerror.Mask(err)
 		}
 
-		storageConfig := etcdv2.DefaultConfig()
+		storageConfig := etcd.DefaultConfig()
 		storageConfig.EtcdClient = etcdClient
-		storageService, err = etcdv2.New(storageConfig)
+		storageService, err = etcd.New(storageConfig)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}

@@ -5,7 +5,7 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/framework"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcdv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcd"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 // resource.
 type Config struct {
 	Logger micrologger.Logger
-	Store  etcdv2.Store
+	Store  etcd.Store
 }
 
 // DefaultConfig provides a default configuration to create a new network config
@@ -34,7 +34,7 @@ func DefaultConfig() Config {
 // Resource implements the network config resource.
 type Resource struct {
 	logger micrologger.Logger
-	store  etcdv2.Store
+	store  etcd.Store
 }
 
 // New creates a new configured network config resource.

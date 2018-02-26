@@ -8,7 +8,7 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/micrologger/microloggertest"
 
-	etcdv2fake "github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcdv2/fake"
+	etcdfake "github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcd/fake"
 )
 
 func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
@@ -136,7 +136,7 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 		resourceConfig := DefaultConfig()
 
 		resourceConfig.Logger = microloggertest.New()
-		resourceConfig.Store = etcdv2fake.New()
+		resourceConfig.Store = etcdfake.New()
 
 		newResource, err = New(resourceConfig)
 		if err != nil {
