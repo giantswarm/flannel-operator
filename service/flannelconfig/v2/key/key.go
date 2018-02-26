@@ -1,4 +1,4 @@
-package keyv2
+package key
 
 import (
 	"fmt"

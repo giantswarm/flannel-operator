@@ -11,7 +11,7 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
 )
 
 var (
@@ -27,7 +27,7 @@ var (
 )
 
 func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interface{}, error) {
-	customObject, err := keyv2.ToCustomObject(obj)
+	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -46,7 +46,7 @@ func healthListenAddress(customObject v1alpha1.FlannelConfig) string {
 }
 
 func livenessProbePort(customObject v1alpha1.FlannelConfig) int32 {
-	return int32(portBase + keyv2.FlannelVNI(customObject))
+	return int32(portBase + key.FlannelVNI(customObject))
 }
 
 func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *v1beta1.DaemonSet {
@@ -56,24 +56,24 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 			APIVersion: "extensions/v1beta",
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: keyv2.NetworkID,
+			Name: key.NetworkID,
 			Annotations: map[string]string{
-				VersionBundleVersionAnnotation: keyv2.VersionBundleVersion(customObject),
+				VersionBundleVersionAnnotation: key.VersionBundleVersion(customObject),
 			},
 			Labels: map[string]string{
-				"app":      keyv2.NetworkID,
-				"cluster":  keyv2.ClusterID(customObject),
-				"customer": keyv2.ClusterCustomer(customObject),
+				"app":      key.NetworkID,
+				"cluster":  key.ClusterID(customObject),
+				"customer": key.ClusterCustomer(customObject),
 			},
 		},
 		Spec: v1beta1.DaemonSetSpec{
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: apismeta.ObjectMeta{
-					GenerateName: keyv2.NetworkID,
+					GenerateName: key.NetworkID,
 					Labels: map[string]string{
-						"app":      keyv2.NetworkID,
-						"cluster":  keyv2.ClusterID(customObject),
-						"customer": keyv2.ClusterCustomer(customObject),
+						"app":      key.NetworkID,
+						"cluster":  key.ClusterID(customObject),
+						"customer": key.ClusterCustomer(customObject),
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -103,19 +103,19 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 								},
 								{
 									Name:  "ETCD_PREFIX",
-									Value: keyv2.EtcdPrefix(customObject),
+									Value: key.EtcdPrefix(customObject),
 								},
 								{
 									Name:  "NETWORK_BRIDGE_NAME",
-									Value: keyv2.NetworkBridgeName(customObject),
+									Value: key.NetworkBridgeName(customObject),
 								},
 								{
 									Name:  "NETWORK_ENV_FILE_PATH",
-									Value: keyv2.NetworkEnvFilePath(customObject),
+									Value: key.NetworkEnvFilePath(customObject),
 								},
 								{
 									Name:  "NETWORK_INTERFACE_NAME",
-									Value: keyv2.NetworkInterfaceName(customObject),
+									Value: key.NetworkInterfaceName(customObject),
 								},
 							},
 							LivenessProbe: &corev1.Probe{
@@ -152,7 +152,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 						},
 						{
 							Name:            "k8s-network-bridge",
-							Image:           keyv2.NetworkBridgeDockerImage(customObject),
+							Image:           key.NetworkBridgeDockerImage(customObject),
 							ImagePullPolicy: corev1.PullAlways,
 							Command: []string{
 								"/bin/sh",
@@ -162,35 +162,35 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							Env: []corev1.EnvVar{
 								{
 									Name:  "HOST_PRIVATE_NETWORK",
-									Value: keyv2.HostPrivateNetwork(customObject),
+									Value: key.HostPrivateNetwork(customObject),
 								},
 								{
 									Name:  "NETWORK_BRIDGE_NAME",
-									Value: keyv2.NetworkBridgeName(customObject),
+									Value: key.NetworkBridgeName(customObject),
 								},
 								{
 									Name:  "NETWORK_DNS_BLOCK",
-									Value: keyv2.NetworkDNSBlock(customObject),
+									Value: key.NetworkDNSBlock(customObject),
 								},
 								{
 									Name:  "NETWORK_ENV_FILE_PATH",
-									Value: keyv2.NetworkEnvFilePath(customObject),
+									Value: key.NetworkEnvFilePath(customObject),
 								},
 								{
 									Name:  "NETWORK_FLANNEL_DEVICE",
-									Value: keyv2.NetworkFlannelDevice(customObject),
+									Value: key.NetworkFlannelDevice(customObject),
 								},
 								{
 									Name:  "NETWORK_INTERFACE_NAME",
-									Value: keyv2.NetworkInterfaceName(customObject),
+									Value: key.NetworkInterfaceName(customObject),
 								},
 								{
 									Name:  "NETWORK_NTP_BLOCK",
-									Value: keyv2.NetworkNTPBlock(customObject),
+									Value: key.NetworkNTPBlock(customObject),
 								},
 								{
 									Name:  "NETWORK_TAP_NAME",
-									Value: keyv2.NetworkTapName(customObject),
+									Value: key.NetworkTapName(customObject),
 								},
 							},
 							LivenessProbe: &corev1.Probe{
@@ -243,7 +243,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 						},
 						{
 							Name:            "flannel-network-health",
-							Image:           keyv2.NetworkHealthDockerImage(customObject),
+							Image:           key.NetworkHealthDockerImage(customObject),
 							ImagePullPolicy: corev1.PullAlways,
 							Env: []corev1.EnvVar{
 								{
@@ -252,15 +252,15 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 								},
 								{
 									Name:  "NETWORK_BRIDGE_NAME",
-									Value: keyv2.NetworkBridgeName(customObject),
+									Value: key.NetworkBridgeName(customObject),
 								},
 								{
 									Name:  "NETWORK_ENV_FILE_PATH",
-									Value: keyv2.NetworkEnvFilePath(customObject),
+									Value: key.NetworkEnvFilePath(customObject),
 								},
 								{
 									Name:  "NETWORK_FLANNEL_DEVICE",
-									Value: keyv2.NetworkFlannelDevice(customObject),
+									Value: key.NetworkFlannelDevice(customObject),
 								},
 							},
 							SecurityContext: &corev1.SecurityContext{
@@ -319,7 +319,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							Name: "flannel",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: keyv2.FlannelRunDir(customObject),
+									Path: key.FlannelRunDir(customObject),
 								},
 							},
 						},

@@ -7,11 +7,11 @@ import (
 	"k8s.io/api/extensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
 )
 
 func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange interface{}) error {
-	customObject, err := keyv2.ToCustomObject(obj)
+	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -21,9 +21,9 @@ func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange inte
 	}
 
 	if daemonSetToCreate != nil {
-		r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "creating the daemon set in the Kubernetes API")
+		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "creating the daemon set in the Kubernetes API")
 
-		namespace := keyv2.NetworkNamespace(customObject)
+		namespace := key.NetworkNamespace(customObject)
 		_, err = r.k8sClient.Extensions().DaemonSets(namespace).Create(daemonSetToCreate)
 		if apierrors.IsAlreadyExists(err) {
 			// fall through
@@ -31,9 +31,9 @@ func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange inte
 			return microerror.Mask(err)
 		}
 
-		r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "created the daemon set in the Kubernetes API")
+		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "created the daemon set in the Kubernetes API")
 	} else {
-		r.logger.Log("cluster", keyv2.ClusterID(customObject), "debug", "the daemon set does not need to be created in the Kubernetes API")
+		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "the daemon set does not need to be created in the Kubernetes API")
 	}
 
 	return nil

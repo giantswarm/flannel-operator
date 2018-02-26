@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
 	"github.com/giantswarm/microerror"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/api/extensions/v1beta1"
@@ -15,7 +15,7 @@ import (
 )
 
 func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interface{}, error) {
-	customObject, err := keyv2.ToCustomObject(obj)
+	customObject, err := key.ToCustomObject(obj)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -24,8 +24,8 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 
 	var currentDaemonSet *v1beta1.DaemonSet
 	{
-		namespace := keyv2.NetworkNamespace(customObject)
-		manifest, err := r.k8sClient.Extensions().DaemonSets(namespace).Get(keyv2.NetworkID, apismetav1.GetOptions{})
+		namespace := key.NetworkNamespace(customObject)
+		manifest, err := r.k8sClient.Extensions().DaemonSets(namespace).Get(key.NetworkID, apismetav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 			r.logger.LogCtx(ctx, "debug", "did not find the daemon set in the Kubernetes API")

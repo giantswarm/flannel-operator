@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcd"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/keyv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/legacy"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/namespace"
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/networkconfigv2"
@@ -190,12 +190,12 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 	}
 
 	handlesFunc := func(obj interface{}) bool {
-		customObject, err := keyv2.ToCustomObject(obj)
+		customObject, err := key.ToCustomObject(obj)
 		if err != nil {
 			return false
 		}
 
-		if keyv2.VersionBundleVersion(customObject) == VersionBundle().Version {
+		if key.VersionBundleVersion(customObject) == VersionBundle().Version {
 			return true
 		}
 
