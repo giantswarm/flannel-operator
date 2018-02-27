@@ -19,7 +19,7 @@ spec:
       volumes:
       - name: etcd-certs
         hostPath:
-          path: /etc/giantswarm/g8s/ssl/etcd/
+          path: /etc/kubernetes/ssl/etcd/
       - name: flannel-operator-configmap
         configMap:
           name: flannel-operator-configmap

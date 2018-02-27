@@ -303,7 +303,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							Name: "etcd-certs",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc/giantswarm/g8s/ssl/etcd",
+									Path: "/etc/kubernetes/ssl/etcd",
 								},
 							},
 						},
