@@ -198,6 +198,11 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		if key.VersionBundleVersion(customObject) == VersionBundle().Version {
 			return true
 		}
+		// TODO remove this hack with the next version bundle version or as soon as
+		// all certconfigs obtain a real version bundle version.
+		if key.VersionBundleVersion(customObject) == "" {
+			return true
+		}
 
 		return false
 	}
