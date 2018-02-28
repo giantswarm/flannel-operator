@@ -21,16 +21,11 @@ func VersionBundle() versionbundle.Bundle {
 				Version: "0.9.0",
 			},
 		},
-		Dependencies: []versionbundle.Dependency{
-			{
-				Name:    "etcd",
-				Version: "<= 3.2.x",
-			},
-		},
-		Deprecated: false,
-		Name:       "flannel-operator",
-		Time:       time.Date(2017, time.October, 27, 16, 21, 0, 0, time.UTC),
-		Version:    "0.1.0",
-		WIP:        false,
+		Dependencies: []versionbundle.Dependency{},
+		Deprecated:   false,
+		Name:         "flannel-operator",
+		Time:         time.Date(2017, time.October, 27, 16, 21, 0, 0, time.UTC),
+		Version:      "0.1.0",
+		WIP:          false,
 	}
 }
