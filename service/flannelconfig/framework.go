@@ -116,6 +116,8 @@ func newResourceRouter(config FrameworkConfig) (*framework.ResourceRouter, error
 	var resourceRouter *framework.ResourceRouter
 	{
 		c := framework.ResourceRouterConfig{
+			Logger: config.Logger,
+
 			ResourceSets: []*framework.ResourceSet{
 				v2ResourceSet,
 			},
