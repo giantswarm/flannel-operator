@@ -3,7 +3,6 @@ package flanneld
 import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/operatorkit/framework"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -82,10 +81,6 @@ func New(config Config) (*Resource, error) {
 
 func (r *Resource) Name() string {
 	return Name
-}
-
-func (r *Resource) Underlying() framework.Resource {
-	return r
 }
 
 func toDaemonSet(v interface{}) (*v1beta1.DaemonSet, error) {

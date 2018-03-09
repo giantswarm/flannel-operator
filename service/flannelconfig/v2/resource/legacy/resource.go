@@ -453,7 +453,3 @@ func (r *Resource) ApplyDeleteChange(ctx context.Context, obj, deleteChange inte
 func (r *Resource) ApplyUpdateChange(ctx context.Context, obj, updateChange interface{}) error {
 	return nil
 }
-
-func (r *Resource) Underlying() framework.Resource {
-	return r
-}
