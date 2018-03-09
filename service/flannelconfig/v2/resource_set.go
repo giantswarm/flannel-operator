@@ -128,7 +128,12 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		legacyConfig.EtcdCrtFile = config.CrtFile
 		legacyConfig.EtcdKeyFile = config.KeyFile
 
-		legacyResource, err = legacy.New(legacyConfig)
+		ops, err := legacy.New(legacyConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		legacyResource, err = toCRUDResource(config.Logger, ops)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -141,7 +146,12 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		c.Logger = config.Logger
 		c.Store = storageService
 
-		networkConfigResource, err = networkconfigv2.New(c)
+		ops, err := networkconfigv2.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		networkConfigResource, err = toCRUDResource(config.Logger, ops)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -154,7 +164,12 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		c.K8sClient = config.K8sClient
 		c.Logger = config.Logger
 
-		namespaceResource, err = namespace.New(c)
+		ops, err := namespace.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		namespaceResource, err = toCRUDResource(config.Logger, ops)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -222,4 +237,18 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 	}
 
 	return resourceSet, nil
+}
+
+func toCRUDResource(logger micrologger.Logger, ops framework.CRUDResourceOps) (*framework.CRUDResource, error) {
+	c := framework.CRUDResourceConfig{
+		Logger: logger,
+		Ops:    ops,
+	}
+
+	r, err := framework.NewCRUDResource(c)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return r, nil
 }

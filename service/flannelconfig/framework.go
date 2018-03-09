@@ -27,39 +27,20 @@ type FrameworkConfig struct {
 }
 
 func NewFramework(config FrameworkConfig) (*framework.Framework, error) {
-	if config.CRDClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.CRDClient must not be empty")
-	}
-	if config.K8sClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.K8sClient must not be empty")
-	}
 	if config.G8sClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "config.G8sClient must not be empty")
-	}
-	if config.Logger == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.Logger must not be empty")
-	}
-
-	if config.CrtFile == "" {
-		return nil, microerror.Maskf(invalidConfigError, "config.CrtFile must not be empty")
-	}
-	if config.EtcdEndpoint == "" {
-		return nil, microerror.Maskf(invalidConfigError, "config.EtcdEndpoint must not be empty")
-	}
-	if config.KeyFile == "" {
-		return nil, microerror.Maskf(invalidConfigError, "config.KeyFile must not be empty")
-	}
-	if config.ProjectName == "" {
-		return nil, microerror.Maskf(invalidConfigError, "config.ProjectName must not be empty")
 	}
 
 	var err error
 
 	var newInformer *informer.Informer
 	{
-		c := informer.DefaultConfig()
+		c := informer.Config{
+			Watcher: config.G8sClient.CoreV1alpha1().FlannelConfigs(""),
 
-		c.Watcher = config.G8sClient.CoreV1alpha1().FlannelConfigs("")
+			RateWait:     informer.DefaultRateWait,
+			ResyncPeriod: informer.DefaultResyncPeriod,
+		}
 
 		newInformer, err = informer.New(c)
 		if err != nil {
