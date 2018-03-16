@@ -24,8 +24,8 @@ func VersionBundle() versionbundle.Bundle {
 		Dependencies: []versionbundle.Dependency{},
 		Deprecated:   false,
 		Name:         "flannel-operator",
-		Time:         time.Date(2017, time.October, 27, 16, 21, 0, 0, time.UTC),
-		Version:      "0.1.0",
+		Time:         time.Date(2018, time.March, 16, 9, 15, 0, 0, time.UTC),
+		Version:      "0.2.0",
 		WIP:          false,
 	}
 }
