@@ -13,7 +13,7 @@ const (
 	// components.
 	NetworkID = "flannel-network"
 
-
+	// flanneld image
 	FlannelDockerImage = "quay.io/giantswarm/flannel:v0.10.0-amd64"
 )
 
