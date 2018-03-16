@@ -12,6 +12,9 @@ const (
 	// NetworkID is the ID used to label apps for resources running flannel
 	// components.
 	NetworkID = "flannel-network"
+
+
+	FlannelDockerImage = "quay.io/giantswarm/flannel:v0.10.0-amd64"
 )
 
 func ClusterCustomer(customObject v1alpha1.FlannelConfig) string {

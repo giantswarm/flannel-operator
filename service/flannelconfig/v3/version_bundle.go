@@ -18,7 +18,7 @@ func VersionBundle() versionbundle.Bundle {
 		Components: []versionbundle.Component{
 			{
 				Name:    "flannel",
-				Version: "0.9.0",
+				Version: "0.10.0",
 			},
 		},
 		Dependencies: []versionbundle.Dependency{},

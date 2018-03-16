@@ -61,7 +61,7 @@ func newDaemonSetContainers(spec v1alpha1.FlannelConfigSpec, etcdCAFile, etcdCrt
 	return []api.Container{
 		{
 			Name:            "flanneld",
-			Image:           "quay.io/giantswarm/flannel:v0.9.0-amd64",
+			Image:           key.FlannelDockerImage,
 			ImagePullPolicy: api.PullAlways,
 			Command: []string{
 				"/bin/sh",
