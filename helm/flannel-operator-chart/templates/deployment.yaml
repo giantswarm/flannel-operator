@@ -38,6 +38,7 @@ spec:
           mountPath: /var/run/flannel-operator/configmap/
         - name: etcd-certs
           mountPath: /etc/kubernetes/ssl/etcd/
+        # TODO: Remove this when v2 version bundle is removed.
         - name: etcd-certs-legacy
           mountPath: /etc/kubernetes/ssl/etcd/
         ports:
