@@ -18,12 +18,12 @@ import (
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/key"
 )
 
 const (
 	// Name is the identifier of the resource.
-	Name = "legacyv2"
+	Name = "legacyv3"
 )
 
 // Config represents the configuration used to create a new config map resource.

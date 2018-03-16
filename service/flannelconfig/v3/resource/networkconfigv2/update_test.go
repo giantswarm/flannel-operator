@@ -8,7 +8,7 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/micrologger/microloggertest"
 
-	etcdfake "github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcd/fake"
+	etcdfake "github.com/giantswarm/flannel-operator/service/flannelconfig/v3/etcd/fake"
 )
 
 func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {

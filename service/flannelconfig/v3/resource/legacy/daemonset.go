@@ -7,7 +7,7 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/key"
 )
 
 func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *v1beta1.DaemonSet {
