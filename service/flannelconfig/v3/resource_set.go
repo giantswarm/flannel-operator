@@ -1,4 +1,4 @@
-package v2
+package v3
 
 import (
 	"crypto/tls"
@@ -16,11 +16,11 @@ import (
 	"github.com/giantswarm/operatorkit/framework/resource/retryresource"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcd"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/legacy"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/namespace"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/networkconfigv2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/etcd"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/key"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/resource/legacy"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/resource/namespace"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/resource/networkconfigv2"
 )
 
 const (
