@@ -3,7 +3,6 @@ package networkconfigv2
 import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/operatorkit/framework"
 
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcd"
 )
@@ -58,10 +57,6 @@ func New(config Config) (*Resource, error) {
 
 func (r *Resource) Name() string {
 	return Name
-}
-
-func (r *Resource) Underlying() framework.Resource {
-	return r
 }
 
 func toNetworkConfig(v interface{}) (NetworkConfig, error) {
