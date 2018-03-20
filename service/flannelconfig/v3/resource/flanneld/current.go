@@ -20,7 +20,7 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.LogCtx(ctx, "debug", "looking for the daemon set in the Kubernetes API")
+	r.logger.LogCtx(ctx, "level", "debug", "message", "looking for the daemon set in the Kubernetes API")
 
 	var currentDaemonSet *v1beta1.DaemonSet
 	{
@@ -28,11 +28,11 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 		manifest, err := r.k8sClient.Extensions().DaemonSets(namespace).Get(key.NetworkID, apismetav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
-			r.logger.LogCtx(ctx, "debug", "did not find the daemon set in the Kubernetes API")
+			r.logger.LogCtx(ctx, "level", "debug", "message", "did not find the daemon set in the Kubernetes API")
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		} else {
-			r.logger.LogCtx(ctx, "debug", "found the daemon set in the Kubernetes API")
+			r.logger.LogCtx(ctx, "level", "debug", "message", "found the daemon set in the Kubernetes API")
 
 			currentDaemonSet = manifest
 
@@ -46,13 +46,13 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 func (r *Resource) updateVersionBundleVersionGauge(ctx context.Context, customObject v1alpha1.FlannelConfig, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
 	version, ok := daemonSet.Annotations[VersionBundleVersionAnnotation]
 	if !ok {
-		r.logger.LogCtx(ctx, "warning", fmt.Sprintf("cannot update current version bundle version metric: annotation '%s' must not be empty", VersionBundleVersionAnnotation))
+		r.logger.LogCtx(ctx, "level", "warning", "message", fmt.Sprintf("cannot update current version bundle version metric: annotation '%s' must not be empty", VersionBundleVersionAnnotation))
 		return
 	}
 
 	split := strings.Split(version, ".")
 	if len(split) != 3 {
-		r.logger.LogCtx(ctx, "warning", fmt.Sprintf("cannot update current version bundle version metric: invalid version format, expected '<major>.<minor>.<patch>', got '%s'", version))
+		r.logger.LogCtx(ctx, "level", "warning", "message", fmt.Sprintf("cannot update current version bundle version metric: invalid version format, expected '<major>.<minor>.<patch>', got '%s'", version))
 		return
 	}
 

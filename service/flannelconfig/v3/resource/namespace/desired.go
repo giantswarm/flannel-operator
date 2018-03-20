@@ -16,7 +16,7 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.Log("cluster", key.ClusterID(customObject), "debug", "computing the desired namespace")
+	r.logger.LogCtx(ctx, "level", "debug", "message", "computing the desired namespace")
 
 	namespace := &apiv1.Namespace{
 		TypeMeta: apismetav1.TypeMeta{
@@ -32,7 +32,7 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 		},
 	}
 
-	r.logger.Log("cluster", key.ClusterID(customObject), "debug", "computed the desired namespace")
+	r.logger.LogCtx(ctx, "level", "debug", "message", "computed the desired namespace")
 
 	return namespace, nil
 }

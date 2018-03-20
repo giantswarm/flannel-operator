@@ -32,11 +32,11 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.LogCtx(ctx, "debug", "computing the desired daemon set")
+	r.logger.LogCtx(ctx, "level", "debug", "message", "computing the desired daemon set")
 
 	daemonSet := newDaemonSet(customObject, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
 
-	r.logger.LogCtx(ctx, "debug", "computed the desired daemon set")
+	r.logger.LogCtx(ctx, "level", "debug", "message", "computed the desired daemon set")
 
 	return daemonSet, nil
 }
