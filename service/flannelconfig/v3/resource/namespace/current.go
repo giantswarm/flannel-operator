@@ -18,18 +18,18 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.Log("cluster", key.ClusterID(customObject), "debug", "looking for the namespace in the Kubernetes API")
+	r.logger.LogCtx(ctx, "level", "debug", "message", "looking for the namespace in the Kubernetes API")
 
 	var namespace *apiv1.Namespace
 	{
 		manifest, err := r.k8sClient.CoreV1().Namespaces().Get(key.NetworkNamespace(customObject), apismetav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			r.logger.Log("cluster", key.ClusterID(customObject), "debug", "did not find the namespace in the Kubernetes API")
+			r.logger.LogCtx(ctx, "level", "debug", "message", "did not find the namespace in the Kubernetes API")
 			// fall through
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		} else {
-			r.logger.Log("cluster", key.ClusterID(customObject), "debug", "found the namespace in the Kubernetes API")
+			r.logger.LogCtx(ctx, "level", "debug", "message", "found the namespace in the Kubernetes API")
 			namespace = manifest
 		}
 	}
@@ -38,11 +38,11 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 	// further work. Then we cancel the reconciliation to prevent the current and
 	// any further resource from being processed.
 	if namespace != nil && namespace.Status.Phase == "Terminating" {
-		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "namespace is in state 'Terminating'")
+		r.logger.LogCtx(ctx, "level", "debug", "message", "namespace is in state 'Terminating'")
 
 		reconciliationcanceledcontext.SetCanceled(ctx)
 		if reconciliationcanceledcontext.IsCanceled(ctx) {
-			r.logger.Log("cluster", key.ClusterID(customObject), "debug", "canceling reconciliation for custom object")
+			r.logger.LogCtx(ctx, "level", "debug", "message", "canceling reconciliation for custom object")
 
 			return nil, nil
 		}
