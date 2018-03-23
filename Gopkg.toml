@@ -30,7 +30,7 @@
   version = "3.1.10"
 
 [[constraint]]
-  branch = "bump-k8s-libs"
+  branch = "master"
   name = "github.com/giantswarm/apiextensions"
 
 [[constraint]]
@@ -54,7 +54,7 @@
   name = "github.com/giantswarm/micrologger"
 
 [[constraint]]
-  branch = "bump-k8s-libs"
+  branch = "master"
   name = "github.com/giantswarm/operatorkit"
 
 [[constraint]]
