@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2"
+	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3"
 )
 
 type FrameworkConfig struct {
@@ -94,6 +95,25 @@ func newResourceRouter(config FrameworkConfig) (*framework.ResourceRouter, error
 		}
 	}
 
+	var v3ResourceSet *framework.ResourceSet
+	{
+		c := v3.ResourceSetConfig{
+			K8sClient: config.K8sClient,
+			Logger:    config.Logger,
+
+			CAFile:       config.CAFile,
+			CrtFile:      config.CrtFile,
+			EtcdEndpoint: config.EtcdEndpoint,
+			KeyFile:      config.KeyFile,
+			ProjectName:  config.ProjectName,
+		}
+
+		v3ResourceSet, err = v3.NewResourceSet(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var resourceRouter *framework.ResourceRouter
 	{
 		c := framework.ResourceRouterConfig{
@@ -101,6 +121,7 @@ func newResourceRouter(config FrameworkConfig) (*framework.ResourceRouter, error
 
 			ResourceSets: []*framework.ResourceSet{
 				v2ResourceSet,
+				v3ResourceSet,
 			},
 		}
 

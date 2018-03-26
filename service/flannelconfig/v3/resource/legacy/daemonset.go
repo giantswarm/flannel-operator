@@ -286,7 +286,7 @@ func newDaemonSetVolumes(spec v1alpha1.FlannelConfigSpec) []api.Volume {
 			Name: "etcd-certs",
 			VolumeSource: api.VolumeSource{
 				HostPath: &api.HostPathVolumeSource{
-					Path: "/etc/giantswarm/g8s/ssl/etcd",
+					Path: "/etc/kubernetes/ssl/etcd",
 				},
 			},
 		},
