@@ -68,7 +68,7 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 							Name: "etcd-certs",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/etc/giantswarm/g8s/ssl/etcd/",
+									Path: "/etc/kubernetes/ssl/etcd/",
 								},
 							},
 						},

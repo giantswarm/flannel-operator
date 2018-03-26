@@ -54,19 +54,11 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/giantswarm/microstorage"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/giantswarm/operatorkit"
 
 [[constraint]]
   branch = "master"
   name = "github.com/giantswarm/versionbundle"
-
-[[constraint]]
-  name = "github.com/go-kit/kit"
-  version = "0.6.0"
 
 [[constraint]]
   branch = "master"

@@ -21,7 +21,7 @@ func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange inte
 	}
 
 	if daemonSetToCreate != nil {
-		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "creating the daemon set in the Kubernetes API")
+		r.logger.LogCtx(ctx, "level", "debug", "message", "creating the daemon set in the Kubernetes API")
 
 		namespace := key.NetworkNamespace(customObject)
 		_, err = r.k8sClient.Extensions().DaemonSets(namespace).Create(daemonSetToCreate)
@@ -31,9 +31,9 @@ func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange inte
 			return microerror.Mask(err)
 		}
 
-		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "created the daemon set in the Kubernetes API")
+		r.logger.LogCtx(ctx, "level", "debug", "message", "created the daemon set in the Kubernetes API")
 	} else {
-		r.logger.Log("cluster", key.ClusterID(customObject), "debug", "the daemon set does not need to be created in the Kubernetes API")
+		r.logger.LogCtx(ctx, "level", "debug", "message", "the daemon set does not need to be created in the Kubernetes API")
 	}
 
 	return nil
@@ -49,14 +49,14 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 		return nil, microerror.Mask(err)
 	}
 
-	r.logger.LogCtx(ctx, "debug", "finding out if the daemon set has to be created")
+	r.logger.LogCtx(ctx, "level", "debug", "message", "finding out if the daemon set has to be created")
 
 	var daemonSetToCreate *v1beta1.DaemonSet
 	if currentDaemonSet == nil {
 		daemonSetToCreate = desiredDaemonSet
 	}
 
-	r.logger.LogCtx(ctx, "debug", "found out if the daemon set has to be created")
+	r.logger.LogCtx(ctx, "level", "debug", "message", "found out if the daemon set has to be created")
 
 	return daemonSetToCreate, nil
 }
