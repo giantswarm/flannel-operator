@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/key"
+	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 	"github.com/giantswarm/microerror"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/api/extensions/v1beta1"

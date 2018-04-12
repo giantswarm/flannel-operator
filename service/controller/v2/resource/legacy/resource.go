@@ -18,7 +18,7 @@ import (
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
+	"github.com/giantswarm/flannel-operator/service/controller/v2/key"
 )
 
 const (

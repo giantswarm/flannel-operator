@@ -16,11 +16,11 @@ import (
 	"github.com/giantswarm/operatorkit/framework/resource/retryresource"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/etcd"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/key"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/legacy"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/namespace"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2/resource/networkconfigv2"
+	"github.com/giantswarm/flannel-operator/service/controller/v2/etcd"
+	"github.com/giantswarm/flannel-operator/service/controller/v2/key"
+	"github.com/giantswarm/flannel-operator/service/controller/v2/resource/legacy"
+	"github.com/giantswarm/flannel-operator/service/controller/v2/resource/namespace"
+	"github.com/giantswarm/flannel-operator/service/controller/v2/resource/networkconfigv2"
 )
 
 const (

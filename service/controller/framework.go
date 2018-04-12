@@ -1,4 +1,4 @@
-package flannelconfig
+package controller
 
 import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
@@ -10,8 +10,8 @@ import (
 	"github.com/giantswarm/operatorkit/informer"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v2"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3"
+	"github.com/giantswarm/flannel-operator/service/controller/v2"
+	"github.com/giantswarm/flannel-operator/service/controller/v3"
 )
 
 type FrameworkConfig struct {

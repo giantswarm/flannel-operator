@@ -4,7 +4,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 
-	"github.com/giantswarm/flannel-operator/service/flannelconfig/v3/etcd"
+	"github.com/giantswarm/flannel-operator/service/controller/v3/etcd"
 )
 
 const (

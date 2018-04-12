@@ -1,4 +1,4 @@
-package flannelconfig
+package controller
 
 import (
 	"github.com/juju/errgo"

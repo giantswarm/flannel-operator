@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/giantswarm/flannel-operator/flag"
-	"github.com/giantswarm/flannel-operator/service/flannelconfig"
+	"github.com/giantswarm/flannel-operator/service/controller"
 	"github.com/giantswarm/flannel-operator/service/healthz"
 )
 
@@ -124,7 +124,7 @@ func New(config Config) (*Service, error) {
 
 	var flannelConfigFramework *framework.Framework
 	{
-		c := flannelconfig.FrameworkConfig{
+		c := controller.FrameworkConfig{
 			CRDClient: crdClient,
 			G8sClient: g8sClient,
 			K8sClient: k8sClient,
@@ -137,7 +137,7 @@ func New(config Config) (*Service, error) {
 			ProjectName:  config.Name,
 		}
 
-		flannelConfigFramework, err = flannelconfig.NewFramework(c)
+		flannelConfigFramework, err = controller.NewFramework(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
