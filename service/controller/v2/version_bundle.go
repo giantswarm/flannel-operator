@@ -22,7 +22,7 @@ func VersionBundle() versionbundle.Bundle {
 			},
 		},
 		Dependencies: []versionbundle.Dependency{},
-		Deprecated:   false,
+		Deprecated:   true,
 		Name:         "flannel-operator",
 		Time:         time.Date(2017, time.October, 27, 16, 21, 0, 0, time.UTC),
 		Version:      "0.1.0",
