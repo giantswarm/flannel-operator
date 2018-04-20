@@ -240,7 +240,9 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	{
 		serviceAccountName := serviceAccountName(customObject.Spec)
 		err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Delete(serviceAccountName, &apismetav1.DeleteOptions{})
-		if err != nil {
+		if apierrors.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
 			return nil, microerror.Maskf(err, "deleting service account %s", serviceAccountName)
 		}
 	}
