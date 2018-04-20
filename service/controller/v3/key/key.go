@@ -53,6 +53,10 @@ func HostPrivateNetwork(customObject v1alpha1.FlannelConfig) string {
 	return customObject.Spec.Bridge.Spec.PrivateNetwork
 }
 
+func IsInDeletionState(customObject v1alpha1.FlannelConfig) bool {
+	return customObject.GetDeletionTimestamp() != nil
+}
+
 func NetworkBridgeDockerImage(customObject v1alpha1.FlannelConfig) string {
 	return customObject.Spec.Bridge.Docker.Image
 }
