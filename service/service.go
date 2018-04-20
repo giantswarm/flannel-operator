@@ -11,7 +11,7 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8scrdclient"
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
-	"github.com/giantswarm/operatorkit/framework"
+	operatorkitcontroller "github.com/giantswarm/operatorkit/controller"
 	"github.com/spf13/viper"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
@@ -55,7 +55,7 @@ func DefaultConfig() Config {
 
 type Service struct {
 	// Dependencies.
-	FlannelConfigFramework *framework.Framework
+	FlannelConfigFramework *operatorkitcontroller.Controller
 	Healthz                *healthz.Service
 	Version                *version.Service
 
@@ -122,7 +122,7 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
-	var flannelConfigFramework *framework.Framework
+	var flannelConfigFramework *operatorkitcontroller.Controller
 	{
 		c := controller.FrameworkConfig{
 			CRDClient: crdClient,

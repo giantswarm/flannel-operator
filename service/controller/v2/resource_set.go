@@ -11,9 +11,9 @@ import (
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/operatorkit/framework"
-	"github.com/giantswarm/operatorkit/framework/resource/metricsresource"
-	"github.com/giantswarm/operatorkit/framework/resource/retryresource"
+	"github.com/giantswarm/operatorkit/controller"
+	"github.com/giantswarm/operatorkit/controller/resource/metricsresource"
+	"github.com/giantswarm/operatorkit/controller/resource/retryresource"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/service/controller/v2/etcd"
@@ -38,7 +38,7 @@ type ResourceSetConfig struct {
 	ProjectName  string
 }
 
-func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
+func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	if config.K8sClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "config.K8sClient must not be empty")
 	}
@@ -116,7 +116,7 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		legacyResourceBackOff.MaxElapsedTime = 5 * time.Minute
 	}
 
-	var legacyResource framework.Resource
+	var legacyResource controller.Resource
 	{
 		legacyConfig := legacy.DefaultConfig()
 
@@ -139,7 +139,7 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		}
 	}
 
-	var networkConfigResource framework.Resource
+	var networkConfigResource controller.Resource
 	{
 		c := networkconfigv2.DefaultConfig()
 
@@ -157,7 +157,7 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		}
 	}
 
-	var namespaceResource framework.Resource
+	var namespaceResource controller.Resource
 	{
 		c := namespace.DefaultConfig()
 
@@ -175,7 +175,7 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		}
 	}
 
-	resources := []framework.Resource{
+	resources := []controller.Resource{
 		networkConfigResource,
 		namespaceResource,
 		legacyResource,
@@ -222,15 +222,15 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 		return false
 	}
 
-	var resourceSet *framework.ResourceSet
+	var resourceSet *controller.ResourceSet
 	{
-		c := framework.ResourceSetConfig{
+		c := controller.ResourceSetConfig{
 			Handles:   handlesFunc,
 			Logger:    config.Logger,
 			Resources: resources,
 		}
 
-		resourceSet, err = framework.NewResourceSet(c)
+		resourceSet, err = controller.NewResourceSet(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -239,13 +239,13 @@ func NewResourceSet(config ResourceSetConfig) (*framework.ResourceSet, error) {
 	return resourceSet, nil
 }
 
-func toCRUDResource(logger micrologger.Logger, ops framework.CRUDResourceOps) (*framework.CRUDResource, error) {
-	c := framework.CRUDResourceConfig{
+func toCRUDResource(logger micrologger.Logger, ops controller.CRUDResourceOps) (*controller.CRUDResource, error) {
+	c := controller.CRUDResourceConfig{
 		Logger: logger,
 		Ops:    ops,
 	}
 
-	r, err := framework.NewCRUDResource(c)
+	r, err := controller.NewCRUDResource(c)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8scrdclient"
-	"github.com/giantswarm/operatorkit/framework"
+	"github.com/giantswarm/operatorkit/controller"
 	"github.com/giantswarm/operatorkit/informer"
 	"k8s.io/client-go/kubernetes"
 
@@ -27,7 +27,7 @@ type FrameworkConfig struct {
 	ProjectName  string
 }
 
-func NewFramework(config FrameworkConfig) (*framework.Framework, error) {
+func NewFramework(config FrameworkConfig) (*controller.Controller, error) {
 	if config.G8sClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "config.G8sClient must not be empty")
 	}
@@ -54,9 +54,9 @@ func NewFramework(config FrameworkConfig) (*framework.Framework, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	var crdFramework *framework.Framework
+	var crdFramework *controller.Controller
 	{
-		c := framework.Config{
+		c := controller.Config{
 			CRD:            v1alpha1.NewFlannelConfigCRD(),
 			CRDClient:      config.CRDClient,
 			Informer:       newInformer,
@@ -64,7 +64,7 @@ func NewFramework(config FrameworkConfig) (*framework.Framework, error) {
 			ResourceRouter: resourceRouter,
 		}
 
-		crdFramework, err = framework.New(c)
+		crdFramework, err = controller.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -73,10 +73,10 @@ func NewFramework(config FrameworkConfig) (*framework.Framework, error) {
 	return crdFramework, nil
 }
 
-func newResourceRouter(config FrameworkConfig) (*framework.ResourceRouter, error) {
+func newResourceRouter(config FrameworkConfig) (*controller.ResourceRouter, error) {
 	var err error
 
-	var v2ResourceSet *framework.ResourceSet
+	var v2ResourceSet *controller.ResourceSet
 	{
 		c := v2.ResourceSetConfig{
 			K8sClient: config.K8sClient,
@@ -95,7 +95,7 @@ func newResourceRouter(config FrameworkConfig) (*framework.ResourceRouter, error
 		}
 	}
 
-	var v3ResourceSet *framework.ResourceSet
+	var v3ResourceSet *controller.ResourceSet
 	{
 		c := v3.ResourceSetConfig{
 			K8sClient: config.K8sClient,
@@ -114,18 +114,18 @@ func newResourceRouter(config FrameworkConfig) (*framework.ResourceRouter, error
 		}
 	}
 
-	var resourceRouter *framework.ResourceRouter
+	var resourceRouter *controller.ResourceRouter
 	{
-		c := framework.ResourceRouterConfig{
+		c := controller.ResourceRouterConfig{
 			Logger: config.Logger,
 
-			ResourceSets: []*framework.ResourceSet{
+			ResourceSets: []*controller.ResourceSet{
 				v2ResourceSet,
 				v3ResourceSet,
 			},
 		}
 
-		resourceRouter, err = framework.NewResourceRouter(c)
+		resourceRouter, err = controller.NewResourceRouter(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
