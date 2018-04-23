@@ -53,7 +53,7 @@ func HostPrivateNetwork(customObject v1alpha1.FlannelConfig) string {
 	return customObject.Spec.Bridge.Spec.PrivateNetwork
 }
 
-func IsInDeletionState(customObject v1alpha1.FlannelConfig) bool {
+func IsDeleted(customObject v1alpha1.FlannelConfig) bool {
 	return customObject.GetDeletionTimestamp() != nil
 }
 
