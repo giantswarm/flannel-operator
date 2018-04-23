@@ -11,7 +11,6 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8scrdclient"
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
-	operatorkitcontroller "github.com/giantswarm/operatorkit/controller"
 	"github.com/spf13/viper"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
@@ -54,13 +53,11 @@ func DefaultConfig() Config {
 }
 
 type Service struct {
-	// Dependencies.
-	FlannelConfigFramework *operatorkitcontroller.Controller
-	Healthz                *healthz.Service
-	Version                *version.Service
+	Healthz *healthz.Service
+	Version *version.Service
 
-	// Internals.
-	bootOnce sync.Once
+	bootOnce          sync.Once
+	flannelController *controller.Flannel
 }
 
 func New(config Config) (*Service, error) {
@@ -122,9 +119,9 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
-	var flannelConfigFramework *operatorkitcontroller.Controller
+	var flannelController *controller.Flannel
 	{
-		c := controller.FrameworkConfig{
+		c := controller.FlannelConfig{
 			CRDClient: crdClient,
 			G8sClient: g8sClient,
 			K8sClient: k8sClient,
@@ -137,7 +134,7 @@ func New(config Config) (*Service, error) {
 			ProjectName:  config.Name,
 		}
 
-		flannelConfigFramework, err = controller.NewFramework(c)
+		flannelController, err = controller.NewFlannel(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -173,13 +170,11 @@ func New(config Config) (*Service, error) {
 	}
 
 	newService := &Service{
-		// Dependencies.
-		FlannelConfigFramework: flannelConfigFramework,
-		Healthz:                healthzService,
-		Version:                versionService,
+		Healthz: healthzService,
+		Version: versionService,
 
-		// Internals
-		bootOnce: sync.Once{},
+		bootOnce:          sync.Once{},
+		flannelController: flannelController,
 	}
 
 	return newService, nil
@@ -187,6 +182,6 @@ func New(config Config) (*Service, error) {
 
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		go s.FlannelConfigFramework.Boot()
+		go s.flannelController.Boot()
 	})
 }
