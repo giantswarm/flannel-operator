@@ -14,7 +14,7 @@ import (
 	"github.com/giantswarm/flannel-operator/service/controller/v3"
 )
 
-type FrameworkConfig struct {
+type NetworkConfig struct {
 	CRDClient *k8scrdclient.CRDClient
 	K8sClient kubernetes.Interface
 	G8sClient versioned.Interface
@@ -27,7 +27,11 @@ type FrameworkConfig struct {
 	ProjectName  string
 }
 
-func NewFramework(config FrameworkConfig) (*controller.Controller, error) {
+type Network struct {
+	*controller.Controller
+}
+
+func NewNetwork(config NetworkConfig) (*Network, error) {
 	if config.G8sClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "config.G8sClient must not be empty")
 	}
@@ -54,7 +58,7 @@ func NewFramework(config FrameworkConfig) (*controller.Controller, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	var crdFramework *controller.Controller
+	var operatorkitController *controller.Controller
 	{
 		c := controller.Config{
 			CRD:            v1alpha1.NewFlannelConfigCRD(),
@@ -67,16 +71,20 @@ func NewFramework(config FrameworkConfig) (*controller.Controller, error) {
 			Name: config.ProjectName,
 		}
 
-		crdFramework, err = controller.New(c)
+		operatorkitController, err = controller.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 	}
 
-	return crdFramework, nil
+	n := &Network{
+		Controller: operatorkitController,
+	}
+
+	return n, nil
 }
 
-func newResourceRouter(config FrameworkConfig) (*controller.ResourceRouter, error) {
+func newResourceRouter(config NetworkConfig) (*controller.ResourceRouter, error) {
 	var err error
 
 	var v2ResourceSet *controller.ResourceSet
