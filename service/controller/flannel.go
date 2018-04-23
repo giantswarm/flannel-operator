@@ -14,8 +14,6 @@ import (
 	"github.com/giantswarm/flannel-operator/service/controller/v3"
 )
 
-const flannelControllerSuffix = ""
-
 type FlannelConfig struct {
 	CRDClient *k8scrdclient.CRDClient
 	K8sClient kubernetes.Interface
@@ -70,7 +68,7 @@ func NewFlannel(config FlannelConfig) (*Flannel, error) {
 			ResourceRouter: resourceRouter,
 			RESTClient:     config.G8sClient.CoreV1alpha1().RESTClient(),
 
-			Name: config.ProjectName + flannelControllerSuffix,
+			Name: config.ProjectName,
 		}
 
 		operatorkitController, err = controller.New(c)
