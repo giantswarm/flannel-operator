@@ -57,7 +57,7 @@ type Service struct {
 	Version *version.Service
 
 	bootOnce          sync.Once
-	flannelController *controller.Flannel
+	networkController *controller.Network
 }
 
 func New(config Config) (*Service, error) {
@@ -119,9 +119,9 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
-	var flannelController *controller.Flannel
+	var networkController *controller.Network
 	{
-		c := controller.FlannelConfig{
+		c := controller.NetworkConfig{
 			CRDClient: crdClient,
 			G8sClient: g8sClient,
 			K8sClient: k8sClient,
@@ -134,7 +134,7 @@ func New(config Config) (*Service, error) {
 			ProjectName:  config.Name,
 		}
 
-		flannelController, err = controller.NewFlannel(c)
+		networkController, err = controller.NewNetwork(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -174,7 +174,7 @@ func New(config Config) (*Service, error) {
 		Version: versionService,
 
 		bootOnce:          sync.Once{},
-		flannelController: flannelController,
+		networkController: networkController,
 	}
 
 	return newService, nil
@@ -182,6 +182,6 @@ func New(config Config) (*Service, error) {
 
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		go s.flannelController.Boot()
+		go s.networkController.Boot()
 	})
 }
