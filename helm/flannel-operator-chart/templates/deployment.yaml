@@ -12,10 +12,10 @@ spec:
     type: RollingUpdate
   template:
     metadata:
-      labels:
-        app: flannel-operator
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        app: flannel-operator
     spec:
       hostNetwork: true
       volumes:
