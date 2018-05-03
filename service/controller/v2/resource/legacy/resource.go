@@ -217,7 +217,9 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	{
 		serviceAccountName := serviceAccountName(customObject.Spec)
 		err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Delete(serviceAccountName, &apismetav1.DeleteOptions{})
-		if err != nil {
+		if apierrors.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
 			return nil, microerror.Maskf(err, "deleting service account %s", serviceAccountName)
 		}
 	}
@@ -269,8 +271,10 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	{
 		ns := newNamespace(spec, destroyerNamespace(spec))
 		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
-		if err != nil {
-			return nil, microerror.Maskf(err, "creating namespace %s", ns.Name)
+		if apierrors.IsAlreadyExists(err) {
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -336,8 +340,10 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		job.Spec.Template.Spec.Affinity = podAffinity
 
 		_, err := r.k8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Create(job)
-		if err != nil {
-			return nil, microerror.Maskf(err, "creating job %s", jobName)
+		if apierrors.IsAlreadyExists(err) {
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
 		}
 		r.logger.Log("debug", fmt.Sprintf("network bridge cleanup scheduled on %d nodes", replicas), "cluster", spec.Cluster.ID)
 
@@ -377,8 +383,10 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 		ns := destroyerNamespace(spec)
 		err := r.k8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
-		if err != nil {
-			return nil, microerror.Maskf(err, "deleting namespace %s", ns)
+		if apierrors.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -388,26 +396,34 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 		clusterRoleBindingForDeletionName := clusterRoleBindingForDeletion(spec)
 		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForDeletionName, &apismetav1.DeleteOptions{})
-		if err != nil {
-			return nil, microerror.Maskf(err, "deleting cluster role binding %s", clusterRoleBindingForDeletionName)
+		if apierrors.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
 		}
 
 		clusterRoleBindingName := clusterRoleBinding(spec)
 		err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingName, &apismetav1.DeleteOptions{})
-		if err != nil {
-			return nil, microerror.Maskf(err, "deleting cluster role binding %s", clusterRoleBindingName)
+		if apierrors.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
 		}
 
 		clusterRoleBindingForPodSecurityPolicyName := clusterRoleBindingForPodSecurityPolicy(spec)
 		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForPodSecurityPolicyName, &apismetav1.DeleteOptions{})
-		if err != nil {
-			return nil, microerror.Maskf(err, "deleting cluster role binding %s", clusterRoleBindingForPodSecurityPolicyName)
+		if apierrors.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
 		}
 
 		clusterRoleBindingForPodSecurityPolicyForDeletionName := clusterRoleBindingForPodSecurityPolicyForDeletion(spec)
 		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForPodSecurityPolicyForDeletionName, &apismetav1.DeleteOptions{})
-		if err != nil {
-			return nil, microerror.Maskf(err, "deleting cluster role binding %s", clusterRoleBindingForPodSecurityPolicyForDeletionName)
+		if apierrors.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
 		}
 	}
 
