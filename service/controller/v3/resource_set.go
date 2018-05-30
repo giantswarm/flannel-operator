@@ -23,10 +23,6 @@ import (
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/networkconfigv2"
 )
 
-const (
-	ResourceRetries uint64 = 3
-)
-
 type ResourceSetConfig struct {
 	K8sClient kubernetes.Interface
 	Logger    micrologger.Logger
@@ -183,8 +179,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 
 	{
 		c := retryresource.WrapConfig{
-			BackOffFactory: func() backoff.BackOff { return backoff.WithMaxTries(backoff.NewExponentialBackOff(), ResourceRetries) },
-			Logger:         config.Logger,
+			Logger: config.Logger,
 		}
 
 		resources, err = retryresource.Wrap(resources, c)
