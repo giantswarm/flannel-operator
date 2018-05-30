@@ -1,8 +1,6 @@
 package v2
 
 import (
-	"time"
-
 	"github.com/giantswarm/versionbundle"
 )
 
@@ -21,11 +19,7 @@ func VersionBundle() versionbundle.Bundle {
 				Version: "0.9.0",
 			},
 		},
-		Dependencies: []versionbundle.Dependency{},
-		Deprecated:   true,
-		Name:         "flannel-operator",
-		Time:         time.Date(2017, time.October, 27, 16, 21, 0, 0, time.UTC),
-		Version:      "0.1.0",
-		WIP:          false,
+		Name:    "flannel-operator",
+		Version: "0.1.0",
 	}
 }
