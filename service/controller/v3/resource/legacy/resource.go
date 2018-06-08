@@ -17,7 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/api/extensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
@@ -101,7 +101,7 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 
 	var currentDaemonSet *v1beta1.DaemonSet
 	{
-		manifest, err := r.k8sClient.Extensions().DaemonSets(networkNamespace(customObject.Spec)).Get(networkApp, apismetav1.GetOptions{})
+		manifest, err := r.k8sClient.Extensions().DaemonSets(networkNamespace(customObject.Spec)).Get(networkApp, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			r.logger.LogCtx(ctx, "level", "debug", "message", "did not find the daemon set in the Kubernetes API")
 			// fall through
@@ -223,7 +223,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	// we get an empty list here after the delete event got replayed. Then we just
 	// remove the namespace as usual.
 	n := key.ClusterNamespace(customObject)
-	list, err := r.k8sClient.CoreV1().Pods(n).List(apismetav1.ListOptions{})
+	list, err := r.k8sClient.CoreV1().Pods(n).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -239,7 +239,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	// Delete the service account for the daemonset
 	{
 		serviceAccountName := serviceAccountName(customObject.Spec)
-		err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Delete(serviceAccountName, &apismetav1.DeleteOptions{})
+		err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Delete(serviceAccountName, &metav1.DeleteOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -250,7 +250,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	waitForNamespaceDeleted := func(name string) error {
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
-			_, err := r.k8sClient.CoreV1().Namespaces().Get(name, apismetav1.GetOptions{})
+			_, err := r.k8sClient.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
 			if err != nil && apierrors.IsNotFound(err) {
 				return nil
 			}
@@ -295,7 +295,24 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		ns := newNamespace(spec, destroyerNamespace(spec))
 		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
 		if apierrors.IsAlreadyExists(err) {
-			// fall through
+			namespace, err := r.k8sClient.CoreV1().Namespaces().Get(ns.GetName(), metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				r.logger.LogCtx(ctx, "level", "debug", "message", "consider network cleanup done")
+				resourcecanceledcontext.SetCanceled(ctx)
+				r.logger.LogCtx(ctx, "level", "debug", "message", "canceling resource for custom object")
+
+				return nil, nil
+			} else if err != nil {
+				return nil, microerror.Mask(err)
+			}
+
+			if namespace != nil && namespace.Status.Phase == "Terminating" {
+				r.logger.LogCtx(ctx, "level", "debug", "message", "consider network cleanup done")
+				resourcecanceledcontext.SetCanceled(ctx)
+				r.logger.LogCtx(ctx, "level", "debug", "message", "canceling resource for custom object")
+
+				return nil, nil
+			}
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -341,7 +358,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	var replicas int32
 	{
 		// All nodes are listed assuming that master nodes run kubelets.
-		nodes, err := r.k8sClient.CoreV1().Nodes().List(apismetav1.ListOptions{})
+		nodes, err := r.k8sClient.CoreV1().Nodes().List(metav1.ListOptions{})
 		if err != nil {
 			return nil, microerror.Maskf(err, "requesting cluster node list")
 		}
@@ -379,7 +396,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 		// op does not mask errors, they are used only to be logged in notify.
 		op := func() error {
-			job, err := r.k8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Get(jobName, apismetav1.GetOptions{})
+			job, err := r.k8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Get(jobName, metav1.GetOptions{})
 			if err != nil {
 				return microerror.Maskf(err, "requesting get job %s", jobName)
 			}
@@ -405,7 +422,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		r.logger.Log("debug", "removing cleanup resources", "cluster", spec.Cluster.ID)
 
 		ns := destroyerNamespace(spec)
-		err := r.k8sClient.CoreV1().Namespaces().Delete(ns, &apismetav1.DeleteOptions{})
+		err := r.k8sClient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -418,7 +435,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		r.logger.Log("debug", "removing cluster role bindings", "cluster", spec.Cluster.ID)
 
 		clusterRoleBindingForDeletionName := clusterRoleBindingForDeletion(spec)
-		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForDeletionName, &apismetav1.DeleteOptions{})
+		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForDeletionName, &metav1.DeleteOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -426,7 +443,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		}
 
 		clusterRoleBindingName := clusterRoleBinding(spec)
-		err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingName, &apismetav1.DeleteOptions{})
+		err := r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingName, &metav1.DeleteOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -434,7 +451,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		}
 
 		clusterRoleBindingForPodSecurityPolicyName := clusterRoleBindingForPodSecurityPolicy(spec)
-		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForPodSecurityPolicyName, &apismetav1.DeleteOptions{})
+		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForPodSecurityPolicyName, &metav1.DeleteOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -442,7 +459,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		}
 
 		clusterRoleBindingForPodSecurityPolicyForDeletionName := clusterRoleBindingForPodSecurityPolicyForDeletion(spec)
-		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForPodSecurityPolicyForDeletionName, &apismetav1.DeleteOptions{})
+		err = r.k8sClient.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingForPodSecurityPolicyForDeletionName, &metav1.DeleteOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
