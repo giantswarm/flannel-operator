@@ -50,7 +50,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "k8s-1.10.4"
+  branch = "master"
   name = "github.com/giantswarm/apiextensions"
   packages = [
     "pkg/apis/core/v1alpha1",
@@ -62,7 +62,7 @@
     "pkg/clientset/versioned/typed/example/v1alpha1",
     "pkg/clientset/versioned/typed/provider/v1alpha1"
   ]
-  revision = "6432d5e9d211094d511f17b560819dd757c97bb6"
+  revision = "18c1aa070409bfa5ebdf91660837370dfb4071b1"
 
 [[projects]]
   branch = "master"
@@ -117,7 +117,7 @@
   revision = "39f8cfb7c2583edb28552d9e4b12193e5bddaf60"
 
 [[projects]]
-  branch = "k8s-1.10.4"
+  branch = "master"
   name = "github.com/giantswarm/operatorkit"
   packages = [
     "client/k8scrdclient",
@@ -133,7 +133,7 @@
     "controller/resource/retryresource",
     "informer"
   ]
-  revision = "f744e97ecf7ce924044c3b387bcd2bf841af1d35"
+  revision = "d80fdea79511051e5f7fbd585a98b5919671ea45"
 
 [[projects]]
   branch = "master"
@@ -645,6 +645,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cf40cf7862fad9d0df7ddc7e8329bffe7868c7c970b0e21a965dc2c536c7141b"
+  inputs-digest = "02921394d2572f8ba2fe33fbbc92e5e5245b187d29d9cf0904fef586b388afc7"
   solver-name = "gps-cdcl"
   solver-version = 1
