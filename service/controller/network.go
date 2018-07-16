@@ -54,7 +54,7 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 		}
 	}
 
-	resourceRouter, err := newResourceRouter(config)
+	resourceSets, err := newResourceSets(config)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -62,12 +62,12 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 	var operatorkitController *controller.Controller
 	{
 		c := controller.Config{
-			CRD:            v1alpha1.NewFlannelConfigCRD(),
-			CRDClient:      config.CRDClient,
-			Informer:       newInformer,
-			Logger:         config.Logger,
-			ResourceRouter: resourceRouter,
-			RESTClient:     config.G8sClient.CoreV1alpha1().RESTClient(),
+			CRD:          v1alpha1.NewFlannelConfigCRD(),
+			CRDClient:    config.CRDClient,
+			Informer:     newInformer,
+			Logger:       config.Logger,
+			ResourceSets: resourceSets,
+			RESTClient:   config.G8sClient.CoreV1alpha1().RESTClient(),
 
 			Name: config.ProjectName,
 		}
@@ -85,7 +85,7 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 	return n, nil
 }
 
-func newResourceRouter(config NetworkConfig) (*controller.ResourceRouter, error) {
+func newResourceSets(config NetworkConfig) ([]*controller.ResourceSet, error) {
 	var err error
 
 	var v2ResourceSet *controller.ResourceSet
@@ -126,22 +126,10 @@ func newResourceRouter(config NetworkConfig) (*controller.ResourceRouter, error)
 		}
 	}
 
-	var resourceRouter *controller.ResourceRouter
-	{
-		c := controller.ResourceRouterConfig{
-			Logger: config.Logger,
-
-			ResourceSets: []*controller.ResourceSet{
-				v2ResourceSet,
-				v3ResourceSet,
-			},
-		}
-
-		resourceRouter, err = controller.NewResourceRouter(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
+	resourceSets := []*controller.ResourceSet{
+		v2ResourceSet,
+		v3ResourceSet,
 	}
 
-	return resourceRouter, nil
+	return resourceSets, nil
 }
