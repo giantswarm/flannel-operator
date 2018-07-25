@@ -49,6 +49,12 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 					Volumes:            volumes,
 				},
 			},
+			UpdateStrategy: v1beta1.DaemonSetUpdateStrategy{
+				Type: v1beta1.RollingUpdateDeploymentStrategyType,
+				UpdateStrategy: v1beta1.RollingUpdateDaemonSet{
+					MaxUnavailable: 1,
+				},
+			},
 		},
 	}
 
