@@ -12,6 +12,11 @@ func VersionBundle() versionbundle.Bundle {
 				Description: "Flannel version updated.",
 				Kind:        "changed",
 			},
+			{
+				Component:   "flannel",
+				Description: "Update strategy changed to RollingUpdate.",
+				Kind:        "changed",
+			},
 		},
 		Components: []versionbundle.Component{
 			{

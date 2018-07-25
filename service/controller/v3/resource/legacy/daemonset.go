@@ -10,11 +10,16 @@ import (
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 )
 
+const (
+	MAX_UNAVAILABLE = 1
+)
+
 func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *v1beta1.DaemonSet {
 	app := networkApp
 
 	containers := newDaemonSetContainers(customObject.Spec, etcdCAFile, etcdCrtFile, etcdKeyFile)
 	volumes := newDaemonSetVolumes(customObject.Spec)
+	maxUnavailable := intstr.FromInt(MAX_UNAVAILABLE)
 
 	daemonSet := &v1beta1.DaemonSet{
 		TypeMeta: apismeta.TypeMeta{
@@ -47,6 +52,12 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 					HostNetwork:        true,
 					Containers:         containers,
 					Volumes:            volumes,
+				},
+			},
+			UpdateStrategy: v1beta1.DaemonSetUpdateStrategy{
+				Type: v1beta1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &v1beta1.RollingUpdateDaemonSet{
+					MaxUnavailable: &maxUnavailable,
 				},
 			},
 		},
