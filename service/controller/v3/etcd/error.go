@@ -5,7 +5,9 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
-var createFailedError = microerror.New("create failed")
+var createFailedError = &microerror.Error{
+	Kind: "createFailedError",
+}
 
 // IsCreateFailed asserts createFailedError.
 func IsCreateFailed(err error) bool {
@@ -20,21 +22,27 @@ func IsEtcdKeyAlreadyExists(err error) bool {
 	return false
 }
 
-var invalidConfigError = microerror.New("invalid config")
+var invalidConfigError = &microerror.Error{
+	Kind: "invalidConfigError",
+}
 
 // IsInvalidConfig asserts invalidConfigError.
 func IsInvalidConfig(err error) bool {
 	return microerror.Cause(err) == invalidConfigError
 }
 
-var multipleValuesError = microerror.New("multiple values")
+var multipleValuesError = &microerror.Error{
+	Kind: "multipleValuesError",
+}
 
 // IsMultipleValuesFound asserts multipleValuesError.
 func IsMultipleValuesFound(err error) bool {
 	return microerror.Cause(err) == multipleValuesError
 }
 
-var notFoundError = microerror.New("not found")
+var notFoundError = &microerror.Error{
+	Kind: "notFoundError",
+}
 
 // IsNotFound asserts notFoundError.
 func IsNotFound(err error) bool {
