@@ -22,9 +22,6 @@ spec:
       - name: etcd-certs
         hostPath:
           path: /etc/kubernetes/ssl/etcd/
-      - name: etcd-certs-legacy
-        hostPath:
-          path: /etc/giantswarm/g8s/ssl/etcd/
       - name: flannel-operator-configmap
         configMap:
           name: flannel-operator-configmap
@@ -39,9 +36,6 @@ spec:
         - name: flannel-operator-configmap
           mountPath: /var/run/flannel-operator/configmap/
         - name: etcd-certs
-          mountPath: /etc/kubernetes/ssl/etcd/
-        # TODO: Remove this when v2 version bundle is removed.
-        - name: etcd-certs-legacy
           mountPath: /etc/kubernetes/ssl/etcd/
         ports:
         - name: http
