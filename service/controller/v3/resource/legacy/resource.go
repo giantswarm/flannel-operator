@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/controller"
@@ -30,7 +30,7 @@ const (
 
 // Config represents the configuration used to create a new config map resource.
 type Config struct {
-	BackOff   backoff.BackOff
+	BackOff   backoff.Interface
 	K8sClient kubernetes.Interface
 	Logger    micrologger.Logger
 
@@ -55,7 +55,7 @@ func DefaultConfig() Config {
 
 // Resource implements the config map resource.
 type Resource struct {
-	backOff   backoff.BackOff
+	backOff   backoff.Interface
 	k8sClient kubernetes.Interface
 	logger    micrologger.Logger
 
@@ -264,7 +264,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 			r.logger.Log("debug", "waiting for the namespace "+name+" to be removed, reason: "+reason.Error(), "cluster", spec.Cluster.ID)
 		}
 
-		err := backoff.RetryNotify(op, NewExponentialBackoff(ShortMaxWait, ShortMaxInterval), notify)
+		err := backoff.RetryNotify(op, backoff.NewExponential(2*time.Minute, 5*time.Second), notify)
 		if err != nil {
 			return microerror.Maskf(err, "failed waiting for the namespace %s to be deleted", name)
 		}
@@ -411,7 +411,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 			r.logger.Log("debug", "waiting for network bridge cleanup to complete, reason: "+reason.Error(), "cluster", spec.Cluster.ID)
 		}
 
-		err := backoff.RetryNotify(op, NewExponentialBackoff(ShortMaxWait, ShortMaxInterval), notify)
+		err := backoff.RetryNotify(op, backoff.NewExponential(2*time.Minute, 5*time.Second), notify)
 		if err != nil {
 			return nil, microerror.Maskf(err, "waiting for pods to finish network bridge cleanup")
 		}
