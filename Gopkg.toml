@@ -22,16 +22,16 @@
 
 
 [[constraint]]
-  name = "github.com/cenkalti/backoff"
-  version = "1.1.0"
-
-[[constraint]]
   name = "github.com/coreos/etcd"
   version = "3.1.10"
 
 [[constraint]]
   branch = "master"
   name = "github.com/giantswarm/apiextensions"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/giantswarm/backoff"
 
 [[constraint]]
   branch = "master"

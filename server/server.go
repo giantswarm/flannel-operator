@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/giantswarm/flannel-operator/server/endpoint"
-	"github.com/giantswarm/flannel-operator/server/middleware"
 	"github.com/giantswarm/flannel-operator/service"
 )
 
@@ -55,24 +54,14 @@ func New(config Config) (*Server, error) {
 
 	var err error
 
-	var middlewareCollection *middleware.Middleware
-	{
-		middlewareConfig := middleware.DefaultConfig()
-		middlewareConfig.Logger = config.Logger
-		middlewareConfig.Service = config.Service
-		middlewareCollection, err = middleware.New(middlewareConfig)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	var endpointCollection *endpoint.Endpoint
 	{
-		endpointConfig := endpoint.DefaultConfig()
-		endpointConfig.Logger = config.Logger
-		endpointConfig.Middleware = middlewareCollection
-		endpointConfig.Service = config.Service
-		endpointCollection, err = endpoint.New(endpointConfig)
+		c := endpoint.Config{
+			Logger:  config.Logger,
+			Service: config.Service,
+		}
+
+		endpointCollection, err = endpoint.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}

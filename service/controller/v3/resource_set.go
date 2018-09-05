@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	"github.com/coreos/etcd/client"
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
@@ -106,17 +106,11 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
-	var legacyResourceBackOff *backoff.ExponentialBackOff
-	{
-		legacyResourceBackOff = backoff.NewExponentialBackOff()
-		legacyResourceBackOff.MaxElapsedTime = 5 * time.Minute
-	}
-
 	var legacyResource controller.Resource
 	{
 		legacyConfig := legacy.DefaultConfig()
 
-		legacyConfig.BackOff = legacyResourceBackOff
+		legacyConfig.BackOff = backoff.NewExponential(5*time.Minute, 1*time.Minute)
 		legacyConfig.K8sClient = config.K8sClient
 		legacyConfig.Logger = config.Logger
 
