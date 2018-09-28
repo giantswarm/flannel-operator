@@ -6,6 +6,7 @@ import (
 
 	"github.com/giantswarm/microerror"
 
+	"github.com/giantswarm/flannel-operator/service/controller/v3/etcd"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 )
 
@@ -18,16 +19,13 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 	var networkConfig NetworkConfig
 	{
 		p := key.EtcdNetworkConfigPath(customObject)
-		exists, err := r.store.Exists(ctx, p)
-		if err != nil {
+		s, err := r.store.Search(ctx, p)
+		if etcd.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
 			return nil, microerror.Mask(err)
-		}
-		if exists {
-			s, err := r.store.Search(ctx, p)
-			if err != nil {
-				return nil, microerror.Mask(err)
-			}
-			err = json.Unmarshal([]byte(s), &networkConfig)
+		} else {
+			err := json.Unmarshal([]byte(s), &networkConfig)
 			if err != nil {
 				return nil, microerror.Mask(err)
 			}
