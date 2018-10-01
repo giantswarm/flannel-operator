@@ -131,10 +131,10 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 
 	var networkConfigResource controller.Resource
 	{
-		c := networkconfigv2.DefaultConfig()
-
-		c.Logger = config.Logger
-		c.Store = storageService
+		c := networkconfigv2.Config{
+			Logger: config.Logger,
+			Store:  storageService,
+		}
 
 		ops, err := networkconfigv2.New(c)
 		if err != nil {

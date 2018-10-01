@@ -51,12 +51,12 @@ func Test_Resource_NetworkConfig_GetDesiredState(t *testing.T) {
 	var err error
 	var newResource *Resource
 	{
-		resourceConfig := DefaultConfig()
+		c := Config{
+			Logger: microloggertest.New(),
+			Store:  etcdfake.New(),
+		}
 
-		resourceConfig.Logger = microloggertest.New()
-		resourceConfig.Store = etcdfake.New()
-
-		newResource, err = New(resourceConfig)
+		newResource, err = New(c)
 		if err != nil {
 			t.Fatalf("expected %#v got %#v", nil, err)
 		}
