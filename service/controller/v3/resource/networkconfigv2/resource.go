@@ -11,7 +11,7 @@ const (
 	// BackendType is the backend type the flannel network is configured with.
 	BackendType = "vxlan"
 	// Name is the identifier of the resource.
-	Name = "networkconfigv2"
+	Name = "networkconfigv3"
 )
 
 // Config represents the configuration used to create a new network config
@@ -19,15 +19,6 @@ const (
 type Config struct {
 	Logger micrologger.Logger
 	Store  etcd.Store
-}
-
-// DefaultConfig provides a default configuration to create a new network config
-// resource by best effort.
-func DefaultConfig() Config {
-	return Config{
-		Logger: nil,
-		Store:  nil,
-	}
 }
 
 // Resource implements the network config resource.
@@ -39,20 +30,18 @@ type Resource struct {
 // New creates a new configured network config resource.
 func New(config Config) (*Resource, error) {
 	if config.Logger == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.Logger must not be empty")
+		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
 	}
 	if config.Store == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.Store must not be empty")
+		return nil, microerror.Maskf(invalidConfigError, "%T.Store must not be empty", config)
 	}
 
-	newResource := &Resource{
-		logger: config.Logger.With(
-			"resource", Name,
-		),
-		store: config.Store,
+	r := &Resource{
+		logger: config.Logger,
+		store:  config.Store,
 	}
 
-	return newResource, nil
+	return r, nil
 }
 
 func (r *Resource) Name() string {
