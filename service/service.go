@@ -127,11 +127,12 @@ func New(config Config) (*Service, error) {
 			K8sClient: k8sClient,
 			Logger:    config.Logger,
 
-			CAFile:       config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile),
-			CrtFile:      config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
-			EtcdEndpoint: config.Viper.GetString(config.Flag.Service.Etcd.Endpoint),
-			KeyFile:      config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
-			ProjectName:  config.Name,
+			CAFile:           config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile),
+			CrtFile:          config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
+			CRDLabelSelector: config.Viper.GetString(config.Flag.Service.CRD.LabelSelector),
+			EtcdEndpoint:     config.Viper.GetString(config.Flag.Service.Etcd.Endpoint),
+			KeyFile:          config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
+			ProjectName:      config.Name,
 		}
 
 		networkController, err = controller.NewNetwork(c)
