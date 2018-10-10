@@ -1,4 +1,4 @@
-clusterRoleBindingName: flanne-operator
+clusterRoleBindingName: flannel-operator
 clusterRoleBindingNamePSP: flannel-operator-psp
 clusterRoleName: flannel-operator
 clusterRoleNamePSP: flannel-operator-psp
