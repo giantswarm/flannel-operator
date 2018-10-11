@@ -3,3 +3,4 @@ clusterRoleBindingNamePSP: flannel-operator-psp
 clusterRoleName: flannel-operator
 clusterRoleNamePSP: flannel-operator-psp
 namespace: giantswarm
+pspName: flannel-operator-psp
