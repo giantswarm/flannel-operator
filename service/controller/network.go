@@ -8,6 +8,7 @@ import (
 	"github.com/giantswarm/operatorkit/client/k8scrdclient"
 	"github.com/giantswarm/operatorkit/controller"
 	"github.com/giantswarm/operatorkit/informer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/service/controller/v2"
@@ -20,11 +21,20 @@ type NetworkConfig struct {
 	G8sClient versioned.Interface
 	Logger    micrologger.Logger
 
-	CAFile       string
-	CrtFile      string
-	EtcdEndpoint string
-	KeyFile      string
-	ProjectName  string
+	CAFile           string
+	CrtFile          string
+	CRDLabelSelector string
+	EtcdEndpoint     string
+	KeyFile          string
+	ProjectName      string
+}
+
+func (c NetworkConfig) newInformerListOptions() metav1.ListOptions {
+	listOptions := metav1.ListOptions{
+		LabelSelector: c.CRDLabelSelector,
+	}
+
+	return listOptions
 }
 
 type Network struct {
@@ -44,6 +54,7 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 			Logger:  config.Logger,
 			Watcher: config.G8sClient.CoreV1alpha1().FlannelConfigs(""),
 
+			ListOptions:  config.newInformerListOptions(),
 			RateWait:     informer.DefaultRateWait,
 			ResyncPeriod: informer.DefaultResyncPeriod,
 		}
