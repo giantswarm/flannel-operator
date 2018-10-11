@@ -20,7 +20,7 @@ import (
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/legacy"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/namespace"
-	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/networkconfigv2"
+	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/networkconfig"
 )
 
 type ResourceSetConfig struct {
@@ -131,12 +131,12 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 
 	var networkConfigResource controller.Resource
 	{
-		c := networkconfigv2.Config{
+		c := networkconfig.Config{
 			Logger: config.Logger,
 			Store:  storageService,
 		}
 
-		ops, err := networkconfigv2.New(c)
+		ops, err := networkconfig.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
