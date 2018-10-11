@@ -1,4 +1,4 @@
-package networkconfigv2
+package networkconfig
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	etcdfake "github.com/giantswarm/flannel-operator/service/controller/v3/etcd/fake"
 )
 
-func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
+func Test_Resource_NetworkConfig_newDeleteChange(t *testing.T) {
 	testCases := []struct {
 		Obj                   interface{}
 		CurrentState          interface{}
@@ -26,31 +26,8 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 			ExpectedNetworkConfig: NetworkConfig{},
 		},
 
-		// Test 1 ensures that the update state matches the desired state in case
-		// the current state is empty.
-		{
-			Obj:          &v1alpha1.FlannelConfig{},
-			CurrentState: NetworkConfig{},
-			DesiredState: NetworkConfig{
-				Network:   "172.26.0.0/16",
-				SubnetLen: 30,
-				Backend: Backend{
-					Type: "vxlan",
-					VNI:  26,
-				},
-			},
-			ExpectedNetworkConfig: NetworkConfig{
-				Network:   "172.26.0.0/16",
-				SubnetLen: 30,
-				Backend: Backend{
-					Type: "vxlan",
-					VNI:  26,
-				},
-			},
-		},
-
-		// Test 2 ensures that the update state is empty in case the current state
-		// is not empty.
+		// Test 1 ensures that the delete state matches the desired state in case
+		// the current state is not empty.
 		{
 			Obj: &v1alpha1.FlannelConfig{},
 			CurrentState: NetworkConfig{
@@ -69,11 +46,18 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 					VNI:  26,
 				},
 			},
-			ExpectedNetworkConfig: NetworkConfig{},
+			ExpectedNetworkConfig: NetworkConfig{
+				Network:   "172.26.0.0/16",
+				SubnetLen: 30,
+				Backend: Backend{
+					Type: "vxlan",
+					VNI:  26,
+				},
+			},
 		},
 
-		// Test 3 ensures that the update state matches the desired state in case
-		// the current state does not match the desired state.
+		// Test 2 is the same as 1 but with different changes between current and
+		// desired state.
 		{
 			Obj: &v1alpha1.FlannelConfig{},
 			CurrentState: NetworkConfig{
@@ -99,13 +83,13 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 			},
 		},
 
-		// Test 3 is the same as 2 but with different changes between current and
+		// Test 3 is the same as 1 but with different changes between current and
 		// desired state.
 		{
 			Obj: &v1alpha1.FlannelConfig{},
 			CurrentState: NetworkConfig{
 				Network:   "foo/16",
-				SubnetLen: 30000000000,
+				SubnetLen: 30000000,
 				Backend: Backend{
 					Type: "vxlan",
 					VNI:  0,
@@ -145,18 +129,18 @@ func Test_Resource_NetworkConfig_newUpdateChange(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		updateState, err := newResource.newUpdateChange(context.TODO(), tc.Obj, tc.CurrentState, tc.DesiredState)
+		deleteState, err := newResource.newDeleteChange(context.TODO(), tc.Obj, tc.CurrentState, tc.DesiredState)
 		if err != nil {
 			t.Fatalf("expected %#v got %#v", nil, err)
 		}
 
-		t.Run("ValidateUpdateState", func(t *testing.T) {
-			networkConfigToUpdate, ok := updateState.(NetworkConfig)
+		t.Run("ValidateDeleteState", func(t *testing.T) {
+			networkConfigToDelete, ok := deleteState.(NetworkConfig)
 			if !ok {
-				t.Fatalf("expected %T got %T", NetworkConfig{}, updateState)
+				t.Fatalf("expected %T got %T", NetworkConfig{}, deleteState)
 			}
-			if !reflect.DeepEqual(networkConfigToUpdate, tc.ExpectedNetworkConfig) {
-				t.Fatalf("expected %#v got %#v", tc.ExpectedNetworkConfig, networkConfigToUpdate)
+			if !reflect.DeepEqual(networkConfigToDelete, tc.ExpectedNetworkConfig) {
+				t.Fatalf("expected %#v got %#v", tc.ExpectedNetworkConfig, networkConfigToDelete)
 			}
 		})
 	}

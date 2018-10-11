@@ -1,4 +1,6 @@
+clusterRoleBindingName: flannel-operator
+clusterRoleBindingNamePSP: flannel-operator-psp
+clusterRoleName: flannel-operator
+clusterRoleNamePSP: flannel-operator-psp
 namespace: giantswarm
-service:
-  crd:
-    labelSelector: ''
+pspName: flannel-operator-psp

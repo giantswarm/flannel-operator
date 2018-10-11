@@ -18,7 +18,6 @@ import (
 
 	"github.com/giantswarm/flannel-operator/flag"
 	"github.com/giantswarm/flannel-operator/service/controller"
-	"github.com/giantswarm/flannel-operator/service/healthz"
 )
 
 // Config represents the configuration used to create a new service.
@@ -53,7 +52,6 @@ func DefaultConfig() Config {
 }
 
 type Service struct {
-	Healthz *healthz.Service
 	Version *version.Service
 
 	bootOnce          sync.Once
@@ -141,44 +139,30 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
-	var healthzService *healthz.Service
-	{
-		healthzConfig := healthz.DefaultConfig()
-
-		healthzConfig.K8sClient = k8sClient
-		healthzConfig.Logger = config.Logger
-
-		healthzService, err = healthz.New(healthzConfig)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	var versionService *version.Service
 	{
-		versionConfig := version.DefaultConfig()
+		c := version.Config{
+			Description:    config.Description,
+			GitCommit:      config.GitCommit,
+			Name:           config.Name,
+			Source:         config.Source,
+			VersionBundles: NewVersionBundles(),
+		}
 
-		versionConfig.Description = config.Description
-		versionConfig.GitCommit = config.GitCommit
-		versionConfig.Name = config.Name
-		versionConfig.Source = config.Source
-		versionConfig.VersionBundles = NewVersionBundles()
-
-		versionService, err = version.New(versionConfig)
+		versionService, err = version.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 	}
 
-	newService := &Service{
-		Healthz: healthzService,
+	s := &Service{
 		Version: versionService,
 
 		bootOnce:          sync.Once{},
 		networkController: networkController,
 	}
 
-	return newService, nil
+	return s, nil
 }
 
 func (s *Service) Boot() {

@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: flannel-operator-psp
+  name: {{ .Values.pspName }}
 spec:
   privileged: true
   fsGroup:
