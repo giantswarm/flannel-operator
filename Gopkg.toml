@@ -35,6 +35,10 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/giantswarm/exporterkit"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/giantswarm/microendpoint"
 
 [[constraint]]
@@ -56,10 +60,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/giantswarm/versionbundle"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/juju/errgo"
 
 [[constraint]]
   branch = "master"
