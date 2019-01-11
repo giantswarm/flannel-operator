@@ -65,7 +65,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f0b12eefa205b50a05ec3e56fc6961a9badf6be9c93038db368f2e9d43c45697"
+  digest = "1:f273a74d6899392dcce4e85af9ba92c2c55d809bd07f4795da6ad9ce70faf250"
   name = "github.com/giantswarm/apiextensions"
   packages = [
     "pkg/apis/application/v1alpha1",
@@ -80,7 +80,7 @@
     "pkg/clientset/versioned/typed/provider/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "e6019b36b55cc6d700b86bc2e68b3f561d8eab82"
+  revision = "f6f902443c1891eba281cbea6e137cfbe2c2f9ac"
 
 [[projects]]
   branch = "master"
@@ -156,7 +156,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bef1716f3c2301de12e2cd5419589fde8c8c130ab1dfa6844aeceff3e765a34f"
+  digest = "1:76c120ff1c5bd9e606217cfba62f755f34619ad228b69541849a29a97fa97315"
   name = "github.com/giantswarm/operatorkit"
   packages = [
     "client/k8scrdclient",
@@ -173,7 +173,7 @@
     "informer/collector",
   ]
   pruneopts = "UT"
-  revision = "93da7f80196f4e174d44ff920503b1d1e8366aa2"
+  revision = "585a9b06d129239a26bc87bdf483f3abad18e8a6"
 
 [[projects]]
   branch = "master"
@@ -531,7 +531,7 @@
     "publicsuffix",
   ]
   pruneopts = "UT"
-  revision = "be1c187aa6c66b9daa1d9461c228d17e9dd2cab7"
+  revision = "915654e7eabcea33ae277abbecf52f0d8b7a9fdc"
 
 [[projects]]
   branch = "master"
