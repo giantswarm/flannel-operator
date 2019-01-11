@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/giantswarm/flannel-operator/flag"
+	"github.com/giantswarm/flannel-operator/service/collector"
 	"github.com/giantswarm/flannel-operator/service/controller"
 )
 
@@ -56,6 +57,7 @@ type Service struct {
 
 	bootOnce          sync.Once
 	networkController *controller.Network
+	operatorCollector *collector.Set
 }
 
 func New(config Config) (*Service, error) {
@@ -139,6 +141,20 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
+	var operatorCollector *collector.Set
+	{
+		c := collector.SetConfig{
+			K8sClient: k8sClient,
+			Logger:    config.Logger,
+			Watcher:   g8sClient.CoreV1alpha1().FlannelConfigs("").Watch,
+		}
+
+		operatorCollector, err = collector.NewSet(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var versionService *version.Service
 	{
 		c := version.Config{
@@ -160,6 +176,7 @@ func New(config Config) (*Service, error) {
 
 		bootOnce:          sync.Once{},
 		networkController: networkController,
+		operatorCollector: operatorCollector,
 	}
 
 	return s, nil
@@ -168,5 +185,6 @@ func New(config Config) (*Service, error) {
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
 		go s.networkController.Boot()
+		go s.operatorCollector.Boot(ctx)
 	})
 }
