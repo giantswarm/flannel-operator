@@ -3,6 +3,7 @@
 package service
 
 import (
+	"context"
 	"sync"
 
 	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
@@ -167,6 +168,6 @@ func New(config Config) (*Service, error) {
 
 func (s *Service) Boot() {
 	s.bootOnce.Do(func() {
-		go s.networkController.Boot()
+		go s.networkController.Boot(context.Background())
 	})
 }
