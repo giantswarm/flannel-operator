@@ -12,7 +12,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/controller"
-	"github.com/giantswarm/operatorkit/controller/context/finalizerskeptcontext"
 	"github.com/giantswarm/operatorkit/controller/context/resourcecanceledcontext"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/api/extensions/v1beta1"
@@ -227,13 +226,13 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
-	if len(list.Items) != 0 {
-		r.logger.LogCtx(ctx, "level", "debug", "message", "cannot finish deletion of network due to existing pods")
-		finalizerskeptcontext.SetKept(ctx)
-		resourcecanceledcontext.SetCanceled(ctx)
-		r.logger.LogCtx(ctx, "level", "debug", "message", "canceling resource")
-
-		return nil, nil
+	for _, pod := range list.Items {
+		err := r.k8sClient.CoreV1().Pods(pod.GetNamespace()).Delete(pod.GetName(), &metav1.DeleteOptions{})
+		if apierrors.IsNotFound(err) {
+			continue
+		} else if err != nil {
+			return nil, microerror.Mask(err)
+		}
 	}
 
 	// Delete the service account for the daemonset
