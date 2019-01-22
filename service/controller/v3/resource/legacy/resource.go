@@ -101,7 +101,7 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 
 	var currentDaemonSet *v1beta1.DaemonSet
 	{
-		manifest, err := r.k8sClient.Extensions().DaemonSets(networkNamespace(customObject.Spec)).Get(networkApp, metav1.GetOptions{})
+		manifest, err := r.k8sClient.Extensions().DaemonSets(key.NetworkNamespace(customObject)).Get(networkApp, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			r.logger.LogCtx(ctx, "level", "debug", "message", "did not find the daemon set in the Kubernetes API")
 			// fall through
@@ -150,7 +150,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 	// Create a service account for the daemonset
 	{
 		serviceAccount := newServiceAccount(customObject, serviceAccountName(customObject.Spec))
-		_, err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Create(serviceAccount)
+		_, err := r.k8sClient.CoreV1().ServiceAccounts(key.NetworkNamespace(customObject)).Create(serviceAccount)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
 		} else if err != nil {
@@ -183,7 +183,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 	// Create a dameonset running flanneld and creating network bridge.
 	{
 		daemonSet := newDaemonSet(customObject, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
-		_, err := r.k8sClient.ExtensionsV1beta1().DaemonSets(networkNamespace(customObject.Spec)).Create(daemonSet)
+		_, err := r.k8sClient.ExtensionsV1beta1().DaemonSets(key.NetworkNamespace(customObject)).Create(daemonSet)
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "daemonSet "+daemonSet.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
 		} else if err != nil {
@@ -239,7 +239,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	// Delete the service account for the daemonset
 	{
 		serviceAccountName := serviceAccountName(customObject.Spec)
-		err := r.k8sClient.CoreV1().ServiceAccounts(networkNamespace(customObject.Spec)).Delete(serviceAccountName, &metav1.DeleteOptions{})
+		err := r.k8sClient.CoreV1().ServiceAccounts(key.NetworkNamespace(customObject)).Delete(serviceAccountName, &metav1.DeleteOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -284,7 +284,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	{
 		r.logger.Log("debug", "waiting for the flannel namespace to be deleted", "cluster", spec.Cluster.ID)
 
-		err := waitForNamespaceDeleted(networkNamespace(spec))
+		err := waitForNamespaceDeleted(key.NetworkNamespace(customObject))
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -292,7 +292,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 	// Create namespace for the cleanup job.
 	{
-		ns := newNamespace(spec, destroyerNamespace(spec))
+		ns := newNamespace(customObject, destroyerNamespace(spec))
 		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
 		if apierrors.IsAlreadyExists(err) {
 			namespace, err := r.k8sClient.CoreV1().Namespaces().Get(ns.GetName(), metav1.GetOptions{})
@@ -376,7 +376,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	{
 		r.logger.Log("debug", "creating network bridge cleanup job", "cluster", spec.Cluster.ID)
 
-		job := newJob(spec, replicas)
+		job := newJob(customObject, replicas)
 		job.Spec.Template.Spec.Affinity = podAffinity
 
 		_, err := r.k8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Create(job)
