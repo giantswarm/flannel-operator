@@ -6,6 +6,7 @@ import (
 
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -55,6 +56,13 @@ func HostPrivateNetwork(customObject v1alpha1.FlannelConfig) string {
 
 func IsDeleted(customObject v1alpha1.FlannelConfig) bool {
 	return customObject.GetDeletionTimestamp() != nil
+}
+
+// MaxUnavailable is used for the Kubernetes update strategy. We want only one
+// pod at a time to be unavailable during updates.
+func MaxUnavailable() *intstr.IntOrString {
+	v := intstr.FromInt(1)
+	return &v
 }
 
 func NetworkBridgeDockerImage(customObject v1alpha1.FlannelConfig) string {
@@ -107,6 +115,10 @@ func NetworkNTPBlock(customObject v1alpha1.FlannelConfig) string {
 
 func NetworkTapName(customObject v1alpha1.FlannelConfig) string {
 	return "tap-" + ClusterID(customObject)
+}
+
+func ServiceAccountName(customResource v1alpha1.FlannelConfig) string {
+	return ClusterID(customResource)
 }
 
 func ToCustomObject(v interface{}) (v1alpha1.FlannelConfig, error) {

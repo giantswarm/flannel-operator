@@ -81,7 +81,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 					Containers: []corev1.Container{
 						{
 							Name:            "flanneld",
-							Image:           "quay.io/giantswarm/flannel:v0.9.0-amd64",
+							Image:           key.FlannelDockerImage,
 							ImagePullPolicy: corev1.PullAlways,
 							Command: []string{
 								"/bin/sh",
@@ -348,6 +348,13 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							},
 						},
 					},
+					ServiceAccountName: key.ServiceAccountName(customObject),
+				},
+			},
+			UpdateStrategy: v1beta1.DaemonSetUpdateStrategy{
+				Type: v1beta1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &v1beta1.RollingUpdateDaemonSet{
+					MaxUnavailable: key.MaxUnavailable(),
 				},
 			},
 		},
