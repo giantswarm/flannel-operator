@@ -112,6 +112,10 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		c := flanneld.Config{
 			K8sClient: config.K8sClient,
 			Logger:    config.Logger,
+
+			EtcdCAFile:  config.CAFile,
+			EtcdCrtFile: config.CrtFile,
+			EtcdKeyFile: config.KeyFile,
 		}
 
 		ops, err := flanneld.New(c)

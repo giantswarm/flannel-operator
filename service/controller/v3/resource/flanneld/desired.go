@@ -56,7 +56,8 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 			APIVersion: "extensions/v1beta",
 		},
 		ObjectMeta: apismeta.ObjectMeta{
-			Name: key.NetworkID,
+			Name:      key.NetworkID,
+			Namespace: key.NetworkNamespace(customObject),
 			Annotations: map[string]string{
 				VersionBundleVersionAnnotation: key.VersionBundleVersion(customObject),
 			},
