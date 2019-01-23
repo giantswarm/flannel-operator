@@ -4,18 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
-	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/controller"
 	"github.com/giantswarm/operatorkit/controller/context/finalizerskeptcontext"
 	"github.com/giantswarm/operatorkit/controller/context/resourcecanceledcontext"
-	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/api/extensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -92,49 +88,7 @@ func New(config Config) (*Resource, error) {
 }
 
 func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interface{}, error) {
-	customObject, err := key.ToCustomObject(obj)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	r.logger.LogCtx(ctx, "level", "debug", "message", "looking for the daemon set in the Kubernetes API")
-
-	var currentDaemonSet *v1beta1.DaemonSet
-	{
-		manifest, err := r.k8sClient.Extensions().DaemonSets(key.NetworkNamespace(customObject)).Get(networkApp, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			r.logger.LogCtx(ctx, "level", "debug", "message", "did not find the daemon set in the Kubernetes API")
-			// fall through
-		} else if err != nil {
-			return nil, microerror.Mask(err)
-		} else {
-			r.logger.LogCtx(ctx, "level", "debug", "message", "found the daemon set in the Kubernetes API")
-			currentDaemonSet = manifest
-			r.updateVersionBundleVersionGauge(ctx, customObject, versionBundleVersionGauge, currentDaemonSet)
-		}
-	}
-
-	return currentDaemonSet, nil
-}
-
-func (r *Resource) updateVersionBundleVersionGauge(ctx context.Context, customObject v1alpha1.FlannelConfig, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
-	version, ok := daemonSet.Annotations[VersionBundleVersionAnnotation]
-	if !ok {
-		r.logger.LogCtx(ctx, "level", "warning", "message", fmt.Sprintf("cannot update current version bundle version metric: annotation %#q must not be empty", VersionBundleVersionAnnotation))
-		return
-	}
-
-	split := strings.Split(version, ".")
-	if len(split) != 3 {
-		r.logger.LogCtx(ctx, "level", "warning", "message", fmt.Sprintf("cannot update current version bundle version metric: invalid version format, expected '<major>.<minor>.<patch>', got %#q", version))
-		return
-	}
-
-	major := split[0]
-	minor := split[1]
-	patch := split[2]
-
-	gauge.WithLabelValues(major, minor, patch).Set(1)
+	return nil, nil
 }
 
 func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interface{}, error) {
@@ -177,17 +131,6 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 			r.logger.Log("debug", "clusterRoleBindingPodSecurityPolicy "+clusterRoleBindingPodSecurityPolicy.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
 		} else if err != nil {
 			return nil, microerror.Maskf(err, "creating clusterRoleBindingPodSecurityPolicy %s", clusterRoleBindingPodSecurityPolicy.Name)
-		}
-	}
-
-	// Create a dameonset running flanneld and creating network bridge.
-	{
-		daemonSet := newDaemonSet(customObject, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
-		_, err := r.k8sClient.ExtensionsV1beta1().DaemonSets(key.NetworkNamespace(customObject)).Create(daemonSet)
-		if apierrors.IsAlreadyExists(err) {
-			r.logger.Log("debug", "daemonSet "+daemonSet.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
-		} else if err != nil {
-			return nil, microerror.Maskf(err, "creating daemonSet %s", daemonSet.Name)
 		}
 	}
 
