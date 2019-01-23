@@ -8,7 +8,7 @@ import (
 	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
-	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
@@ -51,11 +51,11 @@ func livenessProbePort(customObject v1alpha1.FlannelConfig) int32 {
 
 func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *v1beta1.DaemonSet {
 	return &v1beta1.DaemonSet{
-		TypeMeta: apismeta.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "daemonset",
 			APIVersion: "extensions/v1beta",
 		},
-		ObjectMeta: apismeta.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.NetworkID,
 			Namespace: key.NetworkNamespace(customObject),
 			Annotations: map[string]string{
@@ -68,8 +68,14 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 			},
 		},
 		Spec: v1beta1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app":     key.NetworkID,
+					"cluster": key.ClusterID(customObject),
+				},
+			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: apismeta.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: key.NetworkID,
 					Labels: map[string]string{
 						"app":      key.NetworkID,
