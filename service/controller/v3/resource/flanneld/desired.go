@@ -53,7 +53,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 	return &v1beta1.DaemonSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "daemonset",
-			APIVersion: "extensions/v1beta",
+			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.NetworkID,
