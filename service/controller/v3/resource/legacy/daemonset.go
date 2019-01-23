@@ -33,8 +33,8 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 			},
 			Labels: map[string]string{
 				"app":      app,
-				"cluster":  clusterName(customObject.Spec),
-				"customer": clusterCustomer(customObject.Spec),
+				"cluster":  key.ClusterID(customObject),
+				"customer": key.ClusterCustomer(customObject),
 			},
 		},
 		Spec: v1beta1.DaemonSetSpec{
@@ -43,8 +43,8 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 					GenerateName: app,
 					Labels: map[string]string{
 						"app":      app,
-						"cluster":  clusterName(customObject.Spec),
-						"customer": clusterCustomer(customObject.Spec),
+						"cluster":  key.ClusterID(customObject),
+						"customer": key.ClusterCustomer(customObject),
 					},
 				},
 				Spec: api.PodSpec{
