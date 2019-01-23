@@ -9,7 +9,7 @@ import (
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 	"github.com/giantswarm/microerror"
 	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/api/extensions/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -22,10 +22,10 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 
 	r.logger.LogCtx(ctx, "level", "debug", "message", "looking for the daemon set in the Kubernetes API")
 
-	var currentDaemonSet *v1beta1.DaemonSet
+	var currentDaemonSet *appsv1.DaemonSet
 	{
 		namespace := key.NetworkNamespace(customObject)
-		manifest, err := r.k8sClient.Extensions().DaemonSets(namespace).Get(key.NetworkID, apismetav1.GetOptions{})
+		manifest, err := r.k8sClient.AppsV1().DaemonSets(namespace).Get(key.NetworkID, apismetav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			// fall through
 			r.logger.LogCtx(ctx, "level", "debug", "message", "did not find the daemon set in the Kubernetes API")
@@ -43,7 +43,7 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 	return currentDaemonSet, nil
 }
 
-func (r *Resource) updateVersionBundleVersionGauge(ctx context.Context, customObject v1alpha1.FlannelConfig, gauge *prometheus.GaugeVec, daemonSet *v1beta1.DaemonSet) {
+func (r *Resource) updateVersionBundleVersionGauge(ctx context.Context, customObject v1alpha1.FlannelConfig, gauge *prometheus.GaugeVec, daemonSet *appsv1.DaemonSet) {
 	version, ok := daemonSet.Annotations[VersionBundleVersionAnnotation]
 	if !ok {
 		r.logger.LogCtx(ctx, "level", "warning", "message", fmt.Sprintf("cannot update current version bundle version metric: annotation %#q must not be empty", VersionBundleVersionAnnotation))

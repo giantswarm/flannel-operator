@@ -20,7 +20,7 @@ func (r *Resource) ApplyDeleteChange(ctx context.Context, obj, deleteChange inte
 
 		name := daemonSetToDelete.GetName()
 		namespace := daemonSetToDelete.GetNamespace()
-		err := r.k8sClient.Extensions().DaemonSets(namespace).Delete(name, &metav1.DeleteOptions{})
+		err := r.k8sClient.AppsV1().DaemonSets(namespace).Delete(name, &metav1.DeleteOptions{})
 		if errors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {

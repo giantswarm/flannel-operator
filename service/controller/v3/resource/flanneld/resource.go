@@ -3,7 +3,7 @@ package flanneld
 import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"k8s.io/api/extensions/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -68,14 +68,14 @@ func (r *Resource) Name() string {
 	return Name
 }
 
-func toDaemonSet(v interface{}) (*v1beta1.DaemonSet, error) {
+func toDaemonSet(v interface{}) (*appsv1.DaemonSet, error) {
 	if v == nil {
 		return nil, nil
 	}
 
-	daemonSet, ok := v.(*v1beta1.DaemonSet)
+	daemonSet, ok := v.(*appsv1.DaemonSet)
 	if !ok {
-		return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &v1beta1.DaemonSet{}, v)
+		return nil, microerror.Maskf(wrongTypeError, "expected '%T', got '%T'", &appsv1.DaemonSet{}, v)
 	}
 
 	return daemonSet, nil

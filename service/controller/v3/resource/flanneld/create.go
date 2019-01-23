@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/giantswarm/microerror"
-	"k8s.io/api/extensions/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -17,7 +17,7 @@ func (r *Resource) ApplyCreateChange(ctx context.Context, obj, createChange inte
 	if daemonSetToCreate != nil {
 		r.logger.LogCtx(ctx, "level", "debug", "message", "creating the daemon set in the Kubernetes API")
 
-		_, err = r.k8sClient.Extensions().DaemonSets(daemonSetToCreate.GetNamespace()).Create(daemonSetToCreate)
+		_, err = r.k8sClient.AppsV1().DaemonSets(daemonSetToCreate.GetNamespace()).Create(daemonSetToCreate)
 		if apierrors.IsAlreadyExists(err) {
 			// fall through
 		} else if err != nil {
@@ -44,7 +44,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 
 	r.logger.LogCtx(ctx, "level", "debug", "message", "finding out if the daemon set has to be created")
 
-	var daemonSetToCreate *v1beta1.DaemonSet
+	var daemonSetToCreate *appsv1.DaemonSet
 	if currentDaemonSet == nil {
 		daemonSetToCreate = desiredDaemonSet
 	}

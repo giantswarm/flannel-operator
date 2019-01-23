@@ -6,8 +6,8 @@ import (
 
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -49,8 +49,8 @@ func livenessProbePort(customObject v1alpha1.FlannelConfig) int32 {
 	return int32(portBase + key.FlannelVNI(customObject))
 }
 
-func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *v1beta1.DaemonSet {
-	return &v1beta1.DaemonSet{
+func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "daemonset",
 			APIVersion: "apps/v1",
@@ -67,7 +67,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 				"customer": key.ClusterCustomer(customObject),
 			},
 		},
-		Spec: v1beta1.DaemonSetSpec{
+		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app":     key.NetworkID,
@@ -358,9 +358,9 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 					ServiceAccountName: key.ServiceAccountName(customObject),
 				},
 			},
-			UpdateStrategy: v1beta1.DaemonSetUpdateStrategy{
-				Type: v1beta1.RollingUpdateDaemonSetStrategyType,
-				RollingUpdate: &v1beta1.RollingUpdateDaemonSet{
+			UpdateStrategy: appsv1.DaemonSetUpdateStrategy{
+				Type: appsv1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDaemonSet{
 					MaxUnavailable: key.MaxUnavailable(),
 				},
 			},
