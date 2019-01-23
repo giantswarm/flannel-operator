@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/controller/v2"
 	"github.com/giantswarm/flannel-operator/service/controller/v3"
 )
 
@@ -99,25 +98,6 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 func newResourceSets(config NetworkConfig) ([]*controller.ResourceSet, error) {
 	var err error
 
-	var v2ResourceSet *controller.ResourceSet
-	{
-		c := v2.ResourceSetConfig{
-			K8sClient: config.K8sClient,
-			Logger:    config.Logger,
-
-			CAFile:       config.CAFile,
-			CrtFile:      config.CrtFile,
-			EtcdEndpoint: config.EtcdEndpoint,
-			KeyFile:      config.KeyFile,
-			ProjectName:  config.ProjectName,
-		}
-
-		v2ResourceSet, err = v2.NewResourceSet(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	var v3ResourceSet *controller.ResourceSet
 	{
 		c := v3.ResourceSetConfig{
@@ -138,7 +118,6 @@ func newResourceSets(config NetworkConfig) ([]*controller.ResourceSet, error) {
 	}
 
 	resourceSets := []*controller.ResourceSet{
-		v2ResourceSet,
 		v3ResourceSet,
 	}
 
