@@ -4,6 +4,8 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"k8s.io/api/rbac/v1beta1"
 	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 )
 
 // Config represents the configuration used to create a new cluster role binding resource.
@@ -29,7 +31,7 @@ func newClusterRoleBinding(customObject v1alpha1.FlannelConfig) *v1beta1.Cluster
 	config := ClusterRoleBindingConfigDefaultConfig()
 	config.name = clusterRoleBinding(customObject.Spec)
 	config.subjectName = serviceAccountName(customObject.Spec)
-	config.subjectNamespace = networkNamespace(customObject.Spec)
+	config.subjectNamespace = key.NetworkNamespace(customObject)
 	config.roleName = "flannel-operator"
 	clusterRoleBinding := createClusterRoleBinding(customObject, config)
 
@@ -51,7 +53,7 @@ func newClusterRoleBindingPodSecurityPolicy(customObject v1alpha1.FlannelConfig)
 	config := ClusterRoleBindingConfigDefaultConfig()
 	config.name = clusterRoleBindingForPodSecurityPolicy(customObject.Spec)
 	config.subjectName = serviceAccountName(customObject.Spec)
-	config.subjectNamespace = networkNamespace(customObject.Spec)
+	config.subjectNamespace = key.NetworkNamespace(customObject)
 	config.roleName = "flannel-operator-psp"
 	clusterRoleBinding := createClusterRoleBinding(customObject, config)
 
@@ -79,8 +81,8 @@ func createClusterRoleBinding(customObject v1alpha1.FlannelConfig, config Cluste
 			Name: config.name,
 			Labels: map[string]string{
 				"app":         networkApp,
-				"cluster-id":  clusterName(customObject.Spec),
-				"customer-id": clusterCustomer(customObject.Spec),
+				"cluster-id":  key.ClusterID(customObject),
+				"customer-id": key.ClusterCustomer(customObject),
 			},
 		},
 		Subjects: []v1beta1.Subject{

@@ -5,16 +5,18 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	apiv1 "k8s.io/api/core/v1"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 )
 
-func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
+func newJob(customObject v1alpha1.FlannelConfig, replicas int32) *batchv1.Job {
 	privileged := true
 
 	app := destroyerApp
 
 	labels := map[string]string{
-		"cluster":  clusterName(spec),
-		"customer": clusterCustomer(spec),
+		"cluster":  key.ClusterID(customObject),
+		"customer": key.ClusterCustomer(customObject),
 		"app":      app,
 	}
 
@@ -36,7 +38,7 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 					Labels:       labels,
 				},
 				Spec: apiv1.PodSpec{
-					ServiceAccountName: serviceAccountName(spec),
+					ServiceAccountName: serviceAccountName(customObject.Spec),
 					RestartPolicy:      apiv1.RestartPolicyOnFailure,
 					HostNetwork:        true,
 					Volumes: []apiv1.Volume{
@@ -84,7 +86,7 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 							Name: "flannel",
 							VolumeSource: apiv1.VolumeSource{
 								HostPath: &apiv1.HostPathVolumeSource{
-									Path: flannelRunDir(spec),
+									Path: flannelRunDir(customObject.Spec),
 								},
 							},
 						},
@@ -116,7 +118,7 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 					Containers: []apiv1.Container{
 						{
 							Name:            "k8s-network-bridge",
-							Image:           networkBridgeDockerImage(spec),
+							Image:           networkBridgeDockerImage(customObject.Spec),
 							ImagePullPolicy: apiv1.PullAlways,
 							Command: []string{
 								"/bin/sh",
@@ -126,31 +128,31 @@ func newJob(spec v1alpha1.FlannelConfigSpec, replicas int32) *batchv1.Job {
 							Env: []apiv1.EnvVar{
 								{
 									Name:  "HOST_PRIVATE_NETWORK",
-									Value: hostPrivateNetwork(spec),
+									Value: hostPrivateNetwork(customObject.Spec),
 								},
 								{
 									Name:  "NETWORK_BRIDGE_NAME",
-									Value: networkBridgeName(spec),
+									Value: networkBridgeName(customObject.Spec),
 								},
 								{
 									Name:  "NETWORK_DNS_BLOCK",
-									Value: networkDNSBlock(spec),
+									Value: networkDNSBlock(customObject.Spec),
 								},
 								{
 									Name:  "NETWORK_ENV_FILE_PATH",
-									Value: networkEnvFilePath(spec),
+									Value: networkEnvFilePath(customObject.Spec),
 								},
 								{
 									Name:  "NETWORK_FLANNEL_DEVICE",
-									Value: networkFlannelDevice(spec),
+									Value: networkFlannelDevice(customObject.Spec),
 								},
 								{
 									Name:  "NETWORK_INTERFACE_NAME",
-									Value: networkInterfaceName(spec),
+									Value: networkInterfaceName(customObject.Spec),
 								},
 								{
 									Name:  "NETWORK_NTP_BLOCK",
-									Value: networkNTPBlock(spec),
+									Value: networkNTPBlock(customObject.Spec),
 								},
 							},
 							SecurityContext: &apiv1.SecurityContext{

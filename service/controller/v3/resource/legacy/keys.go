@@ -29,32 +29,14 @@ const (
 	successThreshold    = 1
 )
 
-// networkNamespace returns the namespace in which the operator's resources run
-// in.
-func networkNamespace(spec v1alpha1.FlannelConfigSpec) string {
-	return networkApp + "-" + clusterID(spec)
-}
-
 // destroyerNamespace returns the namespace in which resources performing
 // cleanup run in.
 func destroyerNamespace(spec v1alpha1.FlannelConfigSpec) string {
 	return destroyerApp + "-" + clusterID(spec)
 }
 
-func clusterCustomer(spec v1alpha1.FlannelConfigSpec) string {
-	return spec.Cluster.Customer
-}
-
 func clusterID(spec v1alpha1.FlannelConfigSpec) string {
 	return spec.Cluster.ID
-}
-
-func clusterName(spec v1alpha1.FlannelConfigSpec) string {
-	return clusterID(spec)
-}
-
-func clusterNamespace(spec v1alpha1.FlannelConfigSpec) string {
-	return spec.Cluster.Namespace
 }
 
 func clusterRoleBindingForDeletion(spec v1alpha1.FlannelConfigSpec) string {
