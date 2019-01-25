@@ -8,6 +8,7 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/operatorkit/controller/context/finalizerskeptcontext"
 	"github.com/giantswarm/operatorkit/controller/context/resourcecanceledcontext"
 	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -40,6 +41,32 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 
 			r.logger.LogCtx(ctx, "level", "debug", "message", "canceling resource")
 			resourcecanceledcontext.SetCanceled(ctx)
+
+			return nil, nil
+		}
+	}
+
+	// In case a tenant cluster deletion happens, we want to delete the tenant
+	// cluster network. We still need to use the network for resource creation in
+	// order to drain nodes on KVM though. So as long as pods are there we delay
+	// the deletion of the network here in order to still be able to create
+	// resources. As soon as the draining was done and the pods got removed, we
+	// get an empty list after the delete event got replayed. Then we delete the
+	// daemon set as usual.
+	if key.IsDeleted(customObject) {
+		list, err := r.k8sClient.CoreV1().Pods(key.ClusterNamespace(customObject)).List(metav1.ListOptions{})
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		if len(list.Items) != 0 {
+			r.logger.LogCtx(ctx, "level", "debug", "message", "cannot finish deletion due to existing pods")
+
+			finalizerskeptcontext.SetKept(ctx)
+			r.logger.LogCtx(ctx, "level", "debug", "message", "keeping finalizers")
+
+			resourcecanceledcontext.SetCanceled(ctx)
+			r.logger.LogCtx(ctx, "level", "debug", "message", "canceling resource")
 
 			return nil, nil
 		}
