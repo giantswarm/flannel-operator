@@ -179,6 +179,25 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		return nil, nil
 	}
 
+	// We delete extensions/v1beta1 daemon sets we find. They were once managed
+	// with the legacy resource implementation. The new approach is apps/v1 daemon
+	// sets managed by the flanneld resource implementation. When there is no
+	// daemon set to delete here, the other resource implementation will take
+	// over.
+	{
+		b := metav1.DeletePropagationBackground
+		o := &metav1.DeleteOptions{
+			PropagationPolicy: &b,
+		}
+
+		err := r.k8sClient.ExtensionsV1beta1().DaemonSets(key.NetworkNamespace(customObject)).Delete(key.NetworkID, o)
+		if apierrors.IsNotFound(err) {
+			// fall through
+		} else if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	// Delete the service account for the daemonset
 	{
 		serviceAccountName := serviceAccountName(customObject.Spec)
