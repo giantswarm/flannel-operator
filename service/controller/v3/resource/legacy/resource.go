@@ -172,7 +172,10 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	}
 	if len(list.Items) != 0 {
 		r.logger.LogCtx(ctx, "level", "debug", "message", "cannot finish deletion of network due to existing pods")
+
 		finalizerskeptcontext.SetKept(ctx)
+		r.logger.LogCtx(ctx, "level", "debug", "message", "keeping finalizers")
+
 		resourcecanceledcontext.SetCanceled(ctx)
 		r.logger.LogCtx(ctx, "level", "debug", "message", "canceling resource")
 
@@ -185,6 +188,8 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 	// daemon set to delete here, the other resource implementation will take
 	// over.
 	{
+		r.logger.LogCtx(ctx, "level", "debug", "message", "deleting the legacy daemon set in the Kubernetes API")
+
 		b := metav1.DeletePropagationBackground
 		o := &metav1.DeleteOptions{
 			PropagationPolicy: &b,
@@ -196,6 +201,8 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		}
+
+		r.logger.LogCtx(ctx, "level", "debug", "message", "deleted the legacy daemon set in the Kubernetes API")
 	}
 
 	// Delete the service account for the daemonset
