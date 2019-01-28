@@ -6,9 +6,9 @@ import (
 
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
-	apismeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
@@ -49,14 +49,15 @@ func livenessProbePort(customObject v1alpha1.FlannelConfig) int32 {
 	return int32(portBase + key.FlannelVNI(customObject))
 }
 
-func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *v1beta1.DaemonSet {
-	return &v1beta1.DaemonSet{
-		TypeMeta: apismeta.TypeMeta{
+func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "daemonset",
-			APIVersion: "extensions/v1beta",
+			APIVersion: "apps/v1",
 		},
-		ObjectMeta: apismeta.ObjectMeta{
-			Name: key.NetworkID,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.NetworkID,
+			Namespace: key.NetworkNamespace(customObject),
 			Annotations: map[string]string{
 				VersionBundleVersionAnnotation: key.VersionBundleVersion(customObject),
 			},
@@ -66,9 +67,15 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 				"customer": key.ClusterCustomer(customObject),
 			},
 		},
-		Spec: v1beta1.DaemonSetSpec{
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app":     key.NetworkID,
+					"cluster": key.ClusterID(customObject),
+				},
+			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: apismeta.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: key.NetworkID,
 					Labels: map[string]string{
 						"app":      key.NetworkID,
@@ -81,7 +88,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 					Containers: []corev1.Container{
 						{
 							Name:            "flanneld",
-							Image:           "quay.io/giantswarm/flannel:v0.9.0-amd64",
+							Image:           key.FlannelDockerImage,
 							ImagePullPolicy: corev1.PullAlways,
 							Command: []string{
 								"/bin/sh",
@@ -348,6 +355,13 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							},
 						},
 					},
+					ServiceAccountName: key.ServiceAccountName(customObject),
+				},
+			},
+			UpdateStrategy: appsv1.DaemonSetUpdateStrategy{
+				Type: appsv1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDaemonSet{
+					MaxUnavailable: key.MaxUnavailable(),
 				},
 			},
 		},

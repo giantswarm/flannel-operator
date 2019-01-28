@@ -18,6 +18,7 @@ import (
 
 	"github.com/giantswarm/flannel-operator/service/controller/v3/etcd"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
+	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/flanneld"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/legacy"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/namespace"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/networkconfig"
@@ -106,6 +107,28 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
+	var flanneldResource controller.Resource
+	{
+		c := flanneld.Config{
+			K8sClient: config.K8sClient,
+			Logger:    config.Logger,
+
+			EtcdCAFile:  config.CAFile,
+			EtcdCrtFile: config.CrtFile,
+			EtcdKeyFile: config.KeyFile,
+		}
+
+		ops, err := flanneld.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		flanneldResource, err = toCRUDResource(config.Logger, ops)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
 	var legacyResource controller.Resource
 	{
 		legacyConfig := legacy.DefaultConfig()
@@ -149,10 +172,10 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 
 	var namespaceResource controller.Resource
 	{
-		c := namespace.DefaultConfig()
-
-		c.K8sClient = config.K8sClient
-		c.Logger = config.Logger
+		c := namespace.Config{
+			K8sClient: config.K8sClient,
+			Logger:    config.Logger,
+		}
 
 		ops, err := namespace.New(c)
 		if err != nil {
@@ -169,6 +192,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		networkConfigResource,
 		namespaceResource,
 		legacyResource,
+		flanneldResource,
 	}
 
 	{

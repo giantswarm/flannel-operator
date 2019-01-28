@@ -19,16 +19,6 @@ type Config struct {
 	Logger    micrologger.Logger
 }
 
-// DefaultConfig provides a default configuration to create a new cloud config
-// resource by best effort.
-func DefaultConfig() Config {
-	return Config{
-		// Dependencies.
-		K8sClient: nil,
-		Logger:    nil,
-	}
-}
-
 // Resource implements the cloud config resource.
 type Resource struct {
 	// Dependencies.
@@ -40,18 +30,16 @@ type Resource struct {
 func New(config Config) (*Resource, error) {
 	// Dependencies.
 	if config.K8sClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.K8sClient must not be empty")
+		return nil, microerror.Maskf(invalidConfigError, "%T.K8sClient must not be empty", config)
 	}
 	if config.Logger == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.Logger must not be empty")
+		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
 	}
 
 	newService := &Resource{
 		// Dependencies.
 		k8sClient: config.K8sClient,
-		logger: config.Logger.With(
-			"resource", Name,
-		),
+		logger:    config.Logger,
 	}
 
 	return newService, nil
