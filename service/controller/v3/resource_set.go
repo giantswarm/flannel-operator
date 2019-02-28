@@ -1,27 +1,20 @@
 package v3
 
 import (
-	"crypto/tls"
-	"net"
-	"net/http"
 	"time"
 
-	"github.com/coreos/etcd/client"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
-	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/controller"
 	"github.com/giantswarm/operatorkit/controller/resource/metricsresource"
 	"github.com/giantswarm/operatorkit/controller/resource/retryresource"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/controller/v3/etcd"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/flanneld"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/legacy"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/namespace"
-	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/networkconfig"
 )
 
 type ResourceSetConfig struct {
@@ -57,55 +50,6 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	}
 
 	var err error
-
-	var tlsConfig *tls.Config
-	{
-		rootCAs := []string{}
-		if config.CAFile != "" {
-			rootCAs = []string{
-				config.CAFile,
-			}
-		}
-		certFiles := microtls.CertFiles{
-			RootCAs: rootCAs,
-			Cert:    config.CrtFile,
-			Key:     config.KeyFile,
-		}
-
-		tlsConfig, err = microtls.LoadTLSConfig(certFiles)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
-	var storageService *etcd.Service
-	{
-		etcdConfig := client.Config{
-			Endpoints: []string{
-				config.EtcdEndpoint,
-			},
-			Transport: &http.Transport{
-				Proxy: http.ProxyFromEnvironment,
-				Dial: (&net.Dialer{
-					Timeout:   30 * time.Second,
-					KeepAlive: 30 * time.Second,
-				}).Dial,
-				TLSHandshakeTimeout: 10 * time.Second,
-				TLSClientConfig:     tlsConfig,
-			},
-		}
-		etcdClient, err := client.New(etcdConfig)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		storageConfig := etcd.DefaultConfig()
-		storageConfig.EtcdClient = etcdClient
-		storageService, err = etcd.New(storageConfig)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
 
 	var flanneldResource controller.Resource
 	{
@@ -152,24 +96,6 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
-	var networkConfigResource controller.Resource
-	{
-		c := networkconfig.Config{
-			Logger: config.Logger,
-			Store:  storageService,
-		}
-
-		ops, err := networkconfig.New(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		networkConfigResource, err = toCRUDResource(config.Logger, ops)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	var namespaceResource controller.Resource
 	{
 		c := namespace.Config{
@@ -189,7 +115,6 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	}
 
 	resources := []controller.Resource{
-		networkConfigResource,
 		namespaceResource,
 		legacyResource,
 		flanneldResource,

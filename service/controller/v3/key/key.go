@@ -15,7 +15,7 @@ const (
 	NetworkID = "flannel-network"
 
 	// flanneld image
-	FlannelDockerImage = "quay.io/giantswarm/flannel:v0.10.0-amd64"
+	FlannelDockerImage = "quay.io/giantswarm/flannel:v0.11.0-amd64"
 )
 
 func ClusterCustomer(customObject v1alpha1.FlannelConfig) string {
@@ -30,16 +30,8 @@ func ClusterNamespace(customObject v1alpha1.FlannelConfig) string {
 	return customObject.Spec.Cluster.Namespace
 }
 
-func EtcdNetworkConfigPath(customObject v1alpha1.FlannelConfig) string {
-	return EtcdNetworkPath(customObject) + "/config"
-}
-
-func EtcdNetworkPath(customObject v1alpha1.FlannelConfig) string {
-	return "coreos.com/network/" + NetworkBridgeName(customObject)
-}
-
-func EtcdPrefix(customObject v1alpha1.FlannelConfig) string {
-	return "/" + EtcdNetworkPath(customObject)
+func KubePrefix(customObject v1alpha1.FlannelConfig) string {
+	return ClusterID(customObject)
 }
 
 func FlannelRunDir(customObject v1alpha1.FlannelConfig) string {

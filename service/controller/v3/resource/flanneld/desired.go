@@ -93,24 +93,12 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							Command: []string{
 								"/bin/sh",
 								"-c",
-								"/opt/bin/flanneld --etcd-endpoints=https://127.0.0.1:2379 --etcd-cafile=${ETCD_CA} --etcd-certfile=${ETCD_CRT} --etcd-keyfile=${ETCD_KEY} --etcd-prefix=${ETCD_PREFIX} --iface=${NETWORK_INTERFACE_NAME} --subnet-file=${NETWORK_ENV_FILE_PATH} -v=0",
+								"/opt/bin/flanneld --kube-annotation-prefix='flannel.alpha.coreos.com/${PREFIX}' --iface=${NETWORK_INTERFACE_NAME} --subnet-file=${NETWORK_ENV_FILE_PATH} -v=0",
 							},
 							Env: []corev1.EnvVar{
 								{
-									Name:  "ETCD_CA",
-									Value: etcdCAFile,
-								},
-								{
-									Name:  "ETCD_CRT",
-									Value: etcdCrtFile,
-								},
-								{
-									Name:  "ETCD_KEY",
-									Value: etcdKeyFile,
-								},
-								{
-									Name:  "ETCD_PREFIX",
-									Value: key.EtcdPrefix(customObject),
+									Name:  "PREFIX",
+									Value: key.KubePrefix(customObject),
 								},
 								{
 									Name:  "NETWORK_BRIDGE_NAME",
@@ -141,16 +129,8 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "etcd-certs",
-									MountPath: "/etc/kubernetes/ssl/etcd",
-								},
-								{
 									Name:      "flannel",
 									MountPath: "/run/flannel",
-								},
-								{
-									Name:      "ssl",
-									MountPath: "/etc/ssl/certs",
 								},
 							},
 							SecurityContext: &corev1.SecurityContext{
@@ -307,14 +287,6 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							},
 						},
 						{
-							Name: "etcd-certs",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc/kubernetes/ssl/etcd",
-								},
-							},
-						},
-						{
 							Name: "etc-systemd",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
@@ -327,14 +299,6 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: key.FlannelRunDir(customObject),
-								},
-							},
-						},
-						{
-							Name: "ssl",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc/ssl/certs",
 								},
 							},
 						},
