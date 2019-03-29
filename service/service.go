@@ -130,7 +130,7 @@ func New(config Config) (*Service, error) {
 			CAFile:           config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile),
 			CrtFile:          config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
 			CRDLabelSelector: config.Viper.GetString(config.Flag.Service.CRD.LabelSelector),
-			EtcdEndpoint:     config.Viper.GetString(config.Flag.Service.Etcd.Endpoint),
+			EtcdEndpoints:    config.Viper.GetStringSlice(config.Flag.Service.Etcd.Endpoints),
 			KeyFile:          config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
 			ProjectName:      config.Name,
 		}

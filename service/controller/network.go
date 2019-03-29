@@ -23,7 +23,7 @@ type NetworkConfig struct {
 	CAFile           string
 	CrtFile          string
 	CRDLabelSelector string
-	EtcdEndpoint     string
+	EtcdEndpoints    []string
 	KeyFile          string
 	ProjectName      string
 }
@@ -104,11 +104,11 @@ func newResourceSets(config NetworkConfig) ([]*controller.ResourceSet, error) {
 			K8sClient: config.K8sClient,
 			Logger:    config.Logger,
 
-			CAFile:       config.CAFile,
-			CrtFile:      config.CrtFile,
-			EtcdEndpoint: config.EtcdEndpoint,
-			KeyFile:      config.KeyFile,
-			ProjectName:  config.ProjectName,
+			CAFile:        config.CAFile,
+			CrtFile:       config.CrtFile,
+			EtcdEndpoints: config.EtcdEndpoints,
+			KeyFile:       config.KeyFile,
+			ProjectName:   config.ProjectName,
 		}
 
 		v3ResourceSet, err = v3.NewResourceSet(c)

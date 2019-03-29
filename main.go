@@ -99,7 +99,7 @@ func main() {
 
 	daemonCommand.PersistentFlags().String(f.Service.CRD.LabelSelector, "", "Label selector for CRD informer ListOptions.")
 
-	daemonCommand.PersistentFlags().String(f.Service.Etcd.Endpoint, "http://127.0.0.1:2379", "Endpoint used to connect to host's etcd.")
+	daemonCommand.PersistentFlags().String(f.Service.Etcd.Endpoints, "http://127.0.0.1:2379", "Endpoints used to connect to host's etcd.")
 	daemonCommand.PersistentFlags().String(f.Service.Etcd.TLS.CAFile, "", "Certificate authority file path to use to authenticate with etcd.")
 	daemonCommand.PersistentFlags().String(f.Service.Etcd.TLS.CrtFile, "", "Certificate file path to use to authenticate with etcd.")
 	daemonCommand.PersistentFlags().String(f.Service.Etcd.TLS.KeyFile, "", "Key file path to use to authenticate with etcd.")
