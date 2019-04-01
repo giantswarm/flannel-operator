@@ -28,11 +28,11 @@ type ResourceSetConfig struct {
 	K8sClient kubernetes.Interface
 	Logger    micrologger.Logger
 
-	CAFile       string
-	CrtFile      string
-	EtcdEndpoint string
-	KeyFile      string
-	ProjectName  string
+	CAFile        string
+	CrtFile       string
+	EtcdEndpoints []string
+	KeyFile       string
+	ProjectName   string
 }
 
 func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
@@ -46,8 +46,8 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	if config.CrtFile == "" {
 		return nil, microerror.Maskf(invalidConfigError, "config.CrtFile must not be empty")
 	}
-	if config.EtcdEndpoint == "" {
-		return nil, microerror.Maskf(invalidConfigError, "config.EtcdEndpoint must not be empty")
+	if len(config.EtcdEndpoints) == 0 {
+		return nil, microerror.Maskf(invalidConfigError, "config.EtcdEndpoints must not be empty")
 	}
 	if config.KeyFile == "" {
 		return nil, microerror.Maskf(invalidConfigError, "config.KeyFile must not be empty")
@@ -81,9 +81,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	var storageService *etcd.Service
 	{
 		etcdConfig := client.Config{
-			Endpoints: []string{
-				config.EtcdEndpoint,
-			},
+			Endpoints: config.EtcdEndpoints,
 			Transport: &http.Transport{
 				Proxy: http.ProxyFromEnvironment,
 				Dial: (&net.Dialer{
