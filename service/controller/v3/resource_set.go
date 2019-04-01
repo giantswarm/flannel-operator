@@ -108,8 +108,9 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	var flanneldResource controller.Resource
 	{
 		c := flanneld.Config{
-			K8sClient: config.K8sClient,
-			Logger:    config.Logger,
+			EtcdEndpoints: config.EtcdEndpoints,
+			K8sClient:     config.K8sClient,
+			Logger:        config.Logger,
 
 			EtcdCAFile:  config.CAFile,
 			EtcdCrtFile: config.CrtFile,

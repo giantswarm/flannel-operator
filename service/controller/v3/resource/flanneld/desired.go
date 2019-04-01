@@ -2,7 +2,9 @@ package flanneld
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
@@ -34,7 +36,7 @@ func (r *Resource) GetDesiredState(ctx context.Context, obj interface{}) (interf
 
 	r.logger.LogCtx(ctx, "level", "debug", "message", "computing the desired daemon set")
 
-	daemonSet := newDaemonSet(customObject, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
+	daemonSet := newDaemonSet(customObject, r.etcdEndpoints, r.etcdCAFile, r.etcdCrtFile, r.etcdKeyFile)
 
 	r.logger.LogCtx(ctx, "level", "debug", "message", "computed the desired daemon set")
 
@@ -49,7 +51,9 @@ func livenessProbePort(customObject v1alpha1.FlannelConfig) int32 {
 	return int32(portBase + key.FlannelVNI(customObject))
 }
 
-func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, etcdKeyFile string) *appsv1.DaemonSet {
+func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, etcdCAFile, etcdCrtFile, etcdKeyFile string) *appsv1.DaemonSet {
+	etcdEndpointsString := strings.Join(etcdEndpoints, ",")
+
 	return &appsv1.DaemonSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "daemonset",
@@ -93,7 +97,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdCAFile, etcdCrtFile, 
 							Command: []string{
 								"/bin/sh",
 								"-c",
-								"/opt/bin/flanneld --etcd-endpoints=https://127.0.0.1:2379 --etcd-cafile=${ETCD_CA} --etcd-certfile=${ETCD_CRT} --etcd-keyfile=${ETCD_KEY} --etcd-prefix=${ETCD_PREFIX} --iface=${NETWORK_INTERFACE_NAME} --subnet-file=${NETWORK_ENV_FILE_PATH} -v=0",
+								fmt.Sprintf("/opt/bin/flanneld --etcd-endpoints=%s --etcd-cafile=${ETCD_CA} --etcd-certfile=${ETCD_CRT} --etcd-keyfile=${ETCD_KEY} --etcd-prefix=${ETCD_PREFIX} --iface=${NETWORK_INTERFACE_NAME} --subnet-file=${NETWORK_ENV_FILE_PATH} -v=0", etcdEndpointsString),
 							},
 							Env: []corev1.EnvVar{
 								{
