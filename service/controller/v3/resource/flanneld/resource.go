@@ -15,8 +15,9 @@ const (
 // Config represents the configuration used to create a new cloud config
 // resource.
 type Config struct {
-	K8sClient kubernetes.Interface
-	Logger    micrologger.Logger
+	EtcdEndpoints []string
+	K8sClient     kubernetes.Interface
+	Logger        micrologger.Logger
 
 	EtcdCAFile  string
 	EtcdCrtFile string
@@ -25,8 +26,9 @@ type Config struct {
 
 // Resource implements the cloud config resource.
 type Resource struct {
-	k8sClient kubernetes.Interface
-	logger    micrologger.Logger
+	etcdEndpoints []string
+	k8sClient     kubernetes.Interface
+	logger        micrologger.Logger
 
 	etcdCAFile  string
 	etcdCrtFile string
@@ -35,6 +37,9 @@ type Resource struct {
 
 // New creates a new configured cloud config resource.
 func New(config Config) (*Resource, error) {
+	if len(config.EtcdEndpoints) == 0 {
+		return nil, microerror.Maskf(invalidConfigError, "config.EtcdEndpoints must not be empty")
+	}
 	if config.K8sClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.K8sClient must not be empty", config)
 	}
@@ -53,8 +58,9 @@ func New(config Config) (*Resource, error) {
 	}
 
 	r := &Resource{
-		k8sClient: config.K8sClient,
-		logger:    config.Logger,
+		etcdEndpoints: config.EtcdEndpoints,
+		k8sClient:     config.K8sClient,
+		logger:        config.Logger,
 
 		etcdCAFile:  config.EtcdCAFile,
 		etcdCrtFile: config.EtcdCrtFile,
