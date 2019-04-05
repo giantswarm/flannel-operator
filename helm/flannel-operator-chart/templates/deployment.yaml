@@ -17,7 +17,6 @@ spec:
       labels:
         app: flannel-operator
     spec:
-      hostNetwork: true
       volumes:
       - name: etcd-certs
         hostPath:
