@@ -16,6 +16,14 @@ rules:
     verbs:
       - "*"
   - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+    verbs:
+      - create
+      - get
+      - delete
+  - apiGroups:
       - extensions
     resources:
       - daemonsets
@@ -45,12 +53,14 @@ rules:
       - serviceaccounts
     verbs:
       - create
+      - delete
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
       - clusterrolebindings
     verbs:
       - create
+      - delete
   - apiGroups:
       - ""
     resources:
@@ -70,6 +80,13 @@ rules:
     resources:
       - secrets
     verbs:
+      - get
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - create
       - get
   - nonResourceURLs:
       - "/"
