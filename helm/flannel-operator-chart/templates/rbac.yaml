@@ -16,6 +16,12 @@ rules:
     verbs:
       - "*"
   - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+    verbs:
+      - "*"
+  - apiGroups:
       - extensions
     resources:
       - daemonsets
