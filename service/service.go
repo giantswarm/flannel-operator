@@ -75,9 +75,10 @@ func New(config Config) (*Service, error) {
 		c := k8srestconfig.Config{
 			Logger: config.Logger,
 
-			Address:   config.Viper.GetString(config.Flag.Service.Kubernetes.Address),
-			InCluster: config.Viper.GetBool(config.Flag.Service.Kubernetes.InCluster),
-			TLS: k8srestconfig.TLSClientConfig{
+			Address:    config.Viper.GetString(config.Flag.Service.Kubernetes.Address),
+			InCluster:  config.Viper.GetBool(config.Flag.Service.Kubernetes.InCluster),
+			KubeConfig: config.Viper.GetString(config.Flag.Service.Kubernetes.KubeConfig),
+			TLS: k8srestconfig.ConfigTLS{
 				CAFile:  config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.CAFile),
 				CrtFile: config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.CrtFile),
 				KeyFile: config.Viper.GetString(config.Flag.Service.Kubernetes.TLS.KeyFile),
@@ -129,7 +130,7 @@ func New(config Config) (*Service, error) {
 			CAFile:           config.Viper.GetString(config.Flag.Service.Etcd.TLS.CAFile),
 			CrtFile:          config.Viper.GetString(config.Flag.Service.Etcd.TLS.CrtFile),
 			CRDLabelSelector: config.Viper.GetString(config.Flag.Service.CRD.LabelSelector),
-			EtcdEndpoint:     config.Viper.GetString(config.Flag.Service.Etcd.Endpoint),
+			EtcdEndpoints:    config.Viper.GetStringSlice(config.Flag.Service.Etcd.Endpoints),
 			KeyFile:          config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
 			ProjectName:      config.Name,
 		}

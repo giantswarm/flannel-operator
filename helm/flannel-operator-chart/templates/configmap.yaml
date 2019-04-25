@@ -15,7 +15,7 @@ data:
       crd:
         labelSelector: '{{ .Values.Installation.V1.GiantSwarm.FlannelOperator.CRD.LabelSelector }}'
       etcd:
-        endpoint: 'https://127.0.0.1:2379'
+        endpoints: '{{ range $index, $element := .Values.Installation.V1.Provider.KVM.Flannel.EtcdEndpoints }}{{if $index}} {{end}}{{$element}}{{end}}'
         tls:
           cafile: '/etc/kubernetes/ssl/etcd/etcd-ca.pem'
           crtfile: '/etc/kubernetes/ssl/etcd/etcd.pem'

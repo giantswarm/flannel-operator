@@ -65,22 +65,24 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:773334941cf03efcb09f2c93b2e88aa25224c12d743fba79d352f5d1debca6ca"
+  digest = "1:5a3c4a200373b91c227ca4d4cc9af1e4c471ac3e4ca8a5c0d95fe974a7f55f96"
   name = "github.com/giantswarm/apiextensions"
   packages = [
     "pkg/apis/application/v1alpha1",
     "pkg/apis/core/v1alpha1",
     "pkg/apis/example/v1alpha1",
     "pkg/apis/provider/v1alpha1",
+    "pkg/apis/release/v1alpha1",
     "pkg/clientset/versioned",
     "pkg/clientset/versioned/scheme",
     "pkg/clientset/versioned/typed/application/v1alpha1",
     "pkg/clientset/versioned/typed/core/v1alpha1",
     "pkg/clientset/versioned/typed/example/v1alpha1",
     "pkg/clientset/versioned/typed/provider/v1alpha1",
+    "pkg/clientset/versioned/typed/release/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "0584389c4f82e52ba980c14dc31434d922245a46"
+  revision = "d00b8e9f593269fb3cf755beadde710ba918daec"
 
 [[projects]]
   branch = "master"
@@ -156,7 +158,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:591a935ef307e131ffa17b0c851d3d3c628994d10c7abf2384d0d7c56b94fdca"
+  digest = "1:2d1f3fc41fd8f55225233dce260827bbf1fa3425d758cdfe572f168da6e8cc55"
   name = "github.com/giantswarm/operatorkit"
   packages = [
     "client/k8scrdclient",
@@ -169,11 +171,22 @@
     "controller/resource/internal",
     "controller/resource/metricsresource",
     "controller/resource/retryresource",
+    "flag/service/kubernetes",
+    "flag/service/kubernetes/tls",
+    "flag/service/kubernetes/watch",
     "informer",
     "informer/collector",
   ]
   pruneopts = "UT"
-  revision = "204721021837676ee3e6ee110ae58ec2e2b0d0c0"
+  revision = "67aba158b01a7eb22405c4a5ad643853f29cb5f3"
+
+[[projects]]
+  branch = "master"
+  digest = "1:f0a5bcad44c3c4cc5a254aa34b2415fd63028e71a13f6368805cd9ec7c62044d"
+  name = "github.com/giantswarm/to"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ad9fc4aaa835db2a17ddb188047aff6a436886d7"
 
 [[projects]]
   branch = "master"
@@ -328,6 +341,14 @@
   pruneopts = "UT"
   revision = "8cb6e5b959231cc1119e43259c4a608f9c51a241"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:a0cefd27d12712af4b5018dc7046f245e1e3b5760e2e848c30b171b570708f9b"
+  name = "github.com/imdario/mergo"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7c29201646fa3de8506f701213473dd407f19646"
+  version = "v0.3.7"
 
 [[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
@@ -761,7 +782,7 @@
   version = "kubernetes-1.13.2"
 
 [[projects]]
-  digest = "1:3673cd8225b27f1b7af128f3f821eccc5be6ef405d13195b4fad1180673faaf1"
+  digest = "1:92521c8ced8ca83a1e6be715c321ca4f814669a19d91b0ec83e2e3a039b098eb"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -841,8 +862,12 @@
     "rest",
     "rest/watch",
     "testing",
+    "tools/auth",
     "tools/cache",
+    "tools/clientcmd",
     "tools/clientcmd/api",
+    "tools/clientcmd/api/latest",
+    "tools/clientcmd/api/v1",
     "tools/metrics",
     "tools/pager",
     "tools/reference",
@@ -851,6 +876,7 @@
     "util/cert",
     "util/connrotation",
     "util/flowcontrol",
+    "util/homedir",
     "util/integer",
     "util/retry",
   ]
@@ -908,14 +934,15 @@
     "github.com/giantswarm/operatorkit/controller/context/resourcecanceledcontext",
     "github.com/giantswarm/operatorkit/controller/resource/metricsresource",
     "github.com/giantswarm/operatorkit/controller/resource/retryresource",
+    "github.com/giantswarm/operatorkit/flag/service/kubernetes",
     "github.com/giantswarm/operatorkit/informer",
     "github.com/giantswarm/versionbundle",
     "github.com/juju/errgo",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/spf13/viper",
+    "k8s.io/api/apps/v1",
     "k8s.io/api/batch/v1",
     "k8s.io/api/core/v1",
-    "k8s.io/api/extensions/v1beta1",
     "k8s.io/api/rbac/v1beta1",
     "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset",
     "k8s.io/apimachinery/pkg/api/errors",
