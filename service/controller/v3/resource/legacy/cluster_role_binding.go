@@ -80,7 +80,13 @@ func createClusterRoleBinding(customObject v1alpha1.FlannelConfig, config Cluste
 		ObjectMeta: apismeta.ObjectMeta{
 			Name: config.name,
 			Labels: map[string]string{
-				"app":         networkApp,
+				"app":                        networkApp,
+				"giantswarm.io/cluster":      key.ClusterID(customObject),
+				"giantswarm.io/organization": key.ClusterCustomer(customObject),
+				// TODO remove deprecated labels.
+				//
+				//     https://github.com/giantswarm/giantswarm/issues/5860
+				//
 				"cluster-id":  key.ClusterID(customObject),
 				"customer-id": key.ClusterCustomer(customObject),
 			},
