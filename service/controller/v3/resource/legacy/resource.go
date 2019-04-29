@@ -265,18 +265,16 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		_, err := r.k8sClient.CoreV1().Namespaces().Create(ns)
 		if apierrors.IsAlreadyExists(err) {
 			namespace, err := r.k8sClient.CoreV1().Namespaces().Get(ns.GetName(), metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				r.logger.LogCtx(ctx, "level", "debug", "message", "consider network cleanup done")
-				resourcecanceledcontext.SetCanceled(ctx)
-				r.logger.LogCtx(ctx, "level", "debug", "message", "canceling resource")
-
-				return nil, nil
-			} else if err != nil {
+			if err != nil {
 				return nil, microerror.Mask(err)
 			}
 
 			if namespace != nil && namespace.Status.Phase == "Terminating" {
-				r.logger.LogCtx(ctx, "level", "debug", "message", "consider network cleanup done")
+				r.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("destroyer namespace is in phase %#q", namespace.Status.Phase))
+
+				finalizerskeptcontext.SetKept(ctx)
+				r.logger.LogCtx(ctx, "level", "debug", "message", "keeping finalizers")
+
 				resourcecanceledcontext.SetCanceled(ctx)
 				r.logger.LogCtx(ctx, "level", "debug", "message", "canceling resource")
 
