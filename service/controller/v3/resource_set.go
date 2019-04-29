@@ -18,6 +18,7 @@ import (
 
 	"github.com/giantswarm/flannel-operator/service/controller/v3/etcd"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
+	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/clusterrolebindings"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/flanneld"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/legacy"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/resource/namespace"
@@ -100,6 +101,19 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		storageConfig := etcd.DefaultConfig()
 		storageConfig.EtcdClient = etcdClient
 		storageService, err = etcd.New(storageConfig)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	var clusterRoleBindingsResource controller.Resource
+	{
+		c := clusterrolebindings.Config{
+			K8sClient: config.K8sClient,
+			Logger:    config.Logger,
+		}
+
+		clusterRoleBindingsResource, err = clusterrolebindings.NewResource(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -188,6 +202,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	}
 
 	resources := []controller.Resource{
+		clusterRoleBindingsResource,
 		networkConfigResource,
 		namespaceResource,
 		legacyResource,
