@@ -270,7 +270,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 			}
 
 			if namespace != nil && namespace.Status.Phase == "Terminating" {
-				r.logger.LogCtx(ctx, "level", "debug", "message", "consider network cleanup done")
+				r.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("destroyer namespace is in phase %#q", namespace.Status.Phase))
 
 				finalizerskeptcontext.SetKept(ctx)
 				r.logger.LogCtx(ctx, "level", "debug", "message", "keeping finalizers")
