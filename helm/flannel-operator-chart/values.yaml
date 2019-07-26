@@ -4,3 +4,7 @@ clusterRoleName: flannel-operator
 clusterRoleNamePSP: flannel-operator-psp
 namespace: giantswarm
 pspName: flannel-operator-psp
+
+name: flannel-operator
+userID: 1000
+groupID: 1000
