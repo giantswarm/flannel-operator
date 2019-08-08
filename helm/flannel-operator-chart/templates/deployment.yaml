@@ -54,4 +54,4 @@ spec:
             cpu: 250m
             memory: 200Mi
       imagePullSecrets:
-      - name: {{ .Values.resource.pullSecret.name }}
+      - name: {{ tpl .Values.resource.pullSecret.name . }}
