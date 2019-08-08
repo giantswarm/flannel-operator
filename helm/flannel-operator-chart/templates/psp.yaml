@@ -1,13 +1,16 @@
 apiVersion: extensions/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: {{ .Values.pspName }}
+  name: {{ tpl .Values.resource.default.name . }}
 spec:
   privileged: false
   fsGroup:
-    rule: RunAsAny
+    rule: MustRunAs
+    ranges:
+      - min: 1
+        max: 65535
   runAsUser:
-    rule: MustRunAsNonRoot
+    rule: RunAsAny
   runAsGroup:
     rule: MustRunAs
     ranges:
