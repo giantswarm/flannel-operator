@@ -20,11 +20,11 @@ pod:
 #
 resource:
   configMap:
-    name: '{{ .Release.Name | replace "." "-" | trunc 47 }}'-configmap
+    name: '{{ .Release.Name | replace "." "-" | trunc 47 }}-configmap'
   default:
     name: '{{ .Release.Name | replace "." "-" | trunc 47 }}'
     namespace: giantswarm
   psp:
-    name: '{{ .Release.Name | replace "." "-" | trunc 47 }}'-psp
+    name: '{{ .Release.Name | replace "." "-" | trunc 47 }}-psp'
   pullSecret:
-    name: '{{ .Release.Name | replace "." "-" | trunc 47 }}'-pull-secret
+    name: '{{ .Release.Name | replace "." "-" | trunc 47 }}-pull-secret'
