@@ -7,15 +7,9 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/giantswarm/flannel-operator/flag"
+	"github.com/giantswarm/flannel-operator/pkg/project"
 	"github.com/giantswarm/flannel-operator/server"
 	"github.com/giantswarm/flannel-operator/service"
-)
-
-var (
-	description = "The flannel-operator handles flannel for Kubernetes clusters running on Giantnetes."
-	gitCommit   = "n/a"
-	name        = "flannel-operator"
-	source      = "https://github.com/giantswarm/flannel-operator"
 )
 
 func main() {
@@ -37,16 +31,18 @@ func main() {
 		// Create a new custom service which implements business logic.
 		var newService *service.Service
 		{
-			serviceConfig := service.DefaultConfig()
+			serviceConfig := service.Config{
 
-			serviceConfig.Flag = f
-			serviceConfig.Logger = newLogger
-			serviceConfig.Viper = v
+				Flag:   f,
+				Logger: newLogger,
+				Viper:  v,
 
-			serviceConfig.Description = description
-			serviceConfig.GitCommit = gitCommit
-			serviceConfig.Name = name
-			serviceConfig.Source = source
+				Description: project.Description(),
+				GitCommit:   project.GitSHA(),
+				ProjectName: project.Name(),
+				Source:      project.Source(),
+				Version:     project.Version(),
+			}
 
 			newService, err = service.New(serviceConfig)
 			if err != nil {
@@ -63,7 +59,7 @@ func main() {
 				Service: newService,
 				Viper:   v,
 
-				ProjectName: name,
+				ProjectName: project.Name(),
 			}
 
 			newServer, err = server.New(c)
@@ -82,10 +78,11 @@ func main() {
 			Logger:        newLogger,
 			ServerFactory: newServerFactory,
 
-			Description:    description,
-			GitCommit:      gitCommit,
-			Name:           name,
-			Source:         source,
+			Description:    project.Description(),
+			GitCommit:      project.GitSHA(),
+			Name:           project.Name(),
+			Source:         project.Source(),
+			Version:        project.Version(),
 			VersionBundles: service.NewVersionBundles(),
 		}
 
