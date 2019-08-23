@@ -26,13 +26,14 @@ type Config struct {
 	// Dependencies.
 	Logger micrologger.Logger
 
-	// Settings.
+	Flag  *flag.Flag
+	Viper *viper.Viper
+
 	Description string
-	Flag        *flag.Flag
 	GitCommit   string
-	Name        string
+	ProjectName string
 	Source      string
-	Viper       *viper.Viper
+	Version     string
 }
 
 // DefaultConfig provides a default configuration to create a new service by
@@ -46,7 +47,7 @@ func DefaultConfig() Config {
 		Description: "",
 		Flag:        nil,
 		GitCommit:   "",
-		Name:        "",
+		ProjectName: "",
 		Source:      "",
 		Viper:       nil,
 	}
@@ -132,7 +133,7 @@ func New(config Config) (*Service, error) {
 			CRDLabelSelector: config.Viper.GetString(config.Flag.Service.CRD.LabelSelector),
 			EtcdEndpoints:    config.Viper.GetStringSlice(config.Flag.Service.Etcd.Endpoints),
 			KeyFile:          config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
-			ProjectName:      config.Name,
+			ProjectName:      config.ProjectName,
 		}
 
 		networkController, err = controller.NewNetwork(c)
@@ -146,8 +147,9 @@ func New(config Config) (*Service, error) {
 		c := version.Config{
 			Description:    config.Description,
 			GitCommit:      config.GitCommit,
-			Name:           config.Name,
+			Name:           config.ProjectName,
 			Source:         config.Source,
+			Version:        config.Version,
 			VersionBundles: NewVersionBundles(),
 		}
 
