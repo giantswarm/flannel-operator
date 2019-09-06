@@ -12,6 +12,7 @@ import (
 	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/controller"
+	"github.com/giantswarm/operatorkit/resource"
 	"github.com/giantswarm/operatorkit/resource/wrapper/metricsresource"
 	"github.com/giantswarm/operatorkit/resource/wrapper/retryresource"
 	"k8s.io/client-go/kubernetes"
@@ -106,7 +107,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
-	var clusterRoleBindingsResource controller.Resource
+	var clusterRoleBindingsResource resource.Interface
 	{
 		c := clusterrolebindings.Config{
 			K8sClient: config.K8sClient,
@@ -119,7 +120,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
-	var flanneldResource controller.Resource
+	var flanneldResource resource.Interface
 	{
 		c := flanneld.Config{
 			EtcdEndpoints: config.EtcdEndpoints,
@@ -142,7 +143,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
-	var legacyResource controller.Resource
+	var legacyResource resource.Interface
 	{
 		legacyConfig := legacy.DefaultConfig()
 
@@ -165,7 +166,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
-	var networkConfigResource controller.Resource
+	var networkConfigResource resource.Interface
 	{
 		c := networkconfig.Config{
 			Logger: config.Logger,
@@ -183,7 +184,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
-	var namespaceResource controller.Resource
+	var namespaceResource resource.Interface
 	{
 		c := namespace.Config{
 			K8sClient: config.K8sClient,
@@ -201,7 +202,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		}
 	}
 
-	resources := []controller.Resource{
+	resources := []resource.Interface{
 		clusterRoleBindingsResource,
 		networkConfigResource,
 		namespaceResource,
