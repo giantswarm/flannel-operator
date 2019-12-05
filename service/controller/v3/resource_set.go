@@ -35,7 +35,6 @@ type ResourceSetConfig struct {
 	CrtFile       string
 	EtcdEndpoints []string
 	KeyFile       string
-	ProjectName   string
 }
 
 func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
@@ -54,9 +53,6 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	}
 	if config.KeyFile == "" {
 		return nil, microerror.Maskf(invalidConfigError, "config.KeyFile must not be empty")
-	}
-	if config.ProjectName == "" {
-		return nil, microerror.Maskf(invalidConfigError, "config.ProjectName must not be empty")
 	}
 
 	var err error
