@@ -35,22 +35,6 @@ type Config struct {
 	Source      string
 	Version     string
 }
-
-// DefaultConfig provides a default configuration to create a new service by
-// best effort.
-func DefaultConfig() Config {
-	return Config{
-		// Dependencies.
-		Logger: nil,
-
-		// Settings.
-		Description: "",
-		Flag:        nil,
-		GitCommit:   "",
-		ProjectName: "",
-		Source:      "",
-		Viper:       nil,
-	}
 }
 
 type Service struct {
