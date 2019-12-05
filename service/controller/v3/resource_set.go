@@ -8,6 +8,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/giantswarm/backoff"
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
@@ -15,7 +16,6 @@ import (
 	"github.com/giantswarm/operatorkit/resource"
 	"github.com/giantswarm/operatorkit/resource/wrapper/metricsresource"
 	"github.com/giantswarm/operatorkit/resource/wrapper/retryresource"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/service/controller/v3/etcd"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
@@ -27,7 +27,7 @@ import (
 )
 
 type ResourceSetConfig struct {
-	K8sClient kubernetes.Interface
+	K8sClient k8sclient.Interface
 	Logger    micrologger.Logger
 
 	CAFile        string
@@ -110,7 +110,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	var clusterRoleBindingsResource resource.Interface
 	{
 		c := clusterrolebindings.Config{
-			K8sClient: config.K8sClient,
+			K8sClient: config.K8sClient.K8sClient(),
 			Logger:    config.Logger,
 		}
 
@@ -124,7 +124,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	{
 		c := flanneld.Config{
 			EtcdEndpoints: config.EtcdEndpoints,
-			K8sClient:     config.K8sClient,
+			K8sClient:     config.K8sClient.K8sClient(),
 			Logger:        config.Logger,
 
 			EtcdCAFile:  config.CAFile,
@@ -148,7 +148,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		legacyConfig := legacy.DefaultConfig()
 
 		legacyConfig.BackOff = backoff.NewExponential(5*time.Minute, 1*time.Minute)
-		legacyConfig.K8sClient = config.K8sClient
+		legacyConfig.K8sClient = config.K8sClient.K8sClient()
 		legacyConfig.Logger = config.Logger
 
 		legacyConfig.EtcdCAFile = config.CAFile
@@ -187,7 +187,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	var namespaceResource resource.Interface
 	{
 		c := namespace.Config{
-			K8sClient: config.K8sClient,
+			K8sClient: config.K8sClient.K8sClient(),
 			Logger:    config.Logger,
 		}
 

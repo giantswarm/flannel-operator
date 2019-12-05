@@ -2,22 +2,19 @@ package controller
 
 import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
-	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8scrdclient"
 	"github.com/giantswarm/operatorkit/controller"
 	"github.com/giantswarm/operatorkit/informer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 
-	"github.com/giantswarm/flannel-operator/service/controller/v3"
+	v3 "github.com/giantswarm/flannel-operator/service/controller/v3"
 )
 
 type NetworkConfig struct {
-	CRDClient *k8scrdclient.CRDClient
-	K8sClient kubernetes.Interface
-	G8sClient versioned.Interface
+	K8sClient k8sclient.Interface
 	Logger    micrologger.Logger
 
 	CAFile           string
@@ -41,17 +38,30 @@ type Network struct {
 }
 
 func NewNetwork(config NetworkConfig) (*Network, error) {
-	if config.G8sClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.G8sClient must not be empty")
+	if config.K8sClient == nil {
+		return nil, microerror.Maskf(invalidConfigError, "config.K8sClient must not be empty")
 	}
 
 	var err error
+
+	var crdClient *k8scrdclient.CRDClient
+	{
+		c := k8scrdclient.Config{
+			K8sExtClient: config.K8sClient.ExtClient(),
+			Logger:       config.Logger,
+		}
+
+		crdClient, err = k8scrdclient.New(c)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
 
 	var newInformer *informer.Informer
 	{
 		c := informer.Config{
 			Logger:  config.Logger,
-			Watcher: config.G8sClient.CoreV1alpha1().FlannelConfigs(""),
+			Watcher: config.K8sClient.G8sClient().CoreV1alpha1().FlannelConfigs(""),
 
 			ListOptions:  config.newInformerListOptions(),
 			RateWait:     informer.DefaultRateWait,
@@ -73,11 +83,11 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 	{
 		c := controller.Config{
 			CRD:          v1alpha1.NewFlannelConfigCRD(),
-			CRDClient:    config.CRDClient,
+			CRDClient:    crdClient,
 			Informer:     newInformer,
 			Logger:       config.Logger,
 			ResourceSets: resourceSets,
-			RESTClient:   config.G8sClient.CoreV1alpha1().RESTClient(),
+			RESTClient:   config.K8sClient.G8sClient().CoreV1alpha1().RESTClient(),
 
 			Name: config.ProjectName,
 		}

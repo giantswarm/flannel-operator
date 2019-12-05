@@ -6,18 +6,17 @@ import (
 	"context"
 	"sync"
 
-	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
+	corev1alpha1 "github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microendpoint/service/version"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/operatorkit/client/k8scrdclient"
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
 	"github.com/spf13/viper"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/giantswarm/flannel-operator/flag"
+	"github.com/giantswarm/flannel-operator/pkg/project"
 	"github.com/giantswarm/flannel-operator/service/controller"
 )
 
@@ -28,13 +27,6 @@ type Config struct {
 
 	Flag  *flag.Flag
 	Viper *viper.Viper
-
-	Description string
-	GitCommit   string
-	ProjectName string
-	Source      string
-	Version     string
-}
 }
 
 type Service struct {
@@ -76,29 +68,18 @@ func New(config Config) (*Service, error) {
 		}
 	}
 
-	g8sClient, err := versioned.NewForConfig(restConfig)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	k8sExtClient, err := apiextensionsclient.NewForConfig(restConfig)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	var crdClient *k8scrdclient.CRDClient
+	var k8sClient k8sclient.Interface
 	{
-		c := k8scrdclient.Config{
-			K8sExtClient: k8sExtClient,
-			Logger:       config.Logger,
+		c := k8sclient.ClientsConfig{
+			Logger: config.Logger,
+			SchemeBuilder: k8sclient.SchemeBuilder{
+				corev1alpha1.AddToScheme,
+			},
+
+			RestConfig: restConfig,
 		}
 
-		crdClient, err = k8scrdclient.New(c)
+		k8sClient, err = k8sclient.NewClients(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -107,8 +88,6 @@ func New(config Config) (*Service, error) {
 	var networkController *controller.Network
 	{
 		c := controller.NetworkConfig{
-			CRDClient: crdClient,
-			G8sClient: g8sClient,
 			K8sClient: k8sClient,
 			Logger:    config.Logger,
 
@@ -117,7 +96,6 @@ func New(config Config) (*Service, error) {
 			CRDLabelSelector: config.Viper.GetString(config.Flag.Service.CRD.LabelSelector),
 			EtcdEndpoints:    config.Viper.GetStringSlice(config.Flag.Service.Etcd.Endpoints),
 			KeyFile:          config.Viper.GetString(config.Flag.Service.Etcd.TLS.KeyFile),
-			ProjectName:      config.ProjectName,
 		}
 
 		networkController, err = controller.NewNetwork(c)
@@ -129,11 +107,11 @@ func New(config Config) (*Service, error) {
 	var versionService *version.Service
 	{
 		c := version.Config{
-			Description:    config.Description,
-			GitCommit:      config.GitCommit,
-			Name:           config.ProjectName,
-			Source:         config.Source,
-			Version:        config.Version,
+			Description:    project.Description(),
+			GitCommit:      project.GitSHA(),
+			Name:           project.Name(),
+			Source:         project.Source(),
+			Version:        project.Version(),
 			VersionBundles: NewVersionBundles(),
 		}
 
