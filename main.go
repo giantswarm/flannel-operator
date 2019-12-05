@@ -34,8 +34,8 @@ func main() {
 			serviceConfig := service.Config{
 				Logger: newLogger,
 
-				Flag:   f,
-				Viper:  v,
+				Flag:  f,
+				Viper: v,
 			}
 
 			newService, err = service.New(serviceConfig)
