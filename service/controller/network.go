@@ -10,6 +10,7 @@ import (
 	"github.com/giantswarm/operatorkit/informer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/giantswarm/flannel-operator/pkg/project"
 	v3 "github.com/giantswarm/flannel-operator/service/controller/v3"
 )
 
@@ -22,7 +23,6 @@ type NetworkConfig struct {
 	CRDLabelSelector string
 	EtcdEndpoints    []string
 	KeyFile          string
-	ProjectName      string
 }
 
 func (c NetworkConfig) newInformerListOptions() metav1.ListOptions {
@@ -89,7 +89,7 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 			ResourceSets: resourceSets,
 			RESTClient:   config.K8sClient.G8sClient().CoreV1alpha1().RESTClient(),
 
-			Name: config.ProjectName,
+			Name: project.Name(),
 		}
 
 		operatorkitController, err = controller.New(c)
@@ -118,7 +118,6 @@ func newResourceSets(config NetworkConfig) ([]*controller.ResourceSet, error) {
 			CrtFile:       config.CrtFile,
 			EtcdEndpoints: config.EtcdEndpoints,
 			KeyFile:       config.KeyFile,
-			ProjectName:   config.ProjectName,
 		}
 
 		v3ResourceSet, err = v3.NewResourceSet(c)
