@@ -171,7 +171,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:63f3733db2f2af3343e8935dcd9762dd7208c03fe5113c12304cb32de9f1db29"
+  digest = "1:8ee7a0a1f11ecdffe6b7078658d65876df4859c34c34cb47dc39028c6a2cc71c"
   name = "github.com/giantswarm/operatorkit"
   packages = [
     "client/k8scrdclient",
@@ -187,6 +187,7 @@
     "informer",
     "informer/collector",
     "resource",
+    "resource/crud",
     "resource/wrapper/internal",
     "resource/wrapper/metricsresource",
     "resource/wrapper/retryresource",
@@ -953,9 +954,9 @@
   input-imports = [
     "github.com/coreos/etcd/client",
     "github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1",
-    "github.com/giantswarm/apiextensions/pkg/clientset/versioned",
     "github.com/giantswarm/backoff",
     "github.com/giantswarm/k8sclient",
+    "github.com/giantswarm/k8sclient/k8scrdclient",
     "github.com/giantswarm/microendpoint/endpoint/healthz",
     "github.com/giantswarm/microendpoint/endpoint/version",
     "github.com/giantswarm/microendpoint/service/version",
@@ -966,7 +967,6 @@
     "github.com/giantswarm/microkit/tls",
     "github.com/giantswarm/micrologger",
     "github.com/giantswarm/micrologger/microloggertest",
-    "github.com/giantswarm/operatorkit/client/k8scrdclient",
     "github.com/giantswarm/operatorkit/client/k8srestconfig",
     "github.com/giantswarm/operatorkit/controller",
     "github.com/giantswarm/operatorkit/controller/context/finalizerskeptcontext",
@@ -975,6 +975,7 @@
     "github.com/giantswarm/operatorkit/flag/service/kubernetes",
     "github.com/giantswarm/operatorkit/informer",
     "github.com/giantswarm/operatorkit/resource",
+    "github.com/giantswarm/operatorkit/resource/crud",
     "github.com/giantswarm/operatorkit/resource/wrapper/metricsresource",
     "github.com/giantswarm/operatorkit/resource/wrapper/retryresource",
     "github.com/giantswarm/versionbundle",
@@ -985,7 +986,6 @@
     "k8s.io/api/batch/v1",
     "k8s.io/api/core/v1",
     "k8s.io/api/rbac/v1beta1",
-    "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/util/intstr",
