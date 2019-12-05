@@ -87,7 +87,7 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 			Informer:     newInformer,
 			Logger:       config.Logger,
 			ResourceSets: resourceSets,
-			RESTClient:   config.K8sClient.RESTClient(),
+			RESTClient:   config.K8sClient.G8sClient().CoreV1alpha1().RESTClient(),
 
 			Name: config.ProjectName,
 		}
