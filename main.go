@@ -32,16 +32,10 @@ func main() {
 		var newService *service.Service
 		{
 			serviceConfig := service.Config{
-
-				Flag:   f,
 				Logger: newLogger,
-				Viper:  v,
 
-				Description: project.Description(),
-				GitCommit:   project.GitSHA(),
-				ProjectName: project.Name(),
-				Source:      project.Source(),
-				Version:     project.Version(),
+				Flag:  f,
+				Viper: v,
 			}
 
 			newService, err = service.New(serviceConfig)

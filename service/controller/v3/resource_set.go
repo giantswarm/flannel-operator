@@ -8,14 +8,15 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/giantswarm/backoff"
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	microtls "github.com/giantswarm/microkit/tls"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/controller"
 	"github.com/giantswarm/operatorkit/resource"
+	"github.com/giantswarm/operatorkit/resource/crud"
 	"github.com/giantswarm/operatorkit/resource/wrapper/metricsresource"
 	"github.com/giantswarm/operatorkit/resource/wrapper/retryresource"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/giantswarm/flannel-operator/service/controller/v3/etcd"
 	"github.com/giantswarm/flannel-operator/service/controller/v3/key"
@@ -27,14 +28,13 @@ import (
 )
 
 type ResourceSetConfig struct {
-	K8sClient kubernetes.Interface
+	K8sClient k8sclient.Interface
 	Logger    micrologger.Logger
 
 	CAFile        string
 	CrtFile       string
 	EtcdEndpoints []string
 	KeyFile       string
-	ProjectName   string
 }
 
 func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
@@ -53,9 +53,6 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	}
 	if config.KeyFile == "" {
 		return nil, microerror.Maskf(invalidConfigError, "config.KeyFile must not be empty")
-	}
-	if config.ProjectName == "" {
-		return nil, microerror.Maskf(invalidConfigError, "config.ProjectName must not be empty")
 	}
 
 	var err error
@@ -110,7 +107,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	var clusterRoleBindingsResource resource.Interface
 	{
 		c := clusterrolebindings.Config{
-			K8sClient: config.K8sClient,
+			K8sClient: config.K8sClient.K8sClient(),
 			Logger:    config.Logger,
 		}
 
@@ -124,7 +121,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	{
 		c := flanneld.Config{
 			EtcdEndpoints: config.EtcdEndpoints,
-			K8sClient:     config.K8sClient,
+			K8sClient:     config.K8sClient.K8sClient(),
 			Logger:        config.Logger,
 
 			EtcdCAFile:  config.CAFile,
@@ -148,7 +145,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 		legacyConfig := legacy.DefaultConfig()
 
 		legacyConfig.BackOff = backoff.NewExponential(5*time.Minute, 1*time.Minute)
-		legacyConfig.K8sClient = config.K8sClient
+		legacyConfig.K8sClient = config.K8sClient.K8sClient()
 		legacyConfig.Logger = config.Logger
 
 		legacyConfig.EtcdCAFile = config.CAFile
@@ -187,7 +184,7 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	var namespaceResource resource.Interface
 	{
 		c := namespace.Config{
-			K8sClient: config.K8sClient,
+			K8sClient: config.K8sClient.K8sClient(),
 			Logger:    config.Logger,
 		}
 
@@ -260,13 +257,13 @@ func NewResourceSet(config ResourceSetConfig) (*controller.ResourceSet, error) {
 	return resourceSet, nil
 }
 
-func toCRUDResource(logger micrologger.Logger, ops controller.CRUDResourceOps) (*controller.CRUDResource, error) {
-	c := controller.CRUDResourceConfig{
+func toCRUDResource(logger micrologger.Logger, ops crud.Interface) (resource.Interface, error) {
+	c := crud.ResourceConfig{
+		CRUD:   ops,
 		Logger: logger,
-		Ops:    ops,
 	}
 
-	r, err := controller.NewCRUDResource(c)
+	r, err := crud.NewResource(c)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

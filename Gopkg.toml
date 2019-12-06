@@ -35,6 +35,10 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/giantswarm/k8sclient"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/giantswarm/microendpoint"
 
 [[constraint]]
@@ -66,16 +70,16 @@
   version = "kubernetes-1.15.4"
 
 [[constraint]]
-  name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.15.4"
-
-[[constraint]]
   name = "k8s.io/apimachinery"
   version = "kubernetes-1.15.4"
 
 [[constraint]]
   name = "k8s.io/client-go"
   version = "kubernetes-1.15.4"
+
+[[override]]
+  source = "gopkg.in/fsnotify/fsnotify.v1"
+  name = "gopkg.in/fsnotify.v1"
 
 
 

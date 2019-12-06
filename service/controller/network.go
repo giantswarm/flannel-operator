@@ -2,22 +2,19 @@ package controller
 
 import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
-	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/operatorkit/client/k8scrdclient"
 	"github.com/giantswarm/operatorkit/controller"
-	"github.com/giantswarm/operatorkit/informer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/giantswarm/flannel-operator/service/controller/v3"
+	"github.com/giantswarm/flannel-operator/pkg/project"
+	v3 "github.com/giantswarm/flannel-operator/service/controller/v3"
 )
 
 type NetworkConfig struct {
-	CRDClient *k8scrdclient.CRDClient
-	K8sClient kubernetes.Interface
-	G8sClient versioned.Interface
+	K8sClient k8sclient.Interface
 	Logger    micrologger.Logger
 
 	CAFile           string
@@ -25,7 +22,6 @@ type NetworkConfig struct {
 	CRDLabelSelector string
 	EtcdEndpoints    []string
 	KeyFile          string
-	ProjectName      string
 }
 
 func (c NetworkConfig) newInformerListOptions() metav1.ListOptions {
@@ -41,28 +37,11 @@ type Network struct {
 }
 
 func NewNetwork(config NetworkConfig) (*Network, error) {
-	if config.G8sClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "config.G8sClient must not be empty")
+	if config.K8sClient == nil {
+		return nil, microerror.Maskf(invalidConfigError, "config.K8sClient must not be empty")
 	}
 
 	var err error
-
-	var newInformer *informer.Informer
-	{
-		c := informer.Config{
-			Logger:  config.Logger,
-			Watcher: config.G8sClient.CoreV1alpha1().FlannelConfigs(""),
-
-			ListOptions:  config.newInformerListOptions(),
-			RateWait:     informer.DefaultRateWait,
-			ResyncPeriod: informer.DefaultResyncPeriod,
-		}
-
-		newInformer, err = informer.New(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
 
 	resourceSets, err := newResourceSets(config)
 	if err != nil {
@@ -73,13 +52,14 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 	{
 		c := controller.Config{
 			CRD:          v1alpha1.NewFlannelConfigCRD(),
-			CRDClient:    config.CRDClient,
-			Informer:     newInformer,
+			K8sClient:    config.K8sClient,
 			Logger:       config.Logger,
 			ResourceSets: resourceSets,
-			RESTClient:   config.G8sClient.CoreV1alpha1().RESTClient(),
+			NewRuntimeObjectFunc: func() runtime.Object {
+				return new(v1alpha1.FlannelConfig)
+			},
 
-			Name: config.ProjectName,
+			Name: project.Name(),
 		}
 
 		operatorkitController, err = controller.New(c)
@@ -108,7 +88,6 @@ func newResourceSets(config NetworkConfig) ([]*controller.ResourceSet, error) {
 			CrtFile:       config.CrtFile,
 			EtcdEndpoints: config.EtcdEndpoints,
 			KeyFile:       config.KeyFile,
-			ProjectName:   config.ProjectName,
 		}
 
 		v3ResourceSet, err = v3.NewResourceSet(c)
