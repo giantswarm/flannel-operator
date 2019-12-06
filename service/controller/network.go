@@ -5,10 +5,9 @@ import (
 	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/operatorkit/client/k8scrdclient"
 	"github.com/giantswarm/operatorkit/controller"
-	"github.com/giantswarm/operatorkit/informer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/giantswarm/flannel-operator/pkg/project"
 	v3 "github.com/giantswarm/flannel-operator/service/controller/v3"
@@ -44,36 +43,6 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 
 	var err error
 
-	var crdClient *k8scrdclient.CRDClient
-	{
-		c := k8scrdclient.Config{
-			K8sExtClient: config.K8sClient.ExtClient(),
-			Logger:       config.Logger,
-		}
-
-		crdClient, err = k8scrdclient.New(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
-	var newInformer *informer.Informer
-	{
-		c := informer.Config{
-			Logger:  config.Logger,
-			Watcher: config.K8sClient.G8sClient().CoreV1alpha1().FlannelConfigs(""),
-
-			ListOptions:  config.newInformerListOptions(),
-			RateWait:     informer.DefaultRateWait,
-			ResyncPeriod: informer.DefaultResyncPeriod,
-		}
-
-		newInformer, err = informer.New(c)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	resourceSets, err := newResourceSets(config)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -83,11 +52,12 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 	{
 		c := controller.Config{
 			CRD:          v1alpha1.NewFlannelConfigCRD(),
-			CRDClient:    crdClient,
-			Informer:     newInformer,
+			K8sClient:    config.K8sClient,
 			Logger:       config.Logger,
 			ResourceSets: resourceSets,
-			RESTClient:   config.K8sClient.G8sClient().CoreV1alpha1().RESTClient(),
+			NewRuntimeObjectFunc: func() runtime.Object {
+				return new(v1alpha1.FlannelConfig)
+			},
 
 			Name: project.Name(),
 		}
