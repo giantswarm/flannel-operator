@@ -23,7 +23,7 @@ func newJob(customObject v1alpha1.FlannelConfig, replicas int32) *batchv1.Job {
 	return &batchv1.Job{
 		TypeMeta: apismetav1.TypeMeta{
 			Kind:       "deployment",
-			APIVersion: "extensions/v1beta",
+			APIVersion: "apps/v1",
 		},
 		ObjectMeta: apismetav1.ObjectMeta{
 			Name:   app,
