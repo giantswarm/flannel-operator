@@ -122,14 +122,14 @@ func (s *Service) List(ctx context.Context, key string) ([]string, error) {
 	} else if err != nil {
 		return nil, microerror.Mask(err)
 	}
-	if resp.Node == nil || resp.Node.Dir == false {
+	if resp.Node == nil || !resp.Node.Dir {
 		return nil, microerror.Mask(notFoundError)
 	}
 
 	var children []string
 
 	for _, node := range resp.Node.Nodes {
-		if node.Dir == true {
+		if node.Dir {
 			continue
 		}
 		if !strings.HasPrefix(node.Key, s.key(key)) {

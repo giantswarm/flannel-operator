@@ -108,7 +108,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
 		} else if err != nil {
-			return nil, microerror.Maskf(err, "creating serviceAccount %s", serviceAccount.Name)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -119,7 +119,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "clusterRoleBinding "+clusterRoleBinding.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
 		} else if err != nil {
-			return nil, microerror.Maskf(err, "creating clusterRoleBinding %s", clusterRoleBinding.Name)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -130,7 +130,7 @@ func (r *Resource) newCreateChange(ctx context.Context, obj, currentState, desir
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "clusterRoleBindingPodSecurityPolicy "+clusterRoleBindingPodSecurityPolicy.Name+" already exists", "event", "add", "cluster", customObject.Spec.Cluster.ID)
 		} else if err != nil {
-			return nil, microerror.Maskf(err, "creating clusterRoleBindingPodSecurityPolicy %s", clusterRoleBindingPodSecurityPolicy.Name)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -212,7 +212,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		if apierrors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
-			return nil, microerror.Maskf(err, "deleting service account %s", serviceAccountName)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -235,7 +235,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 		err := backoff.RetryNotify(op, backoff.NewExponential(2*time.Minute, 5*time.Second), notify)
 		if err != nil {
-			return microerror.Maskf(err, "failed waiting for the namespace %s to be deleted", name)
+			return microerror.Mask(err)
 		}
 
 		return nil
@@ -292,7 +292,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "clusterRoleBinding "+clusterRoleBinding.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
 		} else if err != nil {
-			return nil, microerror.Maskf(err, "creating clusterRoleBinding %s", clusterRoleBinding.Name)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -303,7 +303,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "clusterRoleBinding "+clusterRoleBinding.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
 		} else if err != nil {
-			return nil, microerror.Maskf(err, "creating clusterRoleBinding %s", clusterRoleBinding.Name)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -314,7 +314,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		if apierrors.IsAlreadyExists(err) {
 			r.logger.Log("debug", "serviceAccount "+serviceAccount.Name+" already exists", "event", "add", "cluster", spec.Cluster.ID)
 		} else if err != nil {
-			return nil, microerror.Maskf(err, "creating serviceAccount %s", serviceAccount.Name)
+			return nil, microerror.Mask(err)
 		}
 	}
 
@@ -327,7 +327,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		// All nodes are listed assuming that master nodes run kubelets.
 		nodes, err := r.k8sClient.CoreV1().Nodes().List(metav1.ListOptions{})
 		if err != nil {
-			return nil, microerror.Maskf(err, "requesting cluster node list")
+			return nil, microerror.Mask(err)
 		}
 
 		// Run only on scheduleable nodes.
@@ -365,7 +365,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 		op := func() error {
 			job, err := r.k8sClient.BatchV1().Jobs(destroyerNamespace(spec)).Get(jobName, metav1.GetOptions{})
 			if err != nil {
-				return microerror.Maskf(err, "requesting get job %s", jobName)
+				return microerror.Mask(err)
 			}
 			if job.Status.Succeeded != replicas {
 				return fmt.Errorf("progress %d/%d", job.Status.Succeeded, replicas)
@@ -380,7 +380,7 @@ func (r *Resource) newDeleteChange(ctx context.Context, obj, currentState, desir
 
 		err := backoff.RetryNotify(op, backoff.NewExponential(2*time.Minute, 5*time.Second), notify)
 		if err != nil {
-			return nil, microerror.Maskf(err, "waiting for pods to finish network bridge cleanup")
+			return nil, microerror.Mask(err)
 		}
 	}
 

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+
+	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/microkit/command"
 	microserver "github.com/giantswarm/microkit/server"
 	"github.com/giantswarm/micrologger"
@@ -12,16 +15,26 @@ import (
 	"github.com/giantswarm/flannel-operator/service"
 )
 
+var (
+	f = flag.New()
+)
+
 func main() {
+	err := mainE(context.Background())
+	if err != nil {
+		panic(microerror.JSON(err))
+	}
+}
+
+func mainE(ctx context.Context) error {
 	var err error
-	f := flag.New()
 
 	// Create a new logger which is used by all packages.
 	var newLogger micrologger.Logger
 	{
 		newLogger, err = micrologger.New(micrologger.Config{})
 		if err != nil {
-			panic(err)
+			return microerror.Mask(err)
 		}
 	}
 
@@ -40,7 +53,7 @@ func main() {
 
 			newService, err = service.New(serviceConfig)
 			if err != nil {
-				panic(err)
+				panic(microerror.JSON(err))
 			}
 			go newService.Boot()
 		}
@@ -58,7 +71,7 @@ func main() {
 
 			newServer, err = server.New(c)
 			if err != nil {
-				panic(err)
+				panic(microerror.JSON(err))
 			}
 		}
 
@@ -82,7 +95,7 @@ func main() {
 
 		newCommand, err = command.New(c)
 		if err != nil {
-			panic(err)
+			return microerror.Mask(err)
 		}
 	}
 
@@ -101,5 +114,10 @@ func main() {
 	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.CrtFile, "", "Certificate file path to use to authenticate with Kubernetes.")
 	daemonCommand.PersistentFlags().String(f.Service.Kubernetes.TLS.KeyFile, "", "Key file path to use to authenticate with Kubernetes.")
 
-	newCommand.CobraCommand().Execute()
+	err = newCommand.CobraCommand().Execute()
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
 }
