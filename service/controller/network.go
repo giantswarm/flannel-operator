@@ -6,7 +6,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/controller"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/giantswarm/flannel-operator/pkg/project"
@@ -22,14 +21,6 @@ type NetworkConfig struct {
 	CRDLabelSelector string
 	EtcdEndpoints    []string
 	KeyFile          string
-}
-
-func (c NetworkConfig) newInformerListOptions() metav1.ListOptions {
-	listOptions := metav1.ListOptions{
-		LabelSelector: c.CRDLabelSelector,
-	}
-
-	return listOptions
 }
 
 type Network struct {
