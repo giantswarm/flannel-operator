@@ -1,2 +1,6 @@
-name: flannel-operator-chart
-version: 1.0.0-[[ .SHA ]]
+apiVersion: "v1"
+name: "flannel-operator"
+description: "Helm chart for flannel-operator."
+home: "https://github.com/giantswarm/flannel-operator"
+version: "[[ .Version ]]"
+appVersion: "[[ .AppVersion ]]"
