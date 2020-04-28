@@ -1,5 +1,13 @@
 Installation:
   V1:
+    GiantSwarm:
+      FlannelOperator:
+        CRD:
+          LabelSelector: ""
+    Provider:
+      KVM:
+        Flannel:
+          EtcdEndpoints: []
     Secret:
       Registry:
         PullSecret:
