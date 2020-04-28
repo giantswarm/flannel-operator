@@ -1,7 +1,7 @@
 image:
-  registry: "quay.io"
-  repository: "giantswarm/flannel-operator"
-  tag: "[[ .SHA ]]"
+  registry: quay.io
+  name: "giantswarm/flannel-operator"
+  tag: "[[ .Version ]]"
 pod:
   user:
     id: 0
