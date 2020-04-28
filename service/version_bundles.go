@@ -3,7 +3,7 @@ package service
 import (
 	"github.com/giantswarm/versionbundle"
 
-	"github.com/giantswarm/flannel-operator/service/controller/v3"
+	v3 "github.com/giantswarm/flannel-operator/service/controller/v3"
 )
 
 func NewVersionBundles() []versionbundle.Bundle {
