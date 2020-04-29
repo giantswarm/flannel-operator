@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: {{ include "resource.default.name" . }}
   namespace: {{ .Release.Namespace }}
-  labales:
+  labels:
     {{- include "labels.common" . | nindent 4 }}
 data:
   config.yaml: |
