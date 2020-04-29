@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ tpl .Values.resource.default.name . }}
-  namespace: {{ .Values.resource.default.namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ tpl .Values.resource.default.name . }}
+    {{- include "labels.common" . | nindent 4 }}
 spec:
   replicas: 1
   revisionHistoryLimit: 3
@@ -12,13 +12,13 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      app: {{ tpl .Values.resource.default.name . }}
+      {{- include "labels.selector" . | nindent 6 }}
   template:
     metadata:
       annotations:
         releaseRevision: {{ .Release.Revision | quote }}
       labels:
-        app: {{ tpl .Values.resource.default.name . }}
+        {{- include "labels.selector" . | nindent 8 }}
     spec:
       volumes:
       - name: etcd-certs
