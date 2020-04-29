@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use `flannel-operator` as common resource name due to legacy hard-coded references.
 
 ## [1.0.0] - 2020-04-29
 
