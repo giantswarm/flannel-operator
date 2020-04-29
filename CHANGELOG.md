@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Fix typo in `configmap` labels field name.
 
 ## [1.1.0] - 2020-04-29
 
