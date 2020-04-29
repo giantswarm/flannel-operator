@@ -17,7 +17,6 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "labels.common" -}}
-app: {{ include "name" . | quote }}
 {{ include "labels.selector" . }}
 app.giantswarm.io/branch: {{ .Values.project.branch | quote }}
 app.giantswarm.io/commit: {{ .Values.project.commit | quote }}
@@ -30,6 +29,7 @@ helm.sh/chart: {{ include "chart" . | quote }}
 Selector labels
 */}}
 {{- define "labels.selector" -}}
+app: {{ include "name" . | quote }}
 app.kubernetes.io/name: {{ include "name" . | quote }}
 app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end -}}
