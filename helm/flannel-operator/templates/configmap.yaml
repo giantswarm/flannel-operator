@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ tpl .Values.resource.configMap.name . }}
+  name: {{ include "resourse.default.name" . }}
   namespace: {{ .Release.Namespace }}
   labales:
     {{- include "labels.common" . | nindent 4 }}
