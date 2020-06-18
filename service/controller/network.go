@@ -42,7 +42,6 @@ func NewNetwork(config NetworkConfig) (*Network, error) {
 	var operatorkitController *controller.Controller
 	{
 		c := controller.Config{
-			CRD:          v1alpha1.NewFlannelConfigCRD(),
 			K8sClient:    config.K8sClient,
 			Logger:       config.Logger,
 			ResourceSets: resourceSets,
