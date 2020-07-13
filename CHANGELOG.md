@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Stop ensuring `FlannelConfig` on start up.
+- Use host PID namespace for flannel-network DS and flannel-destroyer Job.
 
 ## [1.1.1] - 2020-04-29
 
