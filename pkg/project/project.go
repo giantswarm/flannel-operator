@@ -5,7 +5,7 @@ var (
 	gitSHA      = "n/a"
 	name        = "flannel-operator"
 	source      = "https://github.com/giantswarm/flannel-operator"
-	version     = "1.1.1"
+	version     = "1.2.0"
 )
 
 func Description() string {
