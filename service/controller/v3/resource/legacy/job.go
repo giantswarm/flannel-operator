@@ -41,6 +41,7 @@ func newJob(customObject v1alpha1.FlannelConfig, replicas int32) *batchv1.Job {
 					ServiceAccountName: serviceAccountName(customObject.Spec),
 					RestartPolicy:      apiv1.RestartPolicyOnFailure,
 					HostNetwork:        true,
+					HostPID:            true,
 					Volumes: []apiv1.Volume{
 						{
 							Name: "cgroup",

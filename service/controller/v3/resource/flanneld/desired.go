@@ -89,6 +89,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, e
 				},
 				Spec: corev1.PodSpec{
 					HostNetwork: true,
+					HostPID:     true,
 					Containers: []corev1.Container{
 						{
 							Name:            "flanneld",
