@@ -3,7 +3,7 @@ module github.com/giantswarm/flannel-operator
 go 1.14
 
 require (
-	github.com/coreos/etcd v3.3.17+incompatible
+	github.com/coreos/etcd v3.3.25+incompatible
 	github.com/giantswarm/apiextensions v0.2.0
 	github.com/giantswarm/backoff v0.2.0
 	github.com/giantswarm/k8sclient v0.2.0
