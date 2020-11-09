@@ -92,7 +92,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, e
 					HostPID:     true,
 					InitContainers: []corev1.Container{
 						{
-							Name:  "pull-images",
+							Name:  "pull-image-flanneld",
 							Image: "quay.io/giantswarm/docker:18.09.1",
 							Command: []string{
 								"docker",
@@ -107,7 +107,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, e
 							},
 						},
 						{
-							Name:  "pull-images",
+							Name:  "pull-image-k8s-network-bridge",
 							Image: "quay.io/giantswarm/docker:18.09.1",
 							Command: []string{
 								"docker",
@@ -122,7 +122,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, e
 							},
 						},
 						{
-							Name:  "pull-images",
+							Name:  "pull-image-flannel-network-health",
 							Image: "quay.io/giantswarm/docker:18.09.1",
 							Command: []string{
 								"docker",
