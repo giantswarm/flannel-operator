@@ -8,6 +8,7 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/operatorkit/controller/context/finalizerskeptcontext"
+	"github.com/giantswarm/operatorkit/controller/context/reconciliationcanceledcontext"
 	"github.com/giantswarm/operatorkit/controller/context/resourcecanceledcontext"
 	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -90,6 +91,31 @@ func (r *Resource) GetCurrentState(ctx context.Context, obj interface{}) (interf
 			currentDaemonSet = manifest
 
 			r.updateVersionBundleVersionGauge(ctx, customObject, versionBundleVersionGauge, currentDaemonSet)
+		}
+	}
+
+	{
+		r.logger.LogCtx(ctx, "level", "debug", "message", "looking for other non-ready network daemon sets in the Kubernetes API")
+
+		networks, err := r.k8sClient.AppsV1().DaemonSets("").List(metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("app=%s", key.NetworkID),
+		})
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		for _, network := range networks.Items {
+			if currentDaemonSet != nil &&
+				network.Name == currentDaemonSet.Name &&
+				network.Namespace == currentDaemonSet.Namespace {
+				// don't consider the current DaemonSet
+				continue
+			}
+			if network.Status.NumberReady != network.Status.DesiredNumberScheduled {
+				message := fmt.Sprintf("found non-ready network daemon set \"%s/%s\", stopping reconciliation", network.Namespace, network.Name)
+				r.logger.LogCtx(ctx, "level", "debug", "message", message)
+				reconciliationcanceledcontext.SetCanceled(ctx)
+			}
 		}
 	}
 

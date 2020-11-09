@@ -23,6 +23,7 @@ rules:
       - daemonsets
     verbs:
       - create
+      - list
       - get
       - delete
   - apiGroups:

@@ -120,7 +120,7 @@ func newJob(customObject v1alpha1.FlannelConfig, replicas int32) *batchv1.Job {
 						{
 							Name:            "k8s-network-bridge",
 							Image:           networkBridgeDockerImage(customObject.Spec),
-							ImagePullPolicy: apiv1.PullAlways,
+							ImagePullPolicy: apiv1.PullIfNotPresent,
 							Command: []string{
 								"/bin/sh",
 								"-c",

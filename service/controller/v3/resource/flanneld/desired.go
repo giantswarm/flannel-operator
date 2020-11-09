@@ -90,11 +90,58 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, e
 				Spec: corev1.PodSpec{
 					HostNetwork: true,
 					HostPID:     true,
+					InitContainers: []corev1.Container{
+						{
+							Name:  "pull-images",
+							Image: "quay.io/giantswarm/docker:18.09.1",
+							Command: []string{
+								"docker",
+								"pull",
+								key.FlannelDockerImage,
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "docker",
+									MountPath: "/var/run/docker.sock",
+								},
+							},
+						},
+						{
+							Name:  "pull-images",
+							Image: "quay.io/giantswarm/docker:18.09.1",
+							Command: []string{
+								"docker",
+								"pull",
+								key.NetworkBridgeDockerImage(customObject),
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "docker",
+									MountPath: "/var/run/docker.sock",
+								},
+							},
+						},
+						{
+							Name:  "pull-images",
+							Image: "quay.io/giantswarm/docker:18.09.1",
+							Command: []string{
+								"docker",
+								"pull",
+								key.NetworkHealthDockerImage(customObject),
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "docker",
+									MountPath: "/var/run/docker.sock",
+								},
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            "flanneld",
 							Image:           key.FlannelDockerImage,
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -165,7 +212,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, e
 						{
 							Name:            "k8s-network-bridge",
 							Image:           key.NetworkBridgeDockerImage(customObject),
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command: []string{
 								"/bin/sh",
 								"-c",
@@ -256,7 +303,7 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, e
 						{
 							Name:            "flannel-network-health",
 							Image:           key.NetworkHealthDockerImage(customObject),
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env: []corev1.EnvVar{
 								{
 									Name:  "LISTEN_ADDRESS",
@@ -292,6 +339,14 @@ func newDaemonSet(customObject v1alpha1.FlannelConfig, etcdEndpoints []string, e
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/sys/fs/cgroup",
+								},
+							},
+						},
+						{
+							Name: "docker",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/var/run/docker.sock",
 								},
 							},
 						},
