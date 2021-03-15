@@ -15,9 +15,9 @@ require (
 	github.com/giantswarm/versionbundle v0.2.0
 	github.com/prometheus/client_golang v1.9.0
 	github.com/spf13/viper v1.7.1
-	k8s.io/api v0.18.6
-	k8s.io/apimachinery v0.18.6
-	k8s.io/client-go v0.18.6
+	k8s.io/api v0.17.2
+	k8s.io/apimachinery v0.17.2
+	k8s.io/client-go v0.17.2
 )
 
 replace (
@@ -25,5 +25,4 @@ replace (
 	github.com/coreos/etcd v3.3.13+incompatible => github.com/coreos/etcd v3.3.25+incompatible
 	github.com/coreos/etcd v3.3.15+incompatible => github.com/coreos/etcd v3.3.25+incompatible
 	github.com/coreos/etcd v3.3.17+incompatible => github.com/coreos/etcd v3.3.25+incompatible
-	sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v0.3.13-gs
 )
