@@ -15,9 +15,9 @@ data:
         address: 'http://0.0.0.0:8000'
     service:
       crd:
-        labelSelector: '{{ .Values.Installation.V1.GiantSwarm.FlannelOperator.CRD.LabelSelector }}'
+        labelSelector: ''
       etcd:
-        endpoints: '{{ range $index, $element := .Values.Installation.V1.Provider.KVM.Flannel.EtcdEndpoints }}{{if $index}} {{end}}{{$element}}{{end}}'
+        endpoints: '{{ range $index, $element := .Values.flannel.etcdEndpoints }}{{if $index}} {{end}}{{$element}}{{end}}'
         tls:
           cafile: '/etc/kubernetes/ssl/etcd/etcd-ca.pem'
           crtfile: '/etc/kubernetes/ssl/etcd/etcd.pem'
