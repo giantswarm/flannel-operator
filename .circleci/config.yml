@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  architect: giantswarm/architect@0.10.0
+  architect: giantswarm/architect@2.11.0
 
 workflows:
   build:
@@ -43,7 +43,6 @@ workflows:
           name: push-flannel-operator-to-kvm-app-collection
           app_name: "flannel-operator"
           app_collection_repo: "kvm-app-collection"
-          unique: "true"
           requires:
             - push-flannel-operator-to-control-plane-app-catalog
           filters:
