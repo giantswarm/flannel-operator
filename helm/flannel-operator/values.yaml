@@ -1,7 +1,12 @@
+flannel:
+  etcdEndpoints: []
 image:
-  registry: quay.io
   name: "giantswarm/flannel-operator"
   tag: "[[ .Version ]]"
+registry:
+  domain: docker.io
+  pullSecret:
+    dockerConfigJSON: ""
 pod:
   user:
     id: 0
