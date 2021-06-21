@@ -1,0 +1,3 @@
+[allowlist]
+    files = ['''(?i)(vendor\/).$''']
+    description = "ignore secrets in vendored modules"
