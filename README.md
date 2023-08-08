@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/giantswarm/flannel-operator.svg?style=shield)](https://circleci.com/gh/giantswarm/flannel-operator) [![Docker Repository on Quay](https://quay.io/repository/giantswarm/flannel-operator/status "Docker Repository on Quay")](https://quay.io/repository/giantswarm/flannel-operator)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/giantswarm/flannel-operator/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/giantswarm/flannel-operator/tree/master)
 
 # flannel-operator
 
