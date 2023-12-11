@@ -13,12 +13,9 @@ workflows:
             tags:
               only: /^v.*/
 
-      - architect/push-to-docker:
+      - architect/push-to-registries:
           context: architect
-          name: push-flannel-operator-to-quay
-          image: "quay.io/giantswarm/flannel-operator"
-          username_envar: "QUAY_USERNAME"
-          password_envar: "QUAY_PASSWORD"
+          name: push-to-registries
           requires:
             - go-build-flannel-operator
           filters:
@@ -33,7 +30,7 @@ workflows:
           app_catalog_test: "control-plane-test-catalog"
           chart: "flannel-operator"
           requires:
-            - push-flannel-operator-to-quay
+            - push-to-registries
           filters:
             tags:
               only: /^v.*/
